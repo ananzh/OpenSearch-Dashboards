@@ -82,10 +82,12 @@ jobs:
         run: |
           wget https://artifacts.opensearch.org/snapshots/core/opensearch/1.2.0-SNAPSHOT/opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz -P 2>/dev/null
           mv opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch.tar.gz
+          tar -xvf opensearch.tar.gz
           wget https://artifacts.opensearch.org/snapshots/core/opensearch-dashboards/1.2.0-SNAPSHOT/opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz 2>/dev/null
           mv opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch-dashboards.tar.gz
+          tar -xvf opensearch-dashboards.tar.gz
+          ls /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards
           chmod 777 ./scripts/bwctest-osd.sh
-          ./scripts/bwctest-osd.sh -o /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/opensearch.tar.gz -d /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/opensearch-dashboards.tar.gz -v osd-1.0.0
 
       # Set cache if linter, unit tests, and integration tests were successful then the job will be marked successful
       # Sets individual results to empower re-runs of the same build without re-running successful steps.
