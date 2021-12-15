@@ -80,12 +80,14 @@ jobs:
         if: steps.bwc_tests_results.outputs.bwc_tests_results != 'success'
         id: bwc-tests
         run: |
-          wget https://artifacts.opensearch.org/snapshots/core/opensearch/1.2.0-SNAPSHOT/opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz 2>/dev/null
+          pwd
+          wget https://artifacts.opensearch.org/snapshots/core/opensearch/1.2.0-SNAPSHOT/opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz -P 2>/dev/null
           mv opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch.tar.gz
           wget https://artifacts.opensearch.org/snapshots/core/opensearch-dashboards/1.2.0-SNAPSHOT/opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz 2>/dev/null
           mv opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch-dashboards.tar.gz
+          pwd
           chmod 777 ./scripts/bwctest-osd.sh
-          ./scripts/bwctest-osd.sh -o opensearch.tar.gz -d opensearch-dashboards.tar.gz -v osd-1.0.0
+          ./scripts/bwctest-osd.sh -o ./opensearch.tar.gz -d ./opensearch-dashboards.tar.gz -v osd-1.0.0
 
       # Set cache if linter, unit tests, and integration tests were successful then the job will be marked successful
       # Sets individual results to empower re-runs of the same build without re-running successful steps.
