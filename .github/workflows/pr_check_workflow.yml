@@ -86,7 +86,10 @@ jobs:
           wget https://artifacts.opensearch.org/snapshots/core/opensearch-dashboards/1.2.0-SNAPSHOT/opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz 2>/dev/null
           mv opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch-dashboards.tar.gz
           tar -xvf opensearch-dashboards.tar.gz
-          ls /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards
+          echo "Found ${{ steps.pl.outputs.path_count }} file(s) with this extension:"
+          for i in ${{ steps.pl.outputs.paths }}; do
+            echo $i
+          done
           chmod 777 ./scripts/bwctest-osd.sh
 
       # Set cache if linter, unit tests, and integration tests were successful then the job will be marked successful
