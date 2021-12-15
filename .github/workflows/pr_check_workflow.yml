@@ -35,6 +35,7 @@ jobs:
             linter_results
             unit_tests_results
             integration_tests_results
+            bwc_tests_results
           key: ${{ github.run_id }}-${{ github.job }}-${{ github.sha }}
           restore-keys: |
             ${{ github.run_id }}-${{ github.job }}-${{ github.sha }}
@@ -54,6 +55,10 @@ jobs:
       - name: Get the previous integration tests results 
         id: integration_tests_results
         run: cat integration_tests_results 2>/dev/null || echo 'default'
+
+      - name: Get the previous backward compatibility tests results 
+        id: bwc_tests_results
+        run: cat bwc_tests_results 2>/dev/null || echo 'default'  
 
       - name: Checkout code
         if: steps.job_successful.outputs.job_successful != 'true'
@@ -113,12 +118,23 @@ jobs:
         id: integration-tests
         run: node scripts/jest_integration --ci --colors --max-old-space-size=5120 
 
+      - name: Run backward compatibility tests
+        if: steps.bwc_tests_results.outputs.bwc_tests_results != 'success'
+        id: bwc-tests
+        run: |
+          wget https://artifacts.opensearch.org/snapshots/core/opensearch/1.2.0-SNAPSHOT/opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz
+          mv opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch.tar.gz
+          wget https://artifacts.opensearch.org/snapshots/core/opensearch-dashboards/1.2.0-SNAPSHOT/opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz
+          mv opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch-dashboards.tar.gz
+          ./scripts/bwctest-osd.sh -o opensearch.tar.gz -d opensearch-dashboards.tar.gz -v osd-1.0.0
+
       # Set cache if linter, unit tests, and integration tests were successful then the job will be marked successful
       # Sets individual results to empower re-runs of the same build without re-running successful steps.
       - if: | 
           (steps.linter.outcome == 'success' || steps.linter.outcome == 'skipped') && 
           (steps.unit-tests.outcome == 'success' || steps.unit-tests.outcome == 'skipped') && 
-          (steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'skipped')
+          (steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'skipped') &&
+          (steps.bwc-tests.outcome == 'success' || steps.bwc-tests.outcome == 'skipped')
         run: echo "::set-output name=job_successful::true" > job_successful
       - if: steps.linter.outcome == 'success' || steps.linter.outcome == 'skipped'
         run: echo "::set-output name=linter_results::success" > linter_results
@@ -126,6 +142,8 @@ jobs:
         run: echo "::set-output name=unit_tests_results::success" > unit_tests_results
       - if: steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'skipped'
         run: echo "::set-output name=integration_tests_results::success" > integration_tests_results
+      - if: steps.bwc-tests.outcome == 'success' || steps.bwc-tests.outcome == 'skipped'
+        run: echo "::set-output name=bwc_tests_results::success" > bwc_tests_results  
   functional-tests:
     needs: [ build-lint-test ]
     runs-on: ubuntu-latest
