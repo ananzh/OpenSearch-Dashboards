@@ -84,7 +84,7 @@ jobs:
           mv opensearch-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch.tar.gz
           wget https://artifacts.opensearch.org/snapshots/core/opensearch-dashboards/1.2.0-SNAPSHOT/opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz
           mv opensearch-dashboards-min-1.2.0-SNAPSHOT-linux-x64-latest.tar.gz opensearch-dashboards.tar.gz
-          git update-index --chmod=+x ./scripts/bwctest-osd.sh
+          chmod 777 ./scripts/bwctest-osd.sh
           ./scripts/bwctest-osd.sh -o opensearch.tar.gz -d opensearch-dashboards.tar.gz -v osd-1.0.0
 
       # Set cache if linter, unit tests, and integration tests were successful then the job will be marked successful
