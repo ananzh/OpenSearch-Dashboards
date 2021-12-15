@@ -17,6 +17,7 @@ In general, we recommend three tiers of tests:
 * Unit tests: Unit tests: small and modular tests that utilize mocks for external dependencies.
 * Integration tests: higher-level tests that verify interactions between systems (eg. HTTP APIs, OpenSearch API calls, calling other plugin). 
 * End-to-end tests (e2e): functional tests that verify behavior in a web browser.
+* Backward compatibility tests: cypress tests that verify any changes are backward compatible with previous versions.
 
 # Requirements
 * Install the latest NodeJS, [NPM](https://www.npmjs.com/get-npm) and [Yarn](https://classic.yarnpkg.com/en/docs/install/#mac-stable)
@@ -49,6 +50,14 @@ Say that you would want to debug a test in CI group 1, you can run the following
 `node --debug-brk --inspect scripts/functional_tests.js --config test/functional/config.js --include ciGroup1 --debug`
 
 This will print of an address, to which you could open your chrome browser on your instance and navigate to `chrome://inspect/#devices` and inspect the functional test runner `scripts/functional_tests.js`.
+
+### Backward compatibility tests
+To run all the backward compatibility tests on vanilla dashboards:
+`yarn test:bwc -o [test path to opensearch.tar.gz] -d [test path to opensearch-dashboards.tar.gz]`
+To run all the backward compatibility tests on bundled dashboards, pass the bundle parameter to the test:
+`yarn test:bwc -o [test path to opensearch.tar.gz] -d [test path to opensearch-dashboards.tar.gz] -b true`
+To run specific backward compatibility tests, pass the version to the test:
+`yarn test:bwc -o [test path to opensearch.tar.gz] -d [test path to opensearch-dashboards.tar.gz] -v "[test versions]"`
 
 # Continuous Integration
 Automated testing is provided with Jenkins for Continuous Integration. Jenkins enables developers to build, deploy, and automate projects and provides us to run groups of tests quickly. CI groups are ran from the [Jenkinsfile](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/Jenkinsfile). 
