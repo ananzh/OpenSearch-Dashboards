@@ -34,3 +34,5 @@ import { TableVisPlugin as Plugin } from './plugin';
 export function plugin(initializerContext: PluginInitializerContext) {
   return new Plugin(initializerContext);
 }
+/* Public Types */
+export { TableVisExpressionFunctionDefinition } from './table_vis_fn';

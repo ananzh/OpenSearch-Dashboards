@@ -13,7 +13,7 @@ export interface DataTabConfig {
 
 export interface StyleTabConfig<T = any> {
   defaults: T;
-  render: () => ReactElement;
+  render: () => ReactElement | Promise<JSX.Element>;
 }
 
 export interface VisualizationTypeOptions<T = any> {
