@@ -68,11 +68,7 @@ function TableVizOptions() {
   const styleState = useTypedSelector((state) => state.style) as TableOptionsDefaults;
   // const visualization = useTypedSelector((state) => state.visualization);
   const dispatch = useTypedDispatch();
-  // const { aggConfigs } = await getAggExpressionFunctions(visualization);
-
-  // const activeViz = useTypedSelector((state) => state.visualization.activeVisualization!);
-  // //const vizName = activeViz?.name;
-  // const aggs = activeViz?.aggConfigParams;
+  // const { aggConfigs } = getAggExpressionFunctions(visualization);
 
   const setOption = useCallback(
     (callback: (draft: Draft<typeof styleState>) => void) => {
