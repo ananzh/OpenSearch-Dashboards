@@ -120,5 +120,5 @@ export const toExpression = async ({ style: styleState, visualization }: TableRo
     }
   );
 
-  return buildExpression([expressionFns[1], tableVis]).toString();
+  return buildExpression([...expressionFns, tableVis]).toString();
 };
