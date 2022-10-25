@@ -16,12 +16,19 @@ import {
   useTypedSelector,
   setStyleState,
 } from '../../../application/utils/state_management';
-import { TableOptionsDefaults, AggTypes } from '../table_viz_type';
+import { TableOptionsDefaults } from '../table_viz_type';
 import { Option } from '../../../application/app';
 import { getAggExpressionFunctions } from '../../common/expression_helpers';
-import { setValidity } from '../../../application/utils/state_management/metadata_slice';
 
 const { tabifyGetColumns } = search;
+
+export enum AggTypes {
+  SUM = 'sum',
+  AVG = 'avg',
+  MIN = 'min',
+  MAX = 'max',
+  COUNT = 'count',
+}
 
 const totalAggregations = [
   {
@@ -56,12 +63,16 @@ const totalAggregations = [
   },
 ];
 
-export const TableVizOptions = async () => {
-  const rootState = useTypedSelector((state) => state);
-  const { visualization, style: styleState } = rootState;
-  const { aggConfigs } = await getAggExpressionFunctions(visualization);
-
+// export const TableVizOptions = async () => {
+function TableVizOptions() {
+  const styleState = useTypedSelector((state) => state.style) as TableOptionsDefaults;
+  // const visualization = useTypedSelector((state) => state.visualization);
   const dispatch = useTypedDispatch();
+  // const { aggConfigs } = await getAggExpressionFunctions(visualization);
+
+  // const activeViz = useTypedSelector((state) => state.visualization.activeVisualization!);
+  // //const vizName = activeViz?.name;
+  // const aggs = activeViz?.aggConfigParams;
 
   const setOption = useCallback(
     (callback: (draft: Draft<typeof styleState>) => void) => {
@@ -97,32 +108,32 @@ export const TableVizOptions = async () => {
     defaultMessage: 'Don’t show',
   });
 
-  const percentageColumns = useMemo(
-    () => [
-      {
-        value: '',
-        text: defaultPercentageColText,
-      },
-      ...tabifyGetColumns(aggConfigs.getResponseAggs(), true)
-        .filter((col) => get(col.aggConfig.toSerializedFieldFormat(), 'id') === 'number')
-        .map(({ name }) => ({ value: name, text: name })),
-    ],
-    [aggConfigs, defaultPercentageColText]
-  );
+  // const percentageColumns = useMemo(
+  //  () => [
+  //    {
+  //      value: '',
+  //      text: defaultPercentageColText,
+  //    },
+  //    ...tabifyGetColumns(aggConfigs.getResponseAggs(), true)
+  //      .filter((col) => get(col.aggConfig.toSerializedFieldFormat(), 'id') === 'number')
+  //      .map(({ name }) => ({ value: name, text: name })),
+  //  ],
+  //  [aggConfigs, defaultPercentageColText]
+  // );
 
   const isPerPageValid = styleState.perPage === '' || styleState.perPage > 0;
 
-  useEffect(() => {
-    if (
-      !percentageColumns.find(({ value }) => value === styleState.percentageCol) &&
-      percentageColumns[0] &&
-      percentageColumns[0].value !== styleState.percentageCol
-    ) {
-      setOption((draft) => {
-        draft.percentageCol = percentageColumns[0].value;
-      });
-    }
-  }, [percentageColumns, styleState.percentageCol, setOption]);
+  // useEffect(() => {
+  //  if (
+  //    !percentageColumns.find(({ value }) => value === styleState.percentageCol) &&
+  //    percentageColumns[0] &&
+  //    percentageColumns[0].value !== styleState.percentageCol
+  //  ) {
+  //    setOption((draft) => {
+  //      draft.percentageCol = percentageColumns[0].value;
+  //    });
+  //  }
+  // }, [percentageColumns, styleState.percentageCol, setOption]);
 
   return (
     <>
@@ -199,20 +210,9 @@ export const TableVizOptions = async () => {
             })
           }
         />
-
-        <SelectOption
-          label={percentageColLabel}
-          options={percentageColumns}
-          paramName="percentageCol"
-          value={styleState.percentageCol}
-          setValue={(_, value) =>
-            setOption((draft) => {
-              draft.percentageCol = value;
-            })
-          }
-          id="datatableVisualizationPercentageCol"
-        />
       </Option>
     </>
   );
-};
+}
+
+export { TableVizOptions };

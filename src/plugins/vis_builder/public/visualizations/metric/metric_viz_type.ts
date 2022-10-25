@@ -36,10 +36,10 @@ export interface MetricOptionsDefaults {
 }
 
 export const createMetricConfig = (): VisualizationTypeOptions<MetricOptionsDefaults> => ({
-  name: 'table',
-  title: 'Table',
-  icon: 'visTable',
-  description: 'Display table visualizations',
+  name: 'metric',
+  title: 'Metric',
+  icon: 'visMetric',
+  description: 'Display metric visualizations',
   toExpression,
   ui: {
     containerConfig: {

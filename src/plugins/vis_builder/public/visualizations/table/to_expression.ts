@@ -77,7 +77,7 @@ export interface TableRootState extends RootState {
 
 export const toExpression = async ({ style: styleState, visualization }: TableRootState) => {
   const { aggConfigs, expressionFns } = await getAggExpressionFunctions(visualization);
-  const { activeVisualization } = visualization;
+  // const { activeVisualization } = visualization;
 
   const {
     perPage,
@@ -91,7 +91,7 @@ export const toExpression = async ({ style: styleState, visualization }: TableRo
   const schemas = getVisSchemas(aggConfigs);
 
   const tableData = {
-    title: activeVisualization?.name,
+    // title: activeVisualization?.name,
     metrics: schemas.metric,
     buckets: schemas.bucket || [],
     splitRow: schemas.split_row,

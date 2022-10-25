@@ -14,6 +14,7 @@ import {
 import { EDIT_PATH, PLUGIN_ID } from '../../../../common';
 import { VisBuilderServices } from '../../../types';
 import { MetricOptionsDefaults } from '../../../visualizations/metric/metric_viz_type';
+import { TableOptionsDefaults } from '../../../visualizations/table/table_viz_type';
 import { getCreateBreadcrumbs, getEditBreadcrumbs } from '../breadcrumbs';
 import { getSavedVisBuilderVis } from '../get_saved_vis_builder_vis';
 import {
@@ -82,6 +83,7 @@ export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined
           }
 
           dispatch(setStyleState<MetricOptionsDefaults>(styleState));
+          dispatch(setStyleState<TableOptionsDefaults>(styleState));
           dispatch(setVisualizationState(visualizationState));
         }
 
