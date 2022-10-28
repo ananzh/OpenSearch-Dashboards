@@ -34,7 +34,7 @@ import { Schemas } from '../../vis_default_editor/public';
 import { BaseVisTypeOptions } from '../../visualizations/public';
 import { tableVisResponseHandler } from './table_vis_response_handler';
 import { toExpressionAst } from './to_ast';
-import { VIS_EVENT_TO_TRIGGER } from '../../../plugins/visualizations/public';
+import { VIS_EVENT_TO_TRIGGER } from '../../visualizations/public';
 import { TableOptions } from './components/table_vis_options_lazy';
 
 export const getTableVisTypeDefinition = (): BaseVisTypeOptions => ({
