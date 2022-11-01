@@ -78,7 +78,5 @@ export interface SortColumn {
 
 export interface TableUiState {
   sort: SortColumn;
-  setSort: (sort: SortColumn) => void;
   width: ColumnWidth[];
-  setWidth: (columnsWidth: ColumnWidth[]) => void;
 }

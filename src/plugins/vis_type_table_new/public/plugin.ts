@@ -37,7 +37,6 @@ const setupTableVis = async (
   const [coreStart] = await core.getStartServices();
   expressions.registerFunction(createTableVisFn);
   expressions.registerRenderer(getTableVisRenderer(coreStart));
-  visualizations.createBaseVisualization(getNewTableVisTypeDefinition());
 };
 
 /** @internal */

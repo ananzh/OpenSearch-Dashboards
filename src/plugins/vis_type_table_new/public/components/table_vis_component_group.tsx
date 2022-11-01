@@ -13,12 +13,11 @@ import { TableVisComponent } from './table_vis_component';
 interface TableVisGroupComponentProps {
   tableGroups: TableGroup[];
   visConfig: TableVisConfig;
-  event: IInterpreterRenderHandlers['event'];
-  uiState: TableUiState;
+  handlers: IInterpreterRenderHandlers;
 }
 
 export const TableVisComponentGroup = memo(
-  ({ tableGroups, visConfig, event, uiState }: TableVisGroupComponentProps) => {
+  ({ tableGroups, visConfig, handlers, uiState }: TableVisGroupComponentProps) => {
     return (
       <>
         {tableGroups.map(({ tables, title }) => (
@@ -27,8 +26,7 @@ export const TableVisComponentGroup = memo(
               title={title}
               table={tables[0]}
               visConfig={visConfig}
-              event={event}
-              uiState={uiState}
+              handlers={handlers}
             />
           </div>
         ))}

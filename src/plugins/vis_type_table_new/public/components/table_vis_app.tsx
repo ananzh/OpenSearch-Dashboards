@@ -37,12 +37,10 @@ export const TableVisApp = ({
     visTable__groupInColumns: direction === 'column',
   });
 
-  const [sort, setSort] = useState<SortColumn>(
-    handlers.uiState.get('vis.sortColumn') || { colIndex: null, direction: null }
-  );
-  const [width, setWidth] = useState<ColumnWidth[]>(handlers.uiState.get('vis.sortColumn') || []);
-
-  const tableUiState: TableUiState = { sort, setSort, width, setWidth };
+  let key = JSON.stringify(handlers.uiState);
+  useEffect(() => {
+    key=JSON.stringify(handlers.uiState);
+  }, [key, handlers.uiState]);
 
   return (
     <I18nProvider>
@@ -52,15 +50,15 @@ export const TableVisApp = ({
             <TableVisComponent
               table={table}
               visConfig={visConfig}
-              event={handlers.event}
-              uiState={tableUiState}
+              handlers={handlers}
+              key={key}
             />
           ) : (
             <TableVisComponentGroup
               tableGroups={tableGroups}
               visConfig={visConfig}
-              event={handlers.event}
-              uiState={tableUiState}
+              handlers={handlers}
+              key={key}
             />
           )}
         </div>

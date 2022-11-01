@@ -19,16 +19,14 @@ interface TableVisComponentProps {
   title?: string;
   table: Table;
   visConfig: TableVisConfig;
-  event: IInterpreterRenderHandlers['event'];
-  uiState: TableUiState;
+  handlers: IInterpreterRenderHandlers;
 }
 
 export const TableVisComponent = ({
   title,
   table,
   visConfig,
-  event,
-  uiState,
+  handlers,
 }: TableVisComponentProps) => {
   const { formattedRows: rows, formattedColumns: columns } = convertToFormattedData(
     table,
@@ -38,10 +36,11 @@ export const TableVisComponent = ({
   const pagination = usePagination(visConfig, rows.length);
 
   const sortedRows = useMemo(() => {
-    return uiState.sort && uiState.sort.colIndex !== null && uiState.sort.direction
-      ? orderBy(rows, columns[uiState.sort.colIndex]?.id, uiState.sort.direction)
+    const sort = handlers.uiState.get('vis.sortColumn');
+    return sort && sort.colIndex !== null && sort.direction
+      ? orderBy(rows, columns[sort.colIndex]?.id, sort.direction)
       : rows;
-  }, [columns, rows, uiState]);
+  }, [columns, rows, handlers.uiState]);
 
   const renderCellValue = useMemo(() => {
     return (({ rowIndex, columnId }) => {
@@ -55,13 +54,14 @@ export const TableVisComponent = ({
     }) as EuiDataGridProps['renderCellValue'];
   }, [sortedRows, columns]);
 
-  const dataGridColumns = getDataGridColumns(sortedRows, columns, table, event, uiState.width);
+  const dataGridColumns = getDataGridColumns(sortedRows, columns, table, handlers.event, handlers.uiState.get('vis.columnsWidth') || []);
 
   const sortedColumns = useMemo(() => {
-    return uiState.sort && uiState.sort.colIndex !== null && uiState.sort.direction
-      ? [{ id: dataGridColumns[uiState.sort.colIndex]?.id, direction: uiState.sort.direction }]
+    const sort: SortColumn = handlers.uiState.get('vis.sortColumn') || {};
+    return sort && sort.colIndex !== null && sort.direction
+      ? [{ id: dataGridColumns[sort.colIndex]?.id, direction: sort.direction }]
       : [];
-  }, [dataGridColumns, uiState]);
+  }, [handlers.uiState, dataGridColumns]);
 
   const onSort = useCallback(
     (sortingCols: EuiDataGridSorting['columns'] | []) => {
@@ -76,15 +76,16 @@ export const TableVisComponent = ({
               colIndex: null,
               direction: null,
             };
-      uiState.setSort(nextSort);
+      handlers.uiState.set('vis.sortColumn', nextSort);
+      handlers.uiState.emit('reload');
       return nextSort;
     },
-    [dataGridColumns, uiState]
+    [dataGridColumns, handlers.uiState]
   );
 
   const onColumnResize: EuiDataGridProps['onColumnResize'] = useCallback(
     ({ columnId, width }) => {
-      const curWidth: ColumnWidth[] = uiState.width;
+      const curWidth: ColumnWidth[] = handlers.uiState.get('vis.columnsWidth') || [];
       const nextWidth = [...curWidth];
       const nextColIndex = columns.findIndex((col) => col.id === columnId);
       const curColIndex = curWidth.findIndex((col) => col.colIndex === nextColIndex);
@@ -96,9 +97,10 @@ export const TableVisComponent = ({
       else nextWidth[curColIndex] = nextColWidth;
 
       // update uiState.width
-      uiState.setWidth(nextWidth);
+      handlers.uiState.set('vis.columnsWidth', nextWidth);
+      handlers.uiState.emit('reload');
     },
-    [columns, uiState]
+    [columns, handlers.uiState]
   );
 
   const ariaLabel = title || visConfig.title || 'tableVis';
