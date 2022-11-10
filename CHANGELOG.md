@@ -45,6 +45,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - [Vis Builder] Add an experimental table visualization in vis builder ([#2705](https://github.com/opensearch-project/OpenSearch-Dashboards/pull/2705))
 - [Vis Builder] Add field summary popovers ([#2682](https://github.com/opensearch-project/OpenSearch-Dashboards/pull/2682))
 - Add yarn opensearch arg to setup plugin dependencies ([#2544](https://github.com/opensearch-project/OpenSearch-Dashboards/issues/2544))
+- [Table Visualization] Replace table visualization using React and DataGrid component ([#2863](https://github.com/opensearch-project/OpenSearch-Dashboards/pull/2863))
 
 ### 🐛 Bug Fixes
 
