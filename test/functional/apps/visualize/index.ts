@@ -60,9 +60,6 @@ export default function ({ getService, loadTestFile }: FtrProviderContext) {
       loadTestFile(require.resolve('./_embedding_chart'));
       loadTestFile(require.resolve('./_chart_types'));
       loadTestFile(require.resolve('./_area_chart'));
-      loadTestFile(require.resolve('./_data_table'));
-      loadTestFile(require.resolve('./_data_table_nontimeindex'));
-      loadTestFile(require.resolve('./_data_table_notimeindex_filters'));
     });
 
     describe('', function () {
