@@ -474,7 +474,9 @@ export function DashboardPageProvider({ getService, getPageObjects }: FtrProvide
       log.debug('in getSharedItemsCount');
       const attributeName = 'data-shared-items-count';
       const element = await find.byCssSelector(`[${attributeName}]`);
+      log.debug(element);
       if (element) {
+        log.debug(element.getAttribute(attributeName));
         return await element.getAttribute(attributeName);
       }
 
