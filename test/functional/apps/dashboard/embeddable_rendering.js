@@ -67,7 +67,6 @@ export default function ({ getService, getPageObjects }) {
     await dashboardExpect.markdownWithValuesExists(["I'm a markdown!"]);
     await dashboardExpect.vegaTextsExist(['5,000']);
     await dashboardExpect.goalAndGuageLabelsExist(['62.925%', '55.625%', '11.915 GB']);
-    await dashboardExpect.dataTableRowCount(5);
     await dashboardExpect.tagCloudWithValuesFound(['CN', 'IN', 'US', 'BR', 'ID']);
     // TODO add test for 'region map viz'
     // TODO add test for 'tsvb gauge' viz
@@ -90,7 +89,6 @@ export default function ({ getService, getPageObjects }) {
   const expectNoDataRenders = async () => {
     await pieChart.expectPieSliceCount(0);
     await dashboardExpect.seriesElementCount(0);
-    await dashboardExpect.dataTableRowCount(0);
     await dashboardExpect.savedSearchRowCount(0);
     await dashboardExpect.inputControlItemCount(5);
     await dashboardExpect.metricValuesExist(['0']);

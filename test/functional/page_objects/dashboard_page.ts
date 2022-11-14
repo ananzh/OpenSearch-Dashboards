@@ -425,7 +425,6 @@ export function DashboardPageProvider({ getService, getPageObjects }: FtrProvide
         { name: PIE_CHART_VIS_NAME, description: 'PieChart' },
         { name: 'Visualization☺ VerticalBarChart', description: 'VerticalBarChart' },
         { name: AREA_CHART_VIS_NAME, description: 'AreaChart' },
-        { name: 'Visualization☺漢字 DataTable', description: 'DataTable' },
         { name: LINE_CHART_VIS_NAME, description: 'LineChart' },
         { name: 'Visualization TileMap', description: 'TileMap' },
         { name: 'Visualization MetricChart', description: 'MetricChart' },
@@ -474,7 +473,9 @@ export function DashboardPageProvider({ getService, getPageObjects }: FtrProvide
       log.debug('in getSharedItemsCount');
       const attributeName = 'data-shared-items-count';
       const element = await find.byCssSelector(`[${attributeName}]`);
+      log.debug(element);
       if (element) {
+        log.debug(element.getAttribute(attributeName));
         return await element.getAttribute(attributeName);
       }
 

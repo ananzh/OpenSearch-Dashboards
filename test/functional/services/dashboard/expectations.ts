@@ -38,7 +38,7 @@ export function DashboardExpectProvider({ getService, getPageObjects }: FtrProvi
   const testSubjects = getService('testSubjects');
   const find = getService('find');
   const filterBar = getService('filterBar');
-  const PageObjects = getPageObjects(['dashboard', 'visualize']);
+  const PageObjects = getPageObjects(['dashboard', 'visualize', 'visChart']);
   const findTimeout = 2500;
 
   return new (class DashboardExpect {
@@ -238,17 +238,6 @@ export function DashboardExpectProvider({ getService, getPageObjects }: FtrProvi
           findTimeout
         );
         expect(savedSearchRows.length).to.be(expectedCount);
-      });
-    }
-
-    async dataTableRowCount(expectedCount: number) {
-      log.debug(`DashboardExpect.dataTableRowCount(${expectedCount})`);
-      await retry.try(async () => {
-        const dataTableRows = await find.allByCssSelector(
-          '[data-test-subj="paginated-table-body"] [data-cell-content]',
-          findTimeout
-        );
-        expect(dataTableRows.length).to.be(expectedCount);
       });
     }
 

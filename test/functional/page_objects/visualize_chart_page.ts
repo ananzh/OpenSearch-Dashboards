@@ -36,7 +36,7 @@ export function VisualizeChartPageProvider({ getService, getPageObjects }: FtrPr
   const find = getService('find');
   const log = getService('log');
   const retry = getService('retry');
-  const table = getService('table');
+  const dataGrid = getService('dataGrid');
   const defaultFindTimeout = config.get('timeouts.find');
   const { common } = getPageObjects(['common']);
 
@@ -294,18 +294,6 @@ export function VisualizeChartPageProvider({ getService, getPageObjects }: FtrPr
       });
     }
 
-    public async filterOnTableCell(column: string, row: string) {
-      await retry.try(async () => {
-        const tableVis = await testSubjects.find('tableVis');
-        const cell = await tableVis.findByCssSelector(
-          `tbody tr:nth-child(${row}) td:nth-child(${column})`
-        );
-        await cell.moveMouseTo();
-        const filterBtn = await testSubjects.findDescendant('filterForCellValue', cell);
-        await filterBtn.click();
-      });
-    }
-
     public async getMarkdownText() {
       const markdownContainer = await testSubjects.find('markdownBody');
       return markdownContainer.getVisibleText();
@@ -318,36 +306,20 @@ export function VisualizeChartPageProvider({ getService, getPageObjects }: FtrPr
     }
 
     public async getFieldLinkInVisTable(fieldName: string, rowIndex: number = 1) {
-      const tableVis = await testSubjects.find('tableVis');
-      const $ = await tableVis.parseDomContent();
-      const headers = $('span[ng-bind="::col.title"]')
-        .toArray()
-        .map((header: any) => $(header).text());
+      const headers = await dataGrid.getDataGridTableHeaders();
       const fieldColumnIndex = headers.indexOf(fieldName);
-      return await find.byCssSelector(
-        `[data-test-subj="paginated-table-body"] tr:nth-of-type(${rowIndex}) td:nth-of-type(${
-          fieldColumnIndex + 1
-        }) a`
-      );
+      const cell = await dataGrid.getDataGridTableCell(rowIndex, fieldColumnIndex + 1);
+      return await cell.findByTagName('a');
     }
 
     /**
-     * If you are writing new tests, you should rather look into getTableVisContent method instead.
-     * @deprecated Use getTableVisContent instead.
-     */
-    public async getTableVisData() {
-      return await testSubjects.getVisibleText('paginated-table-body');
-    }
-
-    /**
-     * This function is the newer function to retrieve data from within a table visualization.
-     * It uses a better return format, than the old getTableVisData, by properly splitting
-     * cell values into arrays. Please use this function for newer tests.
+     * This function is a function to retrieve data from within a table visualization.
+     * It uses a return format by properly splitting cell values into arrays.
      */
     public async getTableVisContent({ stripEmptyRows = true } = {}) {
       return await retry.try(async () => {
         const container = await testSubjects.find('tableVis');
-        const allTables = await testSubjects.findAllDescendant('paginated-table-body', container);
+        const allTables = await testSubjects.findAllDescendant('dataGridWrapper', container);
 
         if (allTables.length === 0) {
           return [];
@@ -355,7 +327,7 @@ export function VisualizeChartPageProvider({ getService, getPageObjects }: FtrPr
 
         const allData = await Promise.all(
           allTables.map(async (t) => {
-            let data = await table.getDataFromElement(t);
+            let data = await dataGrid.getDataFromElement(t);
             if (stripEmptyRows) {
               data = data.filter(
                 (row) => row.length > 0 && row.some((cell) => cell.trim().length > 0)

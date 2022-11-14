@@ -48,7 +48,6 @@ import {
   DashboardVisualizationProvider,
 } from './dashboard';
 import { DocTableProvider } from './doc_table';
-import { EmbeddingProvider } from './embedding';
 import { FilterBarProvider } from './filter_bar';
 import { FlyoutProvider } from './flyout';
 import { GlobalNavProvider } from './global_nav';
@@ -57,7 +56,6 @@ import { ManagementMenuProvider } from './management';
 import { QueryBarProvider } from './query_bar';
 import { RemoteProvider } from './remote';
 import { RenderableProvider } from './renderable';
-import { TableProvider } from './table';
 import { ToastsProvider } from './toasts';
 import { DataGridProvider } from './data_grid';
 import {
@@ -91,9 +89,7 @@ export const services = {
   flyout: FlyoutProvider,
   comboBox: ComboBoxProvider,
   dataGrid: DataGridProvider,
-  embedding: EmbeddingProvider,
   renderable: RenderableProvider,
-  table: TableProvider,
   browser: BrowserProvider,
   pieChart: PieChartProvider,
   inspector: InspectorProvider,
