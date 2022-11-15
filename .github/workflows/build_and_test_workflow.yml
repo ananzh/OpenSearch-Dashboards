@@ -79,7 +79,7 @@ jobs:
     name: Run functional tests
     strategy:
       matrix:
-        group: [ 5, 9 ]
+        group: [ 9 ]
     steps:
       - run: echo Running functional tests for ciGroup${{ matrix.group }}
 
