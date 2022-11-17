@@ -305,49 +305,6 @@ export function VisualizeChartPageProvider({ getService, getPageObjects }: FtrPr
       return element.getVisibleText();
     }
 
-    public async getFieldLinkInVisTable(fieldName: string, rowIndex: number = 1) {
-      const headers = await dataGrid.getDataGridTableHeaders();
-      const fieldColumnIndex = headers.indexOf(fieldName);
-      const cell = await dataGrid.getDataGridTableCell(rowIndex, fieldColumnIndex + 1);
-      return await cell.findByTagName('a');
-    }
-
-    /**
-     * This function is a function to retrieve data from within a table visualization.
-     * It uses a return format by properly splitting cell values into arrays.
-     */
-    public async getTableVisContent({ stripEmptyRows = true } = {}) {
-      return await retry.try(async () => {
-        const container = await testSubjects.find('tableVis');
-        const allTables = await testSubjects.findAllDescendant('dataGridWrapper', container);
-
-        if (allTables.length === 0) {
-          return [];
-        }
-
-        const allData = await Promise.all(
-          allTables.map(async (t) => {
-            let data = await dataGrid.getDataFromElement(t);
-            if (stripEmptyRows) {
-              data = data.filter(
-                (row) => row.length > 0 && row.some((cell) => cell.trim().length > 0)
-              );
-            }
-            return data;
-          })
-        );
-
-        if (allTables.length === 1) {
-          // If there was only one table we return only the data for that table
-          // This prevents an unnecessary array around that single table, which
-          // is the case we have in most tests.
-          return allData[0];
-        }
-
-        return allData;
-      });
-    }
-
     public async getMetric() {
       const elements = await find.allByCssSelector(
         '[data-test-subj="visualizationLoader"] .mtrVis__container'

@@ -29,7 +29,6 @@
  */
 
 import { FtrProviderContext } from '../ftr_provider_context';
-import { WebElementWrapper } from './lib/web_element_wrapper';
 import { CustomCheerioStatic } from './lib/web_element_wrapper/custom_cheerio_api';
 
 interface TabbedGridData {
@@ -39,7 +38,6 @@ interface TabbedGridData {
 
 export function DataGridProvider({ getService }: FtrProviderContext) {
   const find = getService('find');
-  const testSubjects = getService('testSubjects');
 
   class DataGrid {
     public getTableRowsContent($: CustomCheerioStatic) {
@@ -65,26 +63,6 @@ export function DataGridProvider({ getService }: FtrProviderContext) {
         .map((cell) => $(cell).text());
     }
 
-    public getTableHeaderContent($: CustomCheerioStatic) {
-      return $('.euiDataGridHeaderCell__content')
-        .toArray()
-        .map((cell) => $(cell).text());
-    }
-
-    /**
-     * Converts the table data into nested array
-     * [ [cell1_in_row1, cell2_in_row1], [cell1_in_row2, cell2_in_row2] ]
-     * @param element table
-     */
-    public async getDataFromElement(element: WebElementWrapper): Promise<string[][]> {
-      const $ = await element.parseDomContent();
-      const rows: string[][] = this.getTableRowsContent($);
-      rows.forEach((row) => {
-        row.forEach((cell) => cell.replace(/&nbsp;/g, '').trim());
-      });
-      return rows;
-    }
-
     async getDataGridTableData(): Promise<TabbedGridData> {
       const table = await find.byCssSelector('.euiDataGrid');
       const $ = await table.parseDomContent();
@@ -95,38 +73,6 @@ export function DataGridProvider({ getService }: FtrProviderContext) {
         columns,
         rows,
       };
-    }
-
-    // public async getDataGridTableRowsLength(): Promise<number> {
-    //  const table = await find.byCssSelector('.euiDataGrid');
-    //  const $ = await table.parseDomContent();
-    //  const rows: string[][] = this.getTableRowsContent($);
-    //  return rows.length;
-    // }
-
-    // public async getDataGridTableColumnsLength(): Promise<number> {
-    //  const table = await find.byCssSelector('.euiDataGrid');
-    //  const $ = await table.parseDomContent();
-    //  const columns: string[] = this.getTableColumnsContent($);
-    //  return columns.length;
-    // }
-
-    public async getDataGridTableCell(rowIndex: number, colIndex: number) {
-      const { columns } = await this.getDataGridTableData();
-      const position = rowIndex * columns.length + colIndex;
-
-      return await find.byCssSelector(
-        `[data-test-subj="dataGridRowCell"]:nth-of-type(${position})`
-      );
-    }
-
-    /**
-     * Returns an array of data grid headers names
-     */
-    public async getDataGridTableHeaders() {
-      const headers = await testSubjects.find('dataGridHeader');
-      const $ = await headers.parseDomContent();
-      return this.getTableHeaderContent($);
     }
   }
 

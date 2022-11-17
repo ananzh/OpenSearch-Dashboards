@@ -33,7 +33,7 @@ import { WebElementWrapper } from 'test/functional/services/lib/web_element_wrap
 import { FtrProviderContext } from '../../ftr_provider_context';
 
 export default function ({ getService, getPageObjects }: FtrProviderContext) {
-  const { common, dashboard, settings, timePicker, visChart } = getPageObjects([
+  const { common, settings, timePicker } = getPageObjects([
     'common',
     'dashboard',
     'settings',
@@ -72,14 +72,6 @@ export default function ({ getService, getPageObjects }: FtrProviderContext) {
       await settings.openControlsByName(fieldName);
       await settings.setFieldFormat('url');
       await settings.controlChangeSave();
-    });
-
-    it('applied on dashboard', async () => {
-      await common.navigateToApp('dashboard');
-      await dashboard.loadSavedDashboard('dashboard with everything');
-      await dashboard.waitForRenderComplete();
-      const fieldLink = await visChart.getFieldLinkInVisTable(`${fieldName}: Descending`, 1);
-      await clickFieldAndCheckUrl(fieldLink);
     });
 
     it('applied on discover', async () => {
