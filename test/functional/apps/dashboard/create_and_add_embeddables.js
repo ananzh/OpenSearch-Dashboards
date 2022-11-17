@@ -70,7 +70,7 @@ export default function ({ getService, getPageObjects }) {
         await PageObjects.dashboard.waitForRenderComplete();
       });
 
-      it('adds a new visualization', async () => {
+      it('adds a new visualization1', async () => {
         const originalPanelCount = await PageObjects.dashboard.getPanelCount();
         await dashboardAddPanel.ensureAddPanelIsShowing();
         await dashboardAddPanel.clickAddNewEmbeddableLink('visualization');
