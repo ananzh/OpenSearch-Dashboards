@@ -36,7 +36,6 @@ export function VisualizeChartPageProvider({ getService, getPageObjects }: FtrPr
   const find = getService('find');
   const log = getService('log');
   const retry = getService('retry');
-  const dataGrid = getService('dataGrid');
   const defaultFindTimeout = config.get('timeouts.find');
   const { common } = getPageObjects(['common']);
 
