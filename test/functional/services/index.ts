@@ -50,6 +50,7 @@ import {
 import { DocTableProvider } from './doc_table';
 import { FilterBarProvider } from './filter_bar';
 import { FlyoutProvider } from './flyout';
+import { EmbeddingProvider } from './embedding';
 import { GlobalNavProvider } from './global_nav';
 import { InspectorProvider } from './inspector';
 import { ManagementMenuProvider } from './management';
@@ -89,6 +90,7 @@ export const services = {
   flyout: FlyoutProvider,
   comboBox: ComboBoxProvider,
   dataGrid: DataGridProvider,
+  embedding: EmbeddingProvider,
   renderable: RenderableProvider,
   browser: BrowserProvider,
   pieChart: PieChartProvider,

@@ -38,7 +38,7 @@ export function DashboardExpectProvider({ getService, getPageObjects }: FtrProvi
   const testSubjects = getService('testSubjects');
   const find = getService('find');
   const filterBar = getService('filterBar');
-  const PageObjects = getPageObjects(['dashboard', 'visualize', 'visChart']);
+  const PageObjects = getPageObjects(['dashboard', 'visualize']);
   const findTimeout = 2500;
 
   return new (class DashboardExpect {
