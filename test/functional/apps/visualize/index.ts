@@ -57,7 +57,6 @@ export default function ({ getService, loadTestFile }: FtrProviderContext) {
       this.tags('ciGroup9');
 
       loadTestFile(require.resolve('./_custom_branding'));
-      loadTestFile(require.resolve('./_embedding_chart'));
       loadTestFile(require.resolve('./_chart_types'));
       loadTestFile(require.resolve('./_area_chart'));
     });
@@ -70,7 +69,6 @@ export default function ({ getService, loadTestFile }: FtrProviderContext) {
       loadTestFile(require.resolve('./_gauge_chart'));
       loadTestFile(require.resolve('./_heatmap_chart'));
       loadTestFile(require.resolve('./input_control_vis'));
-      loadTestFile(require.resolve('./_histogram_request_start'));
       loadTestFile(require.resolve('./_metric_chart'));
     });
 
