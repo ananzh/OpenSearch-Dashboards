@@ -5,7 +5,8 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { orderBy } from 'lodash';
-import { EuiDataGridProps, EuiDataGrid, EuiDataGridSorting, EuiTitle, EuiLink } from '@elastic/eui';
+import dompurify from 'dompurify';
+import { EuiDataGridProps, EuiDataGrid, EuiDataGridSorting, EuiTitle } from '@elastic/eui';
 
 import { IInterpreterRenderHandlers } from 'src/plugins/expressions';
 import { Table } from '../table_vis_response_handler';
@@ -14,7 +15,6 @@ import { getDataGridColumns } from './table_vis_grid_columns';
 import { usePagination } from '../utils';
 import { convertToFormattedData } from '../utils/convert_to_formatted_data';
 import { TableVisControl } from './table_vis_control';
-import { UrlFormat } from './../../../data/common';
 
 interface TableVisComponentProps {
   title?: string;
@@ -52,30 +52,13 @@ export const TableVisComponent = ({
       const colIndex = columns.findIndex((col) => col.id === columnId);
       const column = columns[colIndex];
       // use formatter to format raw content
-      // this can format date and percentage data
-      //const textContent = column.formatter.convert(rawContent, 'text');
-      //const htmlContent = column.formatter.convert(rawContent, 'html');
-      ////const url = new UrlFormat({});
-      ////const a = url.htmlConvert(textContent);
-      //return htmlContent;
+      // this can format url, date and percentage data
+      const formattedContent = column.formatter.convert(rawContent, 'html');
       //const formattedContent = (
-      //  //eslint-disable-next-line
+      //  // eslint-disable-next-line
       //  <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
       //);
-
-      const textContent = column.formatter.convert(rawContent, 'text');
-      if(column.fieldType === "url"){
-        const htmlContent = column.formatter.convert(rawContent, 'html');
-        return (
-          <EuiLink href={textContent} target="_blank">
-             {textContent}
-          </EuiLink>
-        )
-      }else{
-        return textContent;
-      }
-
-      //return sortedRows.hasOwnProperty(rowIndex) ? formattedContent || null : null;
+      return sortedRows.hasOwnProperty(rowIndex) ? formattedContent || null : null;
     }) as EuiDataGridProps['renderCellValue'];
   }, [sortedRows, columns]);
 
@@ -129,13 +112,6 @@ export const TableVisComponent = ({
 
   const ariaLabel = title || visConfig.title || 'tableVis';
 
-  const footerCellValue = visConfig.showTotal
-    ? ({ columnId }: { columnId: any }) => {
-        const colIndex = columns.findIndex((col) => col.id === columnId);
-        return columns[colIndex]?.formattedTotal || null;
-      }
-    : undefined;
-
   return (
     <>
       {title && (
@@ -160,7 +136,6 @@ export const TableVisComponent = ({
           header: 'underline',
         }}
         minSizeForControls={1}
-        renderFooterCellValue={footerCellValue}
         toolbarVisibility={{
           showColumnSelector: false,
           showSortSelector: false,

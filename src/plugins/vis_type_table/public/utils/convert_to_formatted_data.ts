@@ -98,6 +98,7 @@ export const convertToFormattedData = (
 
       const formattedColumn: FormattedColumn = {
         id: col.id,
+        fieldType: dimension?.format?.params?.id || dimension?.format?.id,
         title: col.name,
         formatter,
         filterable: !!isBucket,

@@ -58,6 +58,7 @@ export interface TableVisParams {
 
 export interface FormattedColumn {
   id: string;
+  fieldType?: string;
   title: string;
   formatter: IFieldFormat;
   filterable: boolean;
