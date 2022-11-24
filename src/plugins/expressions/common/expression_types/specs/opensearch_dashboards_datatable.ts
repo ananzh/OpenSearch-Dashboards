@@ -48,7 +48,7 @@ export interface OpenSearchDashboardsDatatableColumn {
 }
 
 export interface OpenSearchDashboardsDatatableRow {
-  [key: string]: unknown;
+  [key: string]: string;
 }
 
 export interface OpenSearchDashboardsDatatable {

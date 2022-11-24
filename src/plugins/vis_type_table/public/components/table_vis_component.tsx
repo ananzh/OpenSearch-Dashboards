@@ -14,7 +14,6 @@ import { getDataGridColumns } from './table_vis_grid_columns';
 import { usePagination } from '../utils';
 import { convertToFormattedData } from '../utils/convert_to_formatted_data';
 import { TableVisControl } from './table_vis_control';
-import { UrlFormat } from './../../../data/common';
 
 interface TableVisComponentProps {
   title?: string;
@@ -48,34 +47,23 @@ export const TableVisComponent = ({
 
   const renderCellValue = useMemo(() => {
     return (({ rowIndex, columnId }) => {
-      const rawContent = sortedRows[rowIndex][columnId];
+      const rawContent: string = sortedRows[rowIndex][columnId];
       const colIndex = columns.findIndex((col) => col.id === columnId);
       const column = columns[colIndex];
       // use formatter to format raw content
       // this can format date and percentage data
-      //const textContent = column.formatter.convert(rawContent, 'text');
-      //const htmlContent = column.formatter.convert(rawContent, 'html');
-      ////const url = new UrlFormat({});
-      ////const a = url.htmlConvert(textContent);
-      //return htmlContent;
-      //const formattedContent = (
-      //  //eslint-disable-next-line
-      //  <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
-      //);
-
-      const textContent = column.formatter.convert(rawContent, 'text');
-      if(column.fieldType === "url"){
-        const htmlContent = column.formatter.convert(rawContent, 'html');
+      // const textContent = column.formatter.convert(rawContent, 'text');
+      if (column.fieldType === 'url') {
         return (
-          <EuiLink href={textContent} target="_blank">
-             {textContent}
+          <EuiLink href={rawContent} target="_blank">
+            {rawContent}
           </EuiLink>
-        )
-      }else{
-        return textContent;
+        );
+      } else {
+        return rawContent;
       }
 
-      //return sortedRows.hasOwnProperty(rowIndex) ? formattedContent || null : null;
+      // return sortedRows.hasOwnProperty(rowIndex) ? formattedContent || null : null;
     }) as EuiDataGridProps['renderCellValue'];
   }, [sortedRows, columns]);
 
