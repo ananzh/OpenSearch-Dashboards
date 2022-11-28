@@ -41,6 +41,8 @@ import {
 
 import { FormattedMessage } from '@osd/i18n/react';
 import { DefaultFormatEditor, FormatEditorProps } from '../default';
+import { context as contextType } from '../../../../../../../../opensearch_dashboards_react/public';
+import type { IndexPatternManagmentContextValue } from '../../../../../../types';
 
 import { FormatEditorSamples } from '../../samples';
 
@@ -78,12 +80,11 @@ export class UrlFormatEditor extends DefaultFormatEditor<
   UrlFormatEditorFormatState
 > {
   static formatId = 'url';
-  iconPattern: string;
+  static contextType = contextType;
+  public readonly context!: IndexPatternManagmentContextValue;
 
   constructor(props: FormatEditorProps<UrlFormatEditorFormatParams>) {
     super(props);
-
-    this.iconPattern = `/plugins/indexPatternManagement/assets/icons/{{value}}.png`;
 
     this.state = {
       ...this.state,
@@ -97,6 +98,13 @@ export class UrlFormatEditor extends DefaultFormatEditor<
       showLabelTemplateHelp: false,
     };
   }
+
+  private getIconPath = () => {
+    const iconPath = `/plugins/indexPatternManagement/assets/icons/{{value}}.png`;
+    return this.context?.services.http
+      ? this.context.services.http.basePath.prepend(iconPath)
+      : iconPath;
+  };
 
   sanitizeNumericValue = (val: string) => {
     const sanitizedValue = parseInt(val, 10);
@@ -115,9 +123,9 @@ export class UrlFormatEditor extends DefaultFormatEditor<
       params.width = width;
       params.height = height;
       if (!urlTemplate) {
-        params.urlTemplate = this.iconPattern;
+        params.urlTemplate = this.getIconPath();
       }
-    } else if (newType !== 'img' && urlTemplate === this.iconPattern) {
+    } else if (newType !== 'img' && urlTemplate === this.getIconPath()) {
       params.urlTemplate = undefined;
     }
     this.onChange(params);
