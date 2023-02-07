@@ -9,16 +9,15 @@ import dompurify from 'dompurify';
 import { EuiDataGridProps, EuiDataGrid, EuiDataGridSorting, EuiTitle } from '@elastic/eui';
 
 import { IInterpreterRenderHandlers } from 'src/plugins/expressions';
-import { Table } from '../table_vis_response_handler';
+import { FormattedTable } from '../table_vis_response_handler';
 import { TableVisConfig, ColumnWidth, ColumnSort, TableUiState } from '../types';
 import { getDataGridColumns } from './table_vis_grid_columns';
 import { usePagination } from '../utils';
-import { convertToFormattedData } from '../utils/convert_to_formatted_data';
 import { TableVisControl } from './table_vis_control';
 
 interface TableVisComponentProps {
   title?: string;
-  table: Table;
+  table: FormattedTable;
   visConfig: TableVisConfig;
   event: IInterpreterRenderHandlers['event'];
   uiState: TableUiState;
@@ -31,23 +30,18 @@ export const TableVisComponent = ({
   event,
   uiState,
 }: TableVisComponentProps) => {
-  const { formattedRows: rows, formattedColumns: columns } = convertToFormattedData(
-    table,
-    visConfig
-  );
+  const { rows, columns } = table;
 
   const pagination = usePagination(visConfig, rows.length);
 
   const sortedRows = useMemo(() => {
-    return uiState.sort.colIndex !== null &&
-      columns[uiState.sort.colIndex].id &&
-      uiState.sort.direction
+    return uiState.sort.colIndex && columns[uiState.sort.colIndex].id && uiState.sort.direction
       ? orderBy(rows, columns[uiState.sort.colIndex].id, uiState.sort.direction)
       : rows;
   }, [columns, rows, uiState]);
 
   const renderCellValue = useMemo(() => {
-    return (({ rowIndex, columnId }) => {
+    return (({ rowIndex, columnId }: { rowIndex: number; columnId: string }) => {
       const rawContent = sortedRows[rowIndex][columnId];
       const colIndex = columns.findIndex((col) => col.id === columnId);
       const htmlContent = columns[colIndex].formatter.convert(rawContent, 'html');
@@ -69,7 +63,7 @@ export const TableVisComponent = ({
   const dataGridColumns = getDataGridColumns(sortedRows, columns, table, event, uiState.width);
 
   const sortedColumns = useMemo(() => {
-    return uiState.sort.colIndex !== null &&
+    return uiState.sort.colIndex &&
       dataGridColumns[uiState.sort.colIndex].id &&
       uiState.sort.direction
       ? [{ id: dataGridColumns[uiState.sort.colIndex].id, direction: uiState.sort.direction }]
@@ -86,8 +80,8 @@ export const TableVisComponent = ({
               direction: nextSortValue.direction,
             }
           : {
-              colIndex: null,
-              direction: null,
+              colIndex: undefined,
+              direction: undefined,
             };
       uiState.setSort(nextSort);
       return nextSort;
@@ -96,7 +90,7 @@ export const TableVisComponent = ({
   );
 
   const onColumnResize: EuiDataGridProps['onColumnResize'] = useCallback(
-    ({ columnId, width }) => {
+    ({ columnId, width }: { columnId: string; width: number }) => {
       const curWidth: ColumnWidth[] = uiState.width;
       const nextWidth = [...curWidth];
       const nextColIndex = columns.findIndex((col) => col.id === columnId);

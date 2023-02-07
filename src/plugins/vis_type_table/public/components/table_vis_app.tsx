@@ -40,7 +40,7 @@ export const TableVisApp = ({
 
   // TODO: remove duplicate sort and width state
   // Issue: https://github.com/opensearch-project/OpenSearch-Dashboards/issues/2704#issuecomment-1299380818
-  const [sort, setSort] = useState<ColumnSort>({ colIndex: null, direction: null });
+  const [sort, setSort] = useState<ColumnSort>({ colIndex: undefined, direction: undefined });
   const [width, setWidth] = useState<ColumnWidth[]>([]);
 
   const tableUiState: TableUiState = { sort, setSort, width, setWidth };

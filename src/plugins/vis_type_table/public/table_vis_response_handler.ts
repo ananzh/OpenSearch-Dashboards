@@ -30,15 +30,20 @@
 
 import { getFormatService } from './services';
 import { OpenSearchDashboardsDatatable } from '../../expressions/public';
-import { TableVisConfig } from './types';
-
+import { FormattedColumn, TableVisConfig } from './types';
+import { convertToFormattedData } from './utils/convert_to_formatted_data';
 export interface Table {
   columns: OpenSearchDashboardsDatatable['columns'];
   rows: OpenSearchDashboardsDatatable['rows'];
 }
 
+export interface FormattedTable {
+  columns: FormattedColumn[];
+  rows: OpenSearchDashboardsDatatable['rows'];
+}
+
 export interface TableGroup {
-  table: OpenSearchDashboardsDatatable;
+  table?: FormattedTable;
   tables: Table[];
   title: string;
   name: string;
@@ -48,7 +53,7 @@ export interface TableGroup {
 }
 
 export interface TableContext {
-  table?: Table;
+  table?: FormattedTable;
   tableGroups: TableGroup[];
   direction?: 'row' | 'column';
 }
@@ -57,7 +62,7 @@ export function tableVisResponseHandler(
   input: OpenSearchDashboardsDatatable,
   config: TableVisConfig
 ): TableContext {
-  let table: Table | undefined;
+  let table: FormattedTable | undefined;
   const tableGroups: TableGroup[] = [];
   let direction: TableContext['direction'];
 
@@ -82,7 +87,7 @@ export function tableVisResponseHandler(
           key: splitValue,
           column: splitColumnIndex,
           row: rowIndex,
-          table: input,
+          table: undefined,
           tables: [],
         };
 
@@ -97,11 +102,24 @@ export function tableVisResponseHandler(
       const tableIndex = (splitMap as any)[splitValue];
       (tableGroups[tableIndex] as any).tables[0].rows.push(row);
     });
+
+    // format tables
+    tableGroups.forEach((tableGroup) => {
+      const { formattedRows: rows, formattedColumns: columns } = convertToFormattedData(
+        tableGroup.tables[0],
+        config
+      );
+      tableGroup.table = { rows, columns };
+    });
   } else {
-    table = {
-      columns: input.columns,
-      rows: input.rows,
-    };
+    const { formattedRows: rows, formattedColumns: columns } = convertToFormattedData(
+      {
+        columns: input.columns,
+        rows: input.rows,
+      },
+      config
+    );
+    table = { rows, columns };
   }
 
   return {

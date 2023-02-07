@@ -21,15 +21,17 @@ export const TableVisComponentGroup = memo(
   ({ tableGroups, visConfig, event, uiState }: TableVisGroupComponentProps) => {
     return (
       <>
-        {tableGroups.map(({ tables, title }) => (
+        {tableGroups.map(({ table, title }) => (
           <div key={title} className="visTable__group">
-            <TableVisComponent
-              title={title}
-              table={tables[0]}
-              visConfig={visConfig}
-              event={event}
-              uiState={uiState}
-            />
+            {table ? (
+              <TableVisComponent
+                title={title}
+                table={table}
+                visConfig={visConfig}
+                event={event}
+                uiState={uiState}
+              />
+            ) : null}
           </div>
         ))}
       </>
