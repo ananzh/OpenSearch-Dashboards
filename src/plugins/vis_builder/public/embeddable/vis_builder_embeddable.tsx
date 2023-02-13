@@ -94,6 +94,8 @@ export class VisBuilderEmbeddable extends Embeddable<SavedObjectEmbeddableInput,
 
     this.savedVisBuilder = savedVisBuilder;
     this.uiState = new PersistedState();
+    this.uiState.on('change', this.uiStateChangeHandler);
+    this.uiState.on('reload', this.reload);
 
     this.autoRefreshFetchSubscription = timefilter
       .getAutoRefreshFetch$()
@@ -155,6 +157,12 @@ export class VisBuilderEmbeddable extends Embeddable<SavedObjectEmbeddableInput,
       });
       return exp;
     }
+  };
+
+  private uiStateChangeHandler = () => {
+    this.updateInput({
+      ...this.uiState?.toJSON(),
+    });
   };
 
   // Needed to enable inspection panel option

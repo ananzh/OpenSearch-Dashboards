@@ -11,7 +11,7 @@ import { getTopNavConfig } from '../utils/get_top_nav_config';
 import { VisBuilderServices } from '../../types';
 
 import './top_nav.scss';
-import { useIndexPatterns, useSavedVisBuilderVis } from '../utils/use';
+import { useIndexPatterns, useSavedVisBuilderVis, useChromeVisibility} from '../utils/use';
 import { useTypedSelector, useTypedDispatch } from '../utils/state_management';
 import { setEditorState } from '../utils/state_management/metadata_slice';
 import { useCanSave } from '../utils/use/use_can_save';
@@ -32,9 +32,9 @@ export const TopNav = () => {
   } = services;
   const rootState = useTypedSelector((state) => state);
   const dispatch = useTypedDispatch();
-
+  const isChromeVisible = useChromeVisibility(services.chrome);
   const saveDisabledReason = useCanSave();
-  const savedVisBuilderVis = useSavedVisBuilderVis(visualizationIdFromUrl);
+  const savedVisBuilderVis = useSavedVisBuilderVis(visualizationIdFromUrl, isChromeVisible);
   connectStorageToQueryState(services.data.query, services.osdUrlStateStorage, {
     filters: opensearchFilters.FilterStateStore.APP_STATE,
     query: true,

@@ -27,7 +27,7 @@ import { validateVisBuilderState } from '../validations/vis_builder_state_valida
 
 // This function can be used when instantiating a saved vis or creating a new one
 // using url parameters, embedding and destroying it in DOM
-export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined) => {
+export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined, isChromeVisible: boolean | undefined) => {
   const { services } = useOpenSearchDashboards<VisBuilderServices>();
   const [savedVisState, setSavedVisState] = useState<SavedObject | undefined>(undefined);
   const dispatch = useTypedDispatch();
@@ -51,7 +51,7 @@ export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined
 
     const loadSavedVisBuilderVis = async () => {
       try {
-        const savedVisBuilderVis = await getSavedVisBuilderVis(services, visualizationIdFromUrl);
+        const { savedVisBuilderVis, embeddableHandler } = await getSavedVisBuilderVis(services, visualizationIdFromUrl);
 
         if (savedVisBuilderVis.id) {
           chrome.setBreadcrumbs(getEditBreadcrumbs(savedVisBuilderVis.title, navigateToApp));

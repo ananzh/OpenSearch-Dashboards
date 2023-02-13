@@ -9,3 +9,4 @@ export { useOnAddFilter } from './use_on_add_filter';
 export { useSampleHits } from './use_sample_hits';
 export { useSavedVisBuilderVis } from './use_saved_vis_builder_vis';
 export { useVisualizationType } from './use_visualization_type';
+export { useChromeVisibility } from './use_chrome_visibility';

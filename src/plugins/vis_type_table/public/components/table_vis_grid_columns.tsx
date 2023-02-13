@@ -8,13 +8,13 @@ import { i18n } from '@osd/i18n';
 import { EuiDataGridColumn, EuiDataGridColumnCellActionProps } from '@elastic/eui';
 import { IInterpreterRenderHandlers } from 'src/plugins/expressions';
 import { OpenSearchDashboardsDatatableRow } from 'src/plugins/expressions';
-import { Table } from '../table_vis_response_handler';
+import { FormattedTable } from '../table_vis_response_handler';
 import { ColumnWidth, FormattedColumn } from '../types';
 
 export const getDataGridColumns = (
   rows: OpenSearchDashboardsDatatableRow[],
   cols: FormattedColumn[],
-  table: Table,
+  table: FormattedTable,
   event: IInterpreterRenderHandlers['event'],
   columnWidths: ColumnWidth[]
 ) => {

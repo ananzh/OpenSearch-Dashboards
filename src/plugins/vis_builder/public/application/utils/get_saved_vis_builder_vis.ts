@@ -14,6 +14,9 @@ export const getSavedVisBuilderVis = async (
     return {};
   }
   const savedVisBuilderVis = await savedVisBuilderLoader.get(visBuilderVisId);
+  const { embeddableHandler } = await createVisBuilderEmbeddable(
+    services
+  );
 
-  return savedVisBuilderVis;
+  return {embeddableHandler, savedVisBuilderVis};
 };
