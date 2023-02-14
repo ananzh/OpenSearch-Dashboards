@@ -4,19 +4,20 @@
  */
 
 import { VisBuilderServices } from '../..';
+//import { VisBuilderEmbeddable, createFromSavedObject } from './../../embeddable';
 
 export const getSavedVisBuilderVis = async (
   services: VisBuilderServices,
   visBuilderVisId?: string
 ) => {
-  const { savedVisBuilderLoader } = services;
+  const { savedVisBuilderLoader, embeddable } = services;
   if (!savedVisBuilderLoader) {
     return {};
   }
   const savedVisBuilderVis = await savedVisBuilderLoader.get(visBuilderVisId);
-  const { embeddableHandler } = await createVisBuilderEmbeddable(
-    services
-  );
+  //const embeddable_factory =  embeddable.getEmbeddableFactory;
+  //const embeddableHandler = embeddable_factory[''];
 
-  return {embeddableHandler, savedVisBuilderVis};
+  //return {embeddableHandler, savedVisBuilderVis};
+  return {savedVisBuilderVis};
 };

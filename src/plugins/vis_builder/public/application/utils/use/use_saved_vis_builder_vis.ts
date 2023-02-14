@@ -51,7 +51,7 @@ export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined
 
     const loadSavedVisBuilderVis = async () => {
       try {
-        const { savedVisBuilderVis, embeddableHandler } = await getSavedVisBuilderVis(services, visualizationIdFromUrl);
+        const { savedVisBuilderVis } = await getSavedVisBuilderVis(services, visualizationIdFromUrl);
 
         if (savedVisBuilderVis.id) {
           chrome.setBreadcrumbs(getEditBreadcrumbs(savedVisBuilderVis.title, navigateToApp));

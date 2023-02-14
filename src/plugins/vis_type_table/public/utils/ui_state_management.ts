@@ -9,7 +9,7 @@ import { TableUiState, ColumnWidth } from '../types';
 
 export const uiStateManagement = (uiState: PersistedState) => {
   const defaultSortState = {
-    columnIndex: null,
+    colIndex: null,
     direction: null,
   };
   const sort = uiState?.get('vis.params.sort') || defaultSortState;
@@ -26,12 +26,13 @@ export const uiStateManagement = (uiState: PersistedState) => {
 
   const setSort = useCallback(
     (sort: TableUiState['sort']) => {
-      //currentUiState.current.sort = sort;
+      currentUiState.current.sort = sort;
       currentUiState.current.pendingUpdate = true;
 
       setTimeout(() => {
         uiState?.set('vis.params.sort', sort);
         currentUiState.current.pendingUpdate = false;
+        uiState.emit('reload');
       });
     },
     [uiState]
@@ -46,13 +47,13 @@ export const uiStateManagement = (uiState: PersistedState) => {
       if (idx < 0) updated.push(col);
       else updated[idx] = col;
 
-      //currentUiState.current.columnsWidth = updated;
+      currentUiState.current.columnsWidth = updated;
       currentUiState.current.pendingUpdate = true;
 
       setTimeout(() => {
         uiState?.set('vis.params.width', updated);
         currentUiState.current.pendingUpdate = false;
-        //uiState.emit('reload');
+        uiState.emit('reload');
       });
       return updated;
     },
