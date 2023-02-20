@@ -13,12 +13,16 @@ import { validateSchemaState, validateAggregations } from '../utils/validations'
 import { useTypedSelector } from '../utils/state_management';
 import { useAggs, useVisualizationType } from '../utils/use';
 import { PersistedState } from '../../../../visualizations/public';
+import { VisBuilderEmbeddableContract } from '../../index';
 
 import hand_field from '../../assets/hand_field.svg';
 import fields_bg from '../../assets/fields_bg.svg';
 
 import './workspace.scss';
 import { ExperimentalInfo } from './experimental_info';
+import { createVisEmbeddableFromObject } from '../../../../visualizations/public/embeddable';
+import { createVis } from '../../visualizations/vislib/common/create_vis';
+import { VisBuilderEmbeddable } from '../../embeddable';
 
 export const Workspace: FC = ({ children }) => {
   const {
@@ -37,8 +41,13 @@ export const Workspace: FC = ({ children }) => {
     timeRange: data.query.timefilter.timefilter.getTime(),
   });
   const rootState = useTypedSelector((state) => state);
+  //const vis= createVis(type, aggConfigs, indexPattern, timeRange);
+  const embeddableHandler: VisBuilderEmbeddableContract = createVisEmbeddableFromObject;
   // Visualizations require the uiState to persist even when the expression changes
-  const uiState = useMemo(() => new PersistedState(), []);
+  //const uiState = useMemo(() => new PersistedState(), []);
+  const uiState = embeddableHandler.ui
+  uiState.on('change', embeddableHandler.uiStateChangeHandler);
+  uiState.on('reload', embeddableHandler.reload);
 
   useEffect(() => {
     async function loadExpression() {

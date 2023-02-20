@@ -35,6 +35,7 @@ export const uiStateManagement = (uiState: PersistedState) => {
         uiState.emit('reload');
       });
     },
+
     [uiState]
   );
 
@@ -76,12 +77,12 @@ export const uiStateManagement = (uiState: PersistedState) => {
 
       if (!isEqual(vis?.params.width, currentUiState.current.columnsWidth)) {
         currentUiState.current.columnsWidth = vis?.params.width;
-        //uiState.emit('reload');
+        setWidth(vis?.params.width|| []);
       }
 
       if (!isEqual(vis?.params.sort, currentUiState.current.sort)) {
         currentUiState.current.sort = vis?.params.sort;
-        //uiState.emit('reload');
+        setSort( vis?.params.sort ||  defaultSortState);
       }
     });
 

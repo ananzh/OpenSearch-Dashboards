@@ -4,7 +4,8 @@
  */
 
 import { i18n } from '@osd/i18n';
-import { useEffect, useState } from 'react';
+import { EventEmitter } from 'events';
+import { useEffect, useState, useRef } from 'react';
 import { SavedObject } from '../../../../../saved_objects/public';
 import {
   InvalidJSONProperty,
@@ -24,10 +25,19 @@ import {
 import { useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
 import { setEditorState } from '../state_management/metadata_slice';
 import { validateVisBuilderState } from '../validations/vis_builder_state_validation';
+//import { IEditorController } from '../../../types'
+import { DefaultEditorController } from '../../../../../vis_default_editor/public';
 
 // This function can be used when instantiating a saved vis or creating a new one
 // using url parameters, embedding and destroying it in DOM
-export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined, isChromeVisible: boolean | undefined) => {
+export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined, isChromeVisible: boolean | undefined, eventEmitter: EventEmitter,) => {
+  //const { services } = useOpenSearchDashboards<VisBuilderServices>();
+  //const [state, setState] = useState<{
+  //  savedVisState?: SavedObject;
+  //  visEditorController?: IEditorController;
+  //}>({});
+  //const visEditorRef = useRef<HTMLDivElement>(null);
+  //const dispatch = useTypedDispatch();
   const { services } = useOpenSearchDashboards<VisBuilderServices>();
   const [savedVisState, setSavedVisState] = useState<SavedObject | undefined>(undefined);
   const dispatch = useTypedDispatch();
@@ -51,14 +61,29 @@ export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined
 
     const loadSavedVisBuilderVis = async () => {
       try {
+        //const { savedVisBuilderVis, embeddableHandler, vis } = await getSavedVisBuilderVis(services, visualizationIdFromUrl);
         const { savedVisBuilderVis } = await getSavedVisBuilderVis(services, visualizationIdFromUrl);
-
         if (savedVisBuilderVis.id) {
           chrome.setBreadcrumbs(getEditBreadcrumbs(savedVisBuilderVis.title, navigateToApp));
           chrome.docTitle.change(savedVisBuilderVis.title);
         } else {
           chrome.setBreadcrumbs(getCreateBreadcrumbs(navigateToApp));
         }
+
+
+        //let visEditorController;
+
+        //if (isChromeVisible) {
+        //  const Editor = vis.type.editor || DefaultEditorController;
+        //  visEditorController = new Editor(
+        //    visEditorRef.current,
+        //    vis,
+        //    eventEmitter,
+        //    embeddableHandler
+        //  );
+        //} else if (visEditorRef.current) {
+        //  embeddableHandler.render(visEditorRef.current);
+        //}
 
         if (
           savedVisBuilderVis.styleState !== '{}' &&
@@ -87,6 +112,7 @@ export const useSavedVisBuilderVis = (visualizationIdFromUrl: string | undefined
           dispatch(setVisualizationState(visualizationState));
         }
 
+        //setState({ savedVisBuilderVis, visEditorController});
         setSavedVisState(savedVisBuilderVis);
         dispatch(setEditorState({ state: 'clean' }));
       } catch (error) {

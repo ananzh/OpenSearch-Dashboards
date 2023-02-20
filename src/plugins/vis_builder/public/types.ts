@@ -4,6 +4,7 @@
  */
 
 import { History } from 'history';
+import { PersistedState, VisualizationsStart } from '../../visualizations/public';
 import { SavedObject, SavedObjectsStart } from '../../saved_objects/public';
 import { EmbeddableSetup, EmbeddableStart } from '../../embeddable/public';
 import { DashboardStart } from '../../dashboard/public';
@@ -51,6 +52,7 @@ export interface VisBuilderServices extends CoreStart {
   scopedHistory: ScopedHistory;
   osdUrlStateStorage: IOsdUrlStateStorage;
   dashboard: DashboardStart;
+  //visualizations: VisualizationsStart;
 }
 
 export interface ISavedVis {
@@ -63,3 +65,19 @@ export interface ISavedVis {
 }
 
 export interface VisBuilderVisSavedObject extends SavedObject, ISavedVis {}
+
+
+//export interface EditorRenderProps {
+//  core: CoreStart;
+//  data: DataPublicPluginStart;
+//  savedSearch?: SavedObject;
+//  uiState: PersistedState;
+//  /**
+//   * Flag to determine if visualiztion is linked to the saved search
+//   */
+//  linked: boolean;
+//}
+//export interface IEditorController {
+//  render(props: EditorRenderProps): void;
+//  destroy(): void;
+//}

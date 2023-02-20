@@ -35,9 +35,11 @@ export const TableVisComponent = ({
   const pagination = usePagination(visConfig, rows.length);
 
   const sortedRows = useMemo(() => {
-    return sort.colIndex && columns[sort.colIndex].id && sort.direction
-      ? orderBy(rows, columns[sort.colIndex].id, sort.direction)
-      : rows;
+    if (sort.colIndex!=null && sort.colIndex!= undefined && columns[sort.colIndex].id && sort.direction){
+      return orderBy(rows, columns[sort.colIndex].id, sort.direction)
+     } else {
+      return rows;
+     }
   }, [columns, rows, sort]);
 
   const renderCellValue = useMemo(() => {
@@ -63,11 +65,13 @@ export const TableVisComponent = ({
   const dataGridColumns = getDataGridColumns(sortedRows, columns, table, event, width);
 
   const sortedColumns = useMemo(() => {
-    return sort.colIndex &&
+    if( (sort.colIndex !== null && sort.colIndex!== undefined) &&
       dataGridColumns[sort.colIndex].id &&
-      sort.direction
-      ? [{ id: dataGridColumns[sort.colIndex].id, direction: sort.direction }]
-      : [];
+      sort.direction){
+      return  [{ id: dataGridColumns[sort.colIndex].id, direction: sort.direction }]
+      }else{
+      return [];
+      }
   }, [dataGridColumns, sort]);
 
   const onSort = useCallback(
