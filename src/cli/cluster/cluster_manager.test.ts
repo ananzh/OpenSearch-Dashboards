@@ -40,6 +40,19 @@ jest.mock('readline', () => ({
   })),
 }));
 
+jest.mock('lmdb', () => {
+  const mockedLmdb = {
+    open: jest.fn(() => ({
+      openDB: jest.fn(() => ({
+        get: jest.fn(),
+        putSync: jest.fn(),
+        remove: jest.fn(),
+      })),
+    })),
+  };
+  return mockedLmdb;
+});
+
 const mockConfig: any = {};
 
 import { sample } from 'lodash';

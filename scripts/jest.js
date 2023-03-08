@@ -44,4 +44,8 @@ var resolve = require('path').resolve;
 process.argv.push('--config', resolve(__dirname, '../src/dev/jest/config.js'));
 
 require('../src/setup_node_env');
+
+var v8 = require('v8');
+console.log('v8.getHeapStatistics()', v8.getHeapStatistics());
+
 require('../src/dev/jest/cli');
