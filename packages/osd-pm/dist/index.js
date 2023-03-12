@@ -27300,7 +27300,6 @@ function getProjectPaths({
     projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, 'plugins/*/packages/*'));
     projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, 'plugins/*/plugins/*'));
   }
-
   return projectPaths;
 }
 

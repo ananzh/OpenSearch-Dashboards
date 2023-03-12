@@ -4,3 +4,4 @@
 
 ## max size of old space in megabytes
 #--max-old-space-size=4096
+--openssl-legacy-provider
