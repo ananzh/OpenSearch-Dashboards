@@ -45,6 +45,8 @@ run(
 
     const cwd = ROOT_DIR;
     const env = { ...process.env, dev: !!flags.dev, prod: !flags.dev };
+    env.NODE_OPTIONS = '--openssl-legacy-provider';
+
     if (supportsColor.stdout) {
       env.FORCE_COLOR = 'true';
     }
