@@ -134,7 +134,7 @@ export class Env {
       resolve(this.homeDir, 'src', 'plugins'),
       resolve(this.homeDir, 'plugins'),
       ...(options.cliArgs.runExamples ? [resolve(this.homeDir, 'examples')] : []),
-      resolve(this.homeDir, '..', 'opensearch-dashboards-extra'),
+      //resolve(this.homeDir, '..', 'opensearch-dashboards-extra'),
     ];
 
     this.cliArgs = Object.freeze(options.cliArgs);

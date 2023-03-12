@@ -165,6 +165,7 @@ export class LegacyService implements CoreService {
         startDeps
       );
     }
+    this.log.debug('finished legacy service');
   }
 
   public async stop() {

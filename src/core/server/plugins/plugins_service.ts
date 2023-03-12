@@ -154,6 +154,7 @@ export class PluginsService implements CoreService<PluginsServiceSetup, PluginsS
   public async start(deps: PluginsServiceStartDeps) {
     this.log.debug('Plugins service starts plugins');
     const contracts = await this.pluginsSystem.startPlugins(deps);
+    this.log.debug('Plugins service done');
     return { contracts };
   }
 

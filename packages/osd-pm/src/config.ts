@@ -56,9 +56,9 @@ export function getProjectPaths({ rootPath, ossOnly, skipOpenSearchDashboardsPlu
   projectPaths.push(resolve(rootPath, 'examples/*'));
 
   if (!skipOpenSearchDashboardsPlugins) {
-    projectPaths.push(resolve(rootPath, '../opensearch-dashboards-extra/*'));
-    projectPaths.push(resolve(rootPath, '../opensearch-dashboards-extra/*/packages/*'));
-    projectPaths.push(resolve(rootPath, '../opensearch-dashboards-extra/*/plugins/*'));
+    //projectPaths.push(resolve(rootPath, '../opensearch-dashboards-extra/*'));
+    //projectPaths.push(resolve(rootPath, '../opensearch-dashboards-extra/*/packages/*'));
+    //projectPaths.push(resolve(rootPath, '../opensearch-dashboards-extra/*/plugins/*'));
     projectPaths.push(resolve(rootPath, 'plugins/*'));
     projectPaths.push(resolve(rootPath, 'plugins/*/packages/*'));
     projectPaths.push(resolve(rootPath, 'plugins/*/plugins/*'));

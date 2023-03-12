@@ -27293,14 +27293,13 @@ function getProjectPaths({
   projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, 'examples/*'));
 
   if (!skipOpenSearchDashboardsPlugins) {
-    projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, '../opensearch-dashboards-extra/*'));
-    projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, '../opensearch-dashboards-extra/*/packages/*'));
-    projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, '../opensearch-dashboards-extra/*/plugins/*'));
+    //projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, '../opensearch-dashboards-extra/*'));
+    //projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, '../opensearch-dashboards-extra/*/packages/*'));
+    //projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, '../opensearch-dashboards-extra/*/plugins/*'));
     projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, 'plugins/*'));
     projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, 'plugins/*/packages/*'));
     projectPaths.push(Object(path__WEBPACK_IMPORTED_MODULE_0__["resolve"])(rootPath, 'plugins/*/plugins/*'));
   }
-
   return projectPaths;
 }
 

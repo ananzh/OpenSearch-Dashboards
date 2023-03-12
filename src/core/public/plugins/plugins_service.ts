@@ -164,7 +164,6 @@ export class PluginsService implements CoreService<PluginsServiceSetup, PluginsS
       });
       contracts.set(pluginName, contract);
     }
-
     // Expose start contracts
     return { contracts };
   }

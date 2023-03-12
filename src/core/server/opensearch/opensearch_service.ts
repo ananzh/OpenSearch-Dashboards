@@ -116,13 +116,14 @@ export class OpenSearchService
     };
   }
   public async start({ auditTrail }: StartDeps): Promise<InternalOpenSearchServiceStart> {
+    this.log.debug('I am here000');
     this.auditorFactory = auditTrail;
     if (!this.legacyClient || !this.createLegacyCustomClient) {
       throw new Error('OpenSearchService needs to be setup before calling start');
     }
-
+    this.log.debug('I am here111');
     const config = await this.config$.pipe(first()).toPromise();
-
+    this.log.debug('I am here222');
     const createClient = (
       type: string,
       clientConfig: Partial<OpenSearchClientConfig> = {}
@@ -130,7 +131,7 @@ export class OpenSearchService
       const finalConfig = merge({}, config, clientConfig);
       return this.createClusterClient(type, finalConfig);
     };
-
+    this.log.debug('I am here333');
     return {
       client: this.client!,
       createClient,
