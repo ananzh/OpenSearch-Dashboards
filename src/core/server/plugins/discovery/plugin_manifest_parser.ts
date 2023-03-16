@@ -28,7 +28,7 @@
  * under the License.
  */
 
-import { readFile, stat } from 'fs';
+import { readFileSync, stat } from 'fs';
 import { resolve } from 'path';
 import { coerce } from 'semver';
 import { promisify } from 'util';
@@ -39,7 +39,7 @@ import { PluginManifest } from '../types';
 import { PluginDiscoveryError } from './plugin_discovery_error';
 import { isCamelCase } from './is_camel_case';
 
-const fsReadFileAsync = promisify(readFile);
+const fsReadFileAsync = (path: string) => Promise.resolve(readFileSync(path));
 const fsStatAsync = promisify(stat);
 
 /**

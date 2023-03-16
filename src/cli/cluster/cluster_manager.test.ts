@@ -77,98 +77,96 @@ describe('CLI cluster manager', () => {
     mockCluster.fork.mockReset();
   });
 
-  test('disble test', () => {});
+  test('has two workers', () => {
+    const manager = new ClusterManager(CLI_ARGS, mockConfig);
 
-  // test('has two workers', () => {
-  //  const manager = new ClusterManager(CLI_ARGS, mockConfig);
+    expect(manager.workers).toHaveLength(1);
+    for (const worker of manager.workers) {
+      expect(worker).toBeInstanceOf(Worker);
+    }
 
-  //  expect(manager.workers).toHaveLength(1);
-  //  for (const worker of manager.workers) {
-  //    expect(worker).toBeInstanceOf(Worker);
-  //  }
+    expect(manager.server).toBeInstanceOf(Worker);
+  });
 
-  //  expect(manager.server).toBeInstanceOf(Worker);
-  // });
+  test('delivers broadcast messages to other workers', () => {
+    const manager = new ClusterManager(CLI_ARGS, mockConfig);
 
-  // test('delivers broadcast messages to other workers', () => {
-  //  const manager = new ClusterManager(CLI_ARGS, mockConfig);
+    for (const worker of manager.workers) {
+      Worker.prototype.start.call(worker); // bypass the debounced start method
+      worker.onOnline();
+    }
 
-  //  for (const worker of manager.workers) {
-  //    Worker.prototype.start.call(worker); // bypass the debounced start method
-  //    worker.onOnline();
-  //  }
+    const football = {};
+    const messenger = sample(manager.workers) as any;
 
-  //  const football = {};
-  //  const messenger = sample(manager.workers) as any;
+    messenger.emit('broadcast', football);
+    for (const worker of manager.workers) {
+      if (worker === messenger) {
+        expect(worker.fork!.send).not.toHaveBeenCalled();
+      } else {
+        expect(worker.fork!.send).toHaveBeenCalledTimes(1);
+        expect(worker.fork!.send).toHaveBeenCalledWith(football);
+      }
+    }
+  });
 
-  //  messenger.emit('broadcast', football);
-  //  for (const worker of manager.workers) {
-  //    if (worker === messenger) {
-  //      expect(worker.fork!.send).not.toHaveBeenCalled();
-  //    } else {
-  //      expect(worker.fork!.send).toHaveBeenCalledTimes(1);
-  //      expect(worker.fork!.send).toHaveBeenCalledWith(football);
-  //    }
-  //  }
-  // });
+  describe('interaction with BasePathProxy', () => {
+    test('correctly configures `BasePathProxy`.', async () => {
+      const basePathProxyMock = { start: jest.fn() };
 
-  // describe('interaction with BasePathProxy', () => {
-  //  test('correctly configures `BasePathProxy`.', async () => {
-  //    const basePathProxyMock = { start: jest.fn() };
+      new ClusterManager(CLI_ARGS, mockConfig, basePathProxyMock as any);
 
-  //    new ClusterManager(CLI_ARGS, mockConfig, basePathProxyMock as any);
+      expect(basePathProxyMock.start).toHaveBeenCalledWith({
+        shouldRedirectFromOldBasePath: expect.any(Function),
+        delayUntil: expect.any(Function),
+      });
+    });
 
-  //    expect(basePathProxyMock.start).toHaveBeenCalledWith({
-  //      shouldRedirectFromOldBasePath: expect.any(Function),
-  //      delayUntil: expect.any(Function),
-  //    });
-  //  });
+    describe('basePathProxy config', () => {
+      let clusterManager: ClusterManager;
+      let shouldRedirectFromOldBasePath: (path: string) => boolean;
+      let delayUntil: () => Rx.Observable<undefined>;
 
-  //  describe('basePathProxy config', () => {
-  //    let clusterManager: ClusterManager;
-  //    let shouldRedirectFromOldBasePath: (path: string) => boolean;
-  //    let delayUntil: () => Rx.Observable<undefined>;
+      beforeEach(async () => {
+        const basePathProxyMock = { start: jest.fn() };
+        clusterManager = new ClusterManager(CLI_ARGS, mockConfig, basePathProxyMock as any);
+        [[{ delayUntil, shouldRedirectFromOldBasePath }]] = basePathProxyMock.start.mock.calls;
+      });
 
-  //    beforeEach(async () => {
-  //      const basePathProxyMock = { start: jest.fn() };
-  //      clusterManager = new ClusterManager(CLI_ARGS, mockConfig, basePathProxyMock as any);
-  //      [[{ delayUntil, shouldRedirectFromOldBasePath }]] = basePathProxyMock.start.mock.calls;
-  //    });
+      describe('shouldRedirectFromOldBasePath()', () => {
+        test('returns `false` for unknown paths.', () => {
+          expect(shouldRedirectFromOldBasePath('')).toBe(false);
+          expect(shouldRedirectFromOldBasePath('some-path/')).toBe(false);
+          expect(shouldRedirectFromOldBasePath('some-other-path')).toBe(false);
+        });
 
-  //    describe('shouldRedirectFromOldBasePath()', () => {
-  //      test('returns `false` for unknown paths.', () => {
-  //        expect(shouldRedirectFromOldBasePath('')).toBe(false);
-  //        expect(shouldRedirectFromOldBasePath('some-path/')).toBe(false);
-  //        expect(shouldRedirectFromOldBasePath('some-other-path')).toBe(false);
-  //      });
+        test('returns `true` for `app` and other known paths.', () => {
+          expect(shouldRedirectFromOldBasePath('app/')).toBe(true);
+          expect(shouldRedirectFromOldBasePath('login')).toBe(true);
+          expect(shouldRedirectFromOldBasePath('logout')).toBe(true);
+          expect(shouldRedirectFromOldBasePath('status')).toBe(true);
+        });
+      });
 
-  //      test('returns `true` for `app` and other known paths.', () => {
-  //        expect(shouldRedirectFromOldBasePath('app/')).toBe(true);
-  //        expect(shouldRedirectFromOldBasePath('login')).toBe(true);
-  //        expect(shouldRedirectFromOldBasePath('logout')).toBe(true);
-  //        expect(shouldRedirectFromOldBasePath('status')).toBe(true);
-  //      });
-  //    });
+      describe('delayUntil()', () => {
+        test('returns an observable which emits when the server and osdOptimizer are ready and completes', async () => {
+          clusterManager.serverReady$.next(false);
+          clusterManager.osdOptimizerReady$.next(false);
 
-  //    describe('delayUntil()', () => {
-  //      test('returns an observable which emits when the server and osdOptimizer are ready and completes', async () => {
-  //        clusterManager.serverReady$.next(false);
-  //        clusterManager.osdOptimizerReady$.next(false);
+          const events: Array<string | Error> = [];
+          delayUntil().subscribe(
+            () => events.push('next'),
+            (error) => events.push(error),
+            () => events.push('complete')
+          );
 
-  //        const events: Array<string | Error> = [];
-  //        delayUntil().subscribe(
-  //          () => events.push('next'),
-  //          (error) => events.push(error),
-  //          () => events.push('complete')
-  //        );
+          clusterManager.serverReady$.next(true);
+          expect(events).toEqual([]);
 
-  //        clusterManager.serverReady$.next(true);
-  //        expect(events).toEqual([]);
-
-  //        clusterManager.osdOptimizerReady$.next(true);
-  //        expect(events).toEqual(['next', 'complete']);
-  //      });
-  //    });
-  //  });
-  // });
+          clusterManager.osdOptimizerReady$.next(true);
+          expect(events).toEqual(['next', 'complete']);
+        });
+      });
+    });
+  });
 });

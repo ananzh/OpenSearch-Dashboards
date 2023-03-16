@@ -184,7 +184,9 @@ export class OptimizerConfig {
     const examplePluginsDir = examples ? [Path.resolve('examples')] : [];
 
     const opensearchDashboardsExtraPath = Path.resolve(repoRoot, 'opensearch-dashboards-extra');
-    const opensearchDashboardsExtraDir = existsSync(opensearchDashboardsExtraPath) ? [opensearchDashboardsExtraPath] : [];
+    const opensearchDashboardsExtraDir = existsSync(opensearchDashboardsExtraPath)
+      ? [opensearchDashboardsExtraPath]
+      : [];
 
     const pluginScanDirs = options.pluginScanDirs || [
       ...defaultPluginScanDirs,

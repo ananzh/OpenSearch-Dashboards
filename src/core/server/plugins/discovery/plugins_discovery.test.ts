@@ -259,6 +259,7 @@ describe('plugins discovery system', () => {
           ...Plugins.inaccessibleManifest(),
           nested_plugin: Plugins.valid('nestedPlugin'),
         },
+        [`${PROCESS_WORKING_DIR}/plugins`]: {},
       },
       { createCwd: false }
     );
@@ -274,16 +275,14 @@ describe('plugins discovery system', () => {
       .toPromise();
 
     const errorPath = manifestPath('plugin_a');
-    expect(errors).toEqual(
-      expect.arrayContaining([
-        `Error: EACCES, permission denied '${standardize(
-          errorPath,
-          false,
-          false,
-          true
-        )}' (missing-manifest, ${errorPath})`,
-      ])
-    );
+    expect(errors).toEqual([
+      `Error: EACCES: permission denied, open '${standardize(
+        errorPath,
+        false,
+        false,
+        true
+      )}' (missing-manifest, ${errorPath})`,
+    ]);
   });
 
   it('discovers plugins in nested directories', async () => {
