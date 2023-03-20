@@ -36,6 +36,7 @@ import { loggingSystemMock } from '../../logging/logging_system.mock';
 import { getEnvOptions, rawConfigServiceMock } from '../../config/mocks';
 
 import { first, map, toArray } from 'rxjs/operators';
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { ConfigService, Env } from '../../config';
 import { PluginsConfig, PluginsConfigType, config } from '../plugins_config';
@@ -43,6 +44,8 @@ import type { InstanceInfo } from '../plugin_context';
 import { discover } from './plugins_discovery';
 import { CoreContext } from '../../core_context';
 import { PROCESS_WORKING_DIR, standardize } from '@osd/cross-platform';
+
+const fsReadFileAsyncWrapper = (path: string) => Promise.resolve(readFileSync(path));
 
 const Plugins = {
   invalid: () => ({
@@ -145,7 +148,12 @@ describe('plugins discovery system', () => {
   });
 
   it('discovers plugins in the search locations', async () => {
-    const { plugin$ } = discover(new PluginsConfig(pluginConfig, env), coreContext, instanceInfo);
+    const { plugin$ } = discover(
+      new PluginsConfig(pluginConfig, env),
+      coreContext,
+      instanceInfo,
+      fsReadFileAsyncWrapper
+    );
 
     mockFs(
       {
@@ -166,7 +174,8 @@ describe('plugins discovery system', () => {
     const { plugin$, error$ } = discover(
       new PluginsConfig(pluginConfig, env),
       coreContext,
-      instanceInfo
+      instanceInfo,
+      fsReadFileAsyncWrapper
     );
 
     mockFs(
@@ -208,7 +217,8 @@ describe('plugins discovery system', () => {
     const { plugin$, error$ } = discover(
       new PluginsConfig(pluginConfig, env),
       coreContext,
-      instanceInfo
+      instanceInfo,
+      fsReadFileAsyncWrapper
     );
 
     mockFs(
@@ -250,7 +260,13 @@ describe('plugins discovery system', () => {
     const { plugin$, error$ } = discover(
       new PluginsConfig(pluginConfig, env),
       coreContext,
-      instanceInfo
+      instanceInfo,
+      fsReadFileAsyncWrapper
+    );
+    const openSearhDashboardsExtraTestPath = resolve(
+      process.cwd(),
+      '..',
+      'opensearch-dashboards-extra'
     );
 
     mockFs(
@@ -259,6 +275,7 @@ describe('plugins discovery system', () => {
           ...Plugins.inaccessibleManifest(),
           nested_plugin: Plugins.valid('nestedPlugin'),
         },
+        [`${openSearhDashboardsExtraTestPath}`]: {},
         [`${PROCESS_WORKING_DIR}/plugins`]: {},
       },
       { createCwd: false }
@@ -289,7 +306,8 @@ describe('plugins discovery system', () => {
     const { plugin$, error$ } = discover(
       new PluginsConfig(pluginConfig, env),
       coreContext,
-      instanceInfo
+      instanceInfo,
+      fsReadFileAsyncWrapper
     );
 
     mockFs(
@@ -327,7 +345,12 @@ describe('plugins discovery system', () => {
   });
 
   it('does not discover plugins nested inside another plugin', async () => {
-    const { plugin$ } = discover(new PluginsConfig(pluginConfig, env), coreContext, instanceInfo);
+    const { plugin$ } = discover(
+      new PluginsConfig(pluginConfig, env),
+      coreContext,
+      instanceInfo,
+      fsReadFileAsyncWrapper
+    );
 
     mockFs(
       {
@@ -346,7 +369,12 @@ describe('plugins discovery system', () => {
   });
 
   it('stops scanning when reaching `maxDepth`', async () => {
-    const { plugin$ } = discover(new PluginsConfig(pluginConfig, env), coreContext, instanceInfo);
+    const { plugin$ } = discover(
+      new PluginsConfig(pluginConfig, env),
+      coreContext,
+      instanceInfo,
+      fsReadFileAsyncWrapper
+    );
 
     mockFs(
       {
@@ -374,7 +402,12 @@ describe('plugins discovery system', () => {
   });
 
   it('works with symlinks', async () => {
-    const { plugin$ } = discover(new PluginsConfig(pluginConfig, env), coreContext, instanceInfo);
+    const { plugin$ } = discover(
+      new PluginsConfig(pluginConfig, env),
+      coreContext,
+      instanceInfo,
+      fsReadFileAsyncWrapper
+    );
 
     const pluginFolder = resolve(PROCESS_WORKING_DIR, '..', 'ext-plugins');
 
@@ -416,7 +449,8 @@ describe('plugins discovery system', () => {
         env,
         logger,
       },
-      instanceInfo
+      instanceInfo,
+      fsReadFileAsyncWrapper
     );
 
     expect(loggingSystemMock.collect(logger).warn).toEqual([
@@ -444,7 +478,8 @@ describe('plugins discovery system', () => {
         env,
         logger,
       },
-      instanceInfo
+      instanceInfo,
+      fsReadFileAsyncWrapper
     );
 
     expect(loggingSystemMock.collect(logger).warn).toEqual([]);
