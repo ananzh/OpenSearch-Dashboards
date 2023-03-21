@@ -47,7 +47,7 @@
     "test:jest": "node scripts/jest",
     "test:jest:coverage": "node scripts/jest --coverage",
     "test:jest:ci": "node scripts/jest --ci --colors --runInBand",
-    "test:jest:ci:coverage": "node scripts/jest --ci --colors --runInBand --coverage",
+    "test:jest:ci:coverage": "node scripts/jest --ci --colors --runInBand --coverage --max-old-space-size=8192",
     "test:jest_integration": "node scripts/jest_integration",
     "test:jest_integration:ci": "node scripts/jest_integration --ci --colors --max-old-space-size=5120",
     "test:mocha": "node scripts/mocha",
