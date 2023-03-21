@@ -47,7 +47,7 @@
     "test:jest": "scripts/use_node scripts/jest",
     "test:jest:coverage": "scripts/use_node scripts/jest --coverage",
     "test:jest:ci": "scripts/use_node scripts/jest --ci --colors --runInBand",
-    "test:jest:ci:coverage": "scripts/use_node scripts/jest --ci --colors --runInBand --coverage --max-old-space-size=5120",
+    "test:jest:ci:coverage": "scripts/use_node scripts/jest --ci --colors --runInBand --coverage --max-old-space-size=8192",
     "test:jest_integration": "scripts/use_node scripts/jest_integration",
     "test:jest_integration:ci": "scripts/use_node scripts/jest_integration --ci --colors --max-old-space-size=5120",
     "test:mocha": "scripts/use_node scripts/mocha",
