@@ -292,10 +292,9 @@ describe('plugins discovery system', () => {
       .toPromise();
 
     const errorPath = manifestPath('plugin_a');
-    const standardizedErrorPath = standardize(errorPath, false, false, true);
-    const platformPrefix = process.platform === 'win32' ? '\\\\?\\' : '';
+    const standardizedErrorPath = standardize(errorPath, false, false, false);
     expect(errors).toEqual([
-      `Error: EACCES: permission denied, open '${platformPrefix}${standardizedErrorPath}' (missing-manifest, ${errorPath})`,
+      `Error: EACCES: permission denied, open '${standardizedErrorPath}' (missing-manifest, ${errorPath})`,
     ]);
   });
 
