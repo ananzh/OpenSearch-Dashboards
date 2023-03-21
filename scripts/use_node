@@ -89,9 +89,19 @@ if [ -f "${CONFIG_DIR}/node.options" ]; then
   OSD_NODE_OPTS="$(grep -v ^# < ${CONFIG_DIR}/node.options | xargs)"
 fi
 
+# Get the major version of Node.js
+NODE_MAJOR_VERSION=$("${NODE}" -v | cut -d'.' -f1 | tr -dc '0-9')
+
+# Conditionally set the --openssl-legacy-provider flag for Node.js versions greater than 18
+if [ "$NODE_MAJOR_VERSION" -ge 18 ]; then
+  LEGACY_PROVIDER_FLAG="--openssl-legacy-provider"
+else
+  LEGACY_PROVIDER_FLAG=""
+fi
+
 # If a file path was provided for execution, prefix with OSD_HOME; use relative paths to avoid the need for this.
 if [ ! -z "$OSD_USE_NODE_JS_FILE_PATH" ]; then
-  NODE_OPTIONS="$OSD_NODE_OPTS_PREFIX $OSD_NODE_OPTS $NODE_OPTIONS" "${NODE}" "${OSD_HOME}${OSD_USE_NODE_JS_FILE_PATH}" "${@}"
+  NODE_OPTIONS="$OSD_NODE_OPTS_PREFIX $OSD_NODE_OPTS $NODE_OPTIONS" "${NODE}" $LEGACY_PROVIDER_FLAG "${OSD_HOME}${OSD_USE_NODE_JS_FILE_PATH}" "${@}"
 elif [ $# -ne 0 ]; then
-  NODE_OPTIONS="$OSD_NODE_OPTS_PREFIX $OSD_NODE_OPTS $NODE_OPTIONS" "${NODE}" "${@}"
+  NODE_OPTIONS="$OSD_NODE_OPTS_PREFIX $OSD_NODE_OPTS $NODE_OPTIONS" "${NODE}" $LEGACY_PROVIDER_FLAG "${@}"
 fi
