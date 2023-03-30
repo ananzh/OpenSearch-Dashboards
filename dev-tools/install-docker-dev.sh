@@ -14,9 +14,9 @@ osd_do_copy_dev_docker_files(){
 	local INSTALL_DIR
 	INSTALL_DIR="$(osd_docker_dev_install_dir)"
 	local ENTRYPOINT_SRC
-	ENTRYPOINT_SRC="https://raw.githubusercontent.com/opensearch-project/OpenSearch-Dashboards/main/docs/docker-dev/entrypoint.sh"
+	ENTRYPOINT_SRC="https://raw.githubusercontent.com/ananzh/OpenSearch-Dashboards/add-ftr-for-docker-1/docs/docker-dev/entrypoint.sh"
 	local DOCKER_COMPOSE_SRC
-	DOCKER_COMPOSE_SRC="https://raw.githubusercontent.com/opensearch-project/OpenSearch-Dashboards/main/docs/docker-dev/docker-compose.yml"
+	DOCKER_COMPOSE_SRC="https://raw.githubusercontent.com/ananzh/OpenSearch-Dashboards/add-ftr-for-docker-1/docs/docker-dev/docker-compose.yml"
 
 	mkdir -p "$INSTALL_DIR"
 	osd_download -s "$ENTRYPOINT_SRC" -o "./$INSTALL_DIR/entrypoint.sh"
@@ -25,11 +25,11 @@ osd_do_copy_dev_docker_files(){
 	if [ "$1" = "--ftr" ]; then
 	    printf "run ftr"
         local START_VNC_SRC
-        START_VNC_SRC="https://raw.githubusercontent.com/your-repo/your-branch/start-vnc.sh"
+        START_VNC_SRC="https://raw.githubusercontent.com/ananzh/OpenSearch-Dashboards/add-ftr-for-docker-1/docs/docker-dev/start-vnc.sh"
         local DOCKERFILE_SELENIUM_SRC
-        DOCKERFILE_SELENIUM_SRC="https://raw.githubusercontent.com/your-repo/your-branch/Dockerfile.selenium"
+        DOCKERFILE_SELENIUM_SRC="https://raw.githubusercontent.com/ananzh/OpenSearch-Dashboards/add-ftr-for-docker-1/docs/docker-dev/Dockerfile.selenium"
         local DOCKER_COMPOSE_SELENIUM_SRC
-        DOCKER_COMPOSE_SELENIUM_SRC="https://raw.githubusercontent.com/your-repo/your-branch/docker-compose.selenium.yml"
+        DOCKER_COMPOSE_SELENIUM_SRC="https://raw.githubusercontent.com/ananzh/OpenSearch-Dashboards/add-ftr-for-docker-1/docs/docker-dev/docker-compose.selenium.yml"
 
         osd_download -s "$START_VNC_SRC" -o "./$INSTALL_DIR/start-vnc.sh"
         osd_download -s "$DOCKERFILE_SELENIUM_SRC" -o "./$INSTALL_DIR/Dockerfile.selenium"
