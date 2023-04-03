@@ -35,7 +35,14 @@ import { first, last } from 'rxjs/operators';
 
 export function firstValueFrom<T>(source: Observable<T>) {
   // we can't use SafeSubscriber the same way that RxJS 7 does, so instead we
-  return source.pipe(first()).toPromise();
+  const firstResult = source.pipe(first());
+  console.log('first result:', firstResult);
+
+  // Add a log statement after the `toPromise()` function
+  const toPromiseResult = firstResult.toPromise();
+  console.log('toPromise result:', toPromiseResult);
+
+  return toPromiseResult;
 }
 
 export function lastValueFrom<T>(source: Observable<T>) {

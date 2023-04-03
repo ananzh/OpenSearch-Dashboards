@@ -88,5 +88,8 @@ export const debounceTimeBuffer = <T>(ms: number) =>
     );
   });
 
-export const allValuesFrom = <T>(observable: Rx.Observable<T>) =>
-  firstValueFrom(observable.pipe(toArray()));
+export const allValuesFrom = <T>(observable: Rx.Observable<T>) => {
+  let a = observable.pipe(toArray());
+  console.log('allValuesFrom.a:', a);
+  return firstValueFrom(a);
+}

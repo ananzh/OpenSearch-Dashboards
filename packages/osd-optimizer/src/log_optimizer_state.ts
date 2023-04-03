@@ -122,18 +122,21 @@ export function logOptimizerState(log: ToolingLog, config: OptimizerConfig) {
 
         if (state.phase === 'issue') {
           log.error(`webpack compile errors`);
+          console.log('state:', state); // Add this line
           log.indent(4);
           for (const b of state.compilerStates) {
             if (b.type === 'compiler issue') {
               log.error(`[${b.bundleId}] build`);
               log.indent(4);
               log.error(b.failure);
+              console.log('bundle issue details:', b); // Add this line
               log.indent(-4);
             }
           }
           log.indent(-4);
           return;
         }
+
 
         if (state.phase === 'success') {
           const buildCount = bundlesThatWereBuilt.size;
