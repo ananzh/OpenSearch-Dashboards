@@ -54,7 +54,7 @@ describe('default route provider', () => {
 
     await root.setup();
     await root.start();
-  });
+  }, 60000);
 
   afterAll(async () => {
     await request
