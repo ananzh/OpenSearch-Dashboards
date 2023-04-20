@@ -65,28 +65,28 @@ interface Package {
 const packages: Package[] = [
   {
     name: 're2',
-    version: '1.17.4',
+    version: '1.18.0',
     destinationPath: 'node_modules/re2/build/Release/re2.node',
     extractMethod: 'gunzip',
     archives: {
       'darwin-x64': {
-        url: 'https://github.com/uhop/node-re2/releases/download/1.17.4/darwin-x64-83.gz',
-        sha256: '9112ed93c1544ecc6397f7ff20bd2b28f3b04c7fbb54024e10f9a376a132a87d',
+        url: 'https://github.com/uhop/node-re2/releases/download/1.18.0/darwin-x64-108.gz',
+        sha256: '1fbe31075a86b44b26a3f188ccc6145600b12a1e9096af97076c9f690065137e',
       },
       'linux-x64': {
-        url: 'https://github.com/uhop/node-re2/releases/download/1.17.4/linux-x64-83.gz',
-        sha256: '86e03540783a18c41f81df0aec320b1f64aca6cbd3a87fc1b7a9b4109c5f5986',
+        url: 'https://github.com/uhop/node-re2/releases/download/1.18.0/linux-x64-108.gz',
+        sha256: 'f256e25870feb6c371585aca321eb865c3592ab3bb9547591b5af9513c7ac008',
       },
       'linux-arm64': {
         url:
-          'https://d1v1sj258etie.cloudfront.net/node-re2/releases/download/1.17.4/linux-arm64-83.tar.gz',
-        sha256: 'd86ced75b794fbf518b90908847b3c09a50f3ff5a2815aa30f53080f926a2873',
+          'https://d1v1sj258etie.cloudfront.net/node-re2/releases/download/1.18.0/linux-arm64-108.tar.gz',
+        sha256: '9ec1c0485ad1e0356ba12ae267d7fe485915a40d0bd74019ce6e7ba109912512',
         overriddenExtractMethod: 'untar',
         overriddenDestinationPath: 'node_modules/re2/build/Release',
       },
       'win32-x64': {
-        url: 'https://github.com/uhop/node-re2/releases/download/1.17.4/win32-x64-83.gz',
-        sha256: '2f842d9757288afd4bd5dec0e7b370a4c3e89ac98050598b17abb9e8e00e3294',
+        url: 'https://github.com/uhop/node-re2/releases/download/1.18.0/win32-x64-108.gz',
+        sha256: 'a9be9c18995b687724bc0c8a41ff0b4bef836d0165fe4fff42589220240cabf9',
       },
     },
   },
