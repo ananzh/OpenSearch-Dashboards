@@ -33,7 +33,7 @@
     "pirates": "^4.0.1",
     "postcss": "^8.4.5",
     "rxjs": "^6.5.5",
-    "sass": "~1.26.11",
+    "node-sass": "^8.0.0",
     "source-map-support": "^0.5.19",
     "terser-webpack-plugin": "^2.1.2",
     "tinymath": "1.2.1",
