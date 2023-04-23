@@ -31,7 +31,7 @@
 import Fs from 'fs';
 import { promisify } from 'util';
 
-export const readFile = promisify(Fs.readFile);
-export const writeFile = promisify(Fs.writeFile);
-export const mkdir = promisify(Fs.mkdir);
+export const readFile = Fs.promises.readFile;
+export const writeFile = Fs.promises.writeFile;
+export const mkdir = Fs.promises.mkdir;
 export const exists = promisify(Fs.exists);

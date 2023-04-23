@@ -30,9 +30,6 @@
 
 export {
   // constants
-  readFileAsync,
-  writeFileAsync,
-  makeDirAsync,
   accessAsync,
   globAsync,
   // functions

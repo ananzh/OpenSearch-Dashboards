@@ -56,9 +56,6 @@ const HTML_LINE_BREAK_REGEX = /[\s]*\n[\s]*/g;
 const ARGUMENT_ELEMENT_TYPE = 'argumentElement';
 const HTML_KEY_PREFIX = 'html_';
 
-export const readFileAsync = promisify(fs.readFile);
-export const writeFileAsync = promisify(fs.writeFile);
-export const makeDirAsync = promisify(fs.mkdir);
 export const accessAsync = promisify(fs.access);
 export const globAsync = promisify(glob);
 
