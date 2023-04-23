@@ -30,7 +30,6 @@
     "del": "^6.1.1",
     "exit-hook": "^2.2.0",
     "getopts": "^2.2.5",
-    "glob": "^7.1.7",
     "joi": "^13.5.2",
     "lodash": "^4.17.21",
     "parse-link-header": "^2.0.0",

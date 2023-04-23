@@ -29,7 +29,7 @@
  */
 
 import _ from 'lodash';
-import glob from 'glob';
+import { globSync} from 'glob';
 import path from 'path';
 import processFunctionDefinition from './process_function_definition';
 
@@ -40,8 +40,7 @@ export default function (directory) {
 
   // Get a list of all files and use the filename as the object key
   const files = _.map(
-    glob
-      .sync(path.resolve(__dirname, '../' + directory + '/*.js'))
+    globSync(path.resolve(__dirname, '../' + directory + '/*.js'))
       .filter((filename) => !filename.includes('.test')),
     function (file) {
       const name = file.substring(file.lastIndexOf('/') + 1, file.lastIndexOf('.'));
@@ -50,7 +49,7 @@ export default function (directory) {
   );
 
   // Get a list of all directories with an index.js, use the directory name as the key in the object
-  const directories = _.chain(glob.sync(path.resolve(__dirname, '../' + directory + '/*/index.js')))
+  const directories = _.chain(globSync(path.resolve(__dirname, '../' + directory + '/*/index.js')))
     .map(function (file) {
       const parts = file.split('/');
       const name = parts[parts.length - 2];
