@@ -28,18 +28,16 @@
  * under the License.
  */
 
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, access, mkdir } from 'fs/promises';
 import { ToolingLog } from '@osd/dev-utils';
 import { i18n } from '@osd/i18n';
 import path from 'path';
 
 import { createFailError } from '@osd/dev-utils';
 import {
-  accessAsync,
   checkValuesProperty,
   difference,
   extractValueReferencesFromMessage,
-  makeDirAsync,
   normalizePath,
   verifyICUMessage,
 } from './utils';
@@ -192,9 +190,9 @@ async function writeMessages(
       const destPath = path.resolve(namespacedPath, 'translations');
 
       try {
-        await accessAsync(destPath);
+        await access(destPath);
       } catch (_) {
-        await makeDirAsync(destPath);
+        await mkdir(destPath);
       }
 
       const writePath = path.resolve(destPath, fileName);

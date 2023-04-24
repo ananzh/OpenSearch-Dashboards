@@ -39,7 +39,6 @@ import {
   isTemplateLiteral,
   isBinaryExpression,
 } from '@babel/types';
-import fs from 'fs';
 import glob from 'glob';
 import { promisify } from 'util';
 import normalize from 'normalize-path';
@@ -56,7 +55,6 @@ const HTML_LINE_BREAK_REGEX = /[\s]*\n[\s]*/g;
 const ARGUMENT_ELEMENT_TYPE = 'argumentElement';
 const HTML_KEY_PREFIX = 'html_';
 
-export const accessAsync = promisify(fs.access);
 export const globAsync = promisify(glob);
 
 export function normalizePath(inputPath) {

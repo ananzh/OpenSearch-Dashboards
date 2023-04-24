@@ -30,8 +30,8 @@
 
 import { unlinkSync as unlink } from 'fs';
 import once from 'lodash/once';
+import { writeFile, exists } from 'fs/promises';
 import { Logger } from '../logging';
-import { writeFile, exists } from './fs';
 import { PidConfigType } from './pid_config';
 
 export const writePidFile = async ({

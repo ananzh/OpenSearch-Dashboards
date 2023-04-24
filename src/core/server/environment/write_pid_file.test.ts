@@ -28,11 +28,11 @@
  * under the License.
  */
 
-import { writeFile, exists } from './fs';
+import { writeFile, exists } from 'fs/promises';
 import { writePidFile } from './write_pid_file';
 import { loggingSystemMock } from '../logging/logging_system.mock';
 
-jest.mock('./fs', () => ({
+jest.mock('fs/promises', () => ({
   writeFile: jest.fn(),
   exists: jest.fn(),
 }));

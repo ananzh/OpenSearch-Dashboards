@@ -30,7 +30,6 @@
 
 export {
   // constants
-  accessAsync,
   globAsync,
   // functions
   normalizePath,
