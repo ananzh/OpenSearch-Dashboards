@@ -38,7 +38,6 @@ import { tmpdir } from 'os';
 import { basename, dirname, join, sep } from 'path';
 import { Observable } from 'rxjs';
 import { first } from 'rxjs/operators';
-import { promisify } from 'util';
 import { OpenSearchDashboardsConfig } from '../../osd_server';
 
 export class LogRotator {

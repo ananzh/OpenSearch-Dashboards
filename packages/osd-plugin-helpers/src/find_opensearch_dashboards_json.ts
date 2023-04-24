@@ -29,13 +29,10 @@
  */
 
 import Path from 'path';
-import Fs from 'fs';
-import { promisify } from 'util';
-
-const existsAsync = promisify(Fs.exists);
+import { exists } from 'fs';
 
 export async function findOpenSearchDashboardsJson(directory: string): Promise<string | undefined> {
-  if (await existsAsync(Path.resolve(directory, 'opensearch_dashboards.json'))) {
+  if (await exists(Path.resolve(directory, 'opensearch_dashboards.json'))) {
     return directory;
   }
 

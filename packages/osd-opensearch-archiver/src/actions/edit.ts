@@ -29,15 +29,12 @@
  */
 
 import { resolve, relative } from 'path';
-import Fs from 'fs';
+import { unlink } from 'fs/promises';
 import { createGunzip, createGzip, Z_BEST_COMPRESSION } from 'zlib';
-import { promisify } from 'util';
 import globby from 'globby';
 import { ToolingLog } from '@osd/dev-utils';
 
 import { createPromiseFromStreams } from '../lib/streams';
-
-const unlinkAsync = promisify(Fs.unlink);
 
 export async function editAction({
   prefix,
@@ -68,7 +65,7 @@ export async function editAction({
         Fs.createWriteStream(archive.rawPath),
       ]);
 
-      await unlinkAsync(archive.path);
+      await unlink(archive.path);
 
       log.info(
         `Extracted %s to %s`,
@@ -88,7 +85,7 @@ export async function editAction({
         Fs.createWriteStream(archive.path),
       ]);
 
-      await unlinkAsync(archive.rawPath);
+      await unlink(archive.rawPath);
 
       log.info(
         `Archived %s to %s`,

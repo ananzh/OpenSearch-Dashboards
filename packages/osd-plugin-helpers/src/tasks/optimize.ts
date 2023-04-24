@@ -30,14 +30,12 @@
 
 import Fs from 'fs';
 import Path from 'path';
-import { promisify } from 'util';
+import { rename } from 'fs/promises';
 
 import { REPO_ROOT } from '@osd/utils';
 import { OptimizerConfig, runOptimizer, logOptimizerState } from '@osd/optimizer';
 
 import { BuildContext } from '../contexts';
-
-const asyncRename = promisify(Fs.rename);
 
 export async function optimize({ log, plugin, sourceDir, buildDir }: BuildContext) {
   if (!plugin.manifest.ui) {
@@ -59,6 +57,6 @@ export async function optimize({ log, plugin, sourceDir, buildDir }: BuildContex
   await runOptimizer(config).pipe(logOptimizerState(log, config)).toPromise();
 
   // move target into buildDir
-  await asyncRename(Path.resolve(sourceDir, 'target'), Path.resolve(buildDir, 'target'));
+  await rename(Path.resolve(sourceDir, 'target'), Path.resolve(buildDir, 'target'));
   log.indent(-2);
 }
