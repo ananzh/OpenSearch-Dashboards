@@ -28,16 +28,13 @@
  * under the License.
  */
 
-import globSync from 'glob';
+import glob from 'glob';
 import path from 'path';
-import { promisify } from 'util';
 
 import { getProjectPaths } from '../config';
 import { copyDirectory, isSymlink, unlink } from './fs';
 import { readPackageJson } from './package_json';
 import { getProjects } from './projects';
-
-const glob = promisify(globSync);
 
 export async function workspacePackagePaths(rootPath: string): Promise<string[]> {
   const rootPkgJson = await readPackageJson(rootPath);

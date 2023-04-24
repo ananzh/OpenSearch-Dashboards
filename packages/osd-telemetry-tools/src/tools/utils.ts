@@ -42,12 +42,8 @@ import {
   isEqual,
 } from 'lodash';
 import * as path from 'path';
-import glob from 'glob';
-import { promisify } from 'util';
 import normalize from 'normalize-path';
 import { Optional } from '@osd/utility-types';
-
-export const globAsync = promisify(glob);
 
 export function isPropertyWithKey(property: ts.Node, identifierName: string) {
   if (ts.isPropertyAssignment(property) || ts.isMethodDeclaration(property)) {

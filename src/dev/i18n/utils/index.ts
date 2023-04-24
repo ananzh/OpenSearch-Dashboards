@@ -29,8 +29,6 @@
  */
 
 export {
-  // constants
-  globAsync,
   // functions
   normalizePath,
   difference,
