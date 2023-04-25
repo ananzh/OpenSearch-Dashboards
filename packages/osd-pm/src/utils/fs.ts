@@ -30,15 +30,8 @@
 
 import cmdShim from 'cmd-shim';
 import { Stats } from 'fs';
-import { lstat, symlink, mkdir, unlink } from 'fs/promises';
-import { ncp } from 'ncp';
+import { lstat, symlink, unlink } from 'fs/promises';
 import { dirname, relative } from 'path';
-import { promisify } from 'util';
-
-export { readFile, writeFile, chmod, unlink } from 'fs/promises';
-
-export const mkdirp = async (path: string) => await mkdir(path, { recursive: true });
-export const copyDirectory = promisify(ncp);
 
 async function statTest(path: string, block: (stats: Stats) => boolean) {
   try {

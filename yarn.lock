@@ -3363,13 +3363,6 @@
   resolved "https://registry.yarnpkg.com/@types/mustache/-/mustache-0.8.32.tgz#7db3b81f2bf450bd38805f596d20eca97c4ed595"
   integrity sha512-RTVWV485OOf4+nO2+feurk0chzHkSjkjALiejpHltyuMf/13fGymbbNNFrSKdSSUg1TIwzszXdWsVirxgqYiFA==
 
-"@types/ncp@^2.0.1":
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/@types/ncp/-/ncp-2.0.5.tgz#5c53b229a321946102a188b603306162137f4fb9"
-  integrity sha512-ocK0p8JuFmX7UkMabFPjY0F7apPvQyLWt5qtdvuvQEBz9i4m2dbzV+6L1zNaUp042RfnL6pHnxDE53OH6XQ9VQ==
-  dependencies:
-    "@types/node" "*"
-
 "@types/node-forge@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@types/node-forge/-/node-forge-1.0.1.tgz#0df103639da9d5ec6a708d462020f0df70679f37"
@@ -12951,11 +12944,6 @@ natural-compare@^1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/natural-compare/-/natural-compare-1.4.0.tgz#4abebfeed7541f2c27acfb29bdbbd15c8d5ba4f7"
   integrity sha1-Sr6/7tdUHywnrPspvbvRXI1bpPc=
-
-ncp@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/ncp/-/ncp-2.0.0.tgz#195a21d6c46e361d2fb1281ba38b91e9df7bdbb3"
-  integrity sha1-GVoh1sRuNh0vsSgbo4uR6d9727M=
 
 nearley@^2.7.10:
   version "2.20.1"
