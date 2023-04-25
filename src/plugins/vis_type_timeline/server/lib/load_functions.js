@@ -29,7 +29,7 @@
  */
 
 import _ from 'lodash';
-import globSync from 'glob';
+import { globSync} from 'glob';
 import path from 'path';
 import processFunctionDefinition from './process_function_definition';
 

@@ -30,7 +30,7 @@
 
 import * as ts from 'typescript';
 import * as path from 'path';
-import glob from 'glob';
+import { glob } from 'glob';
 import { parseUsageCollection } from './ts_parser';
 import { TelemetryRC } from './config';
 

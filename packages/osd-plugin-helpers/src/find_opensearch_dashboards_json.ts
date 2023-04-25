@@ -29,17 +29,18 @@
  */
 
 import Path from 'path';
-import { exists } from 'fs';
+import { stat } from 'fs/promises';
 
 export async function findOpenSearchDashboardsJson(directory: string): Promise<string | undefined> {
-  if (await exists(Path.resolve(directory, 'opensearch_dashboards.json'))) {
+  try{
+    await stat(Path.resolve(directory, 'opensearch_dashboards.json'));
     return directory;
+  } catch (error) {
+    console.error('Error getting file stats:', error);
+    const parent = Path.dirname(directory);
+    if (parent === directory) {
+      return undefined;
+    }
+    return findOpenSearchDashboardsJson(parent);
   }
-
-  const parent = Path.dirname(directory);
-  if (parent === directory) {
-    return undefined;
-  }
-
-  return findOpenSearchDashboardsJson(parent);
 }

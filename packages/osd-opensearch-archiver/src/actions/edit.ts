@@ -29,6 +29,7 @@
  */
 
 import { resolve, relative } from 'path';
+import { createReadStream, createWriteStream } from 'fs';
 import { unlink } from 'fs/promises';
 import { createGunzip, createGzip, Z_BEST_COMPRESSION } from 'zlib';
 import globby from 'globby';
@@ -60,9 +61,9 @@ export async function editAction({
   await Promise.all(
     archives.map(async (archive) => {
       await createPromiseFromStreams([
-        Fs.createReadStream(archive.path),
+        createReadStream(archive.path),
         createGunzip(),
-        Fs.createWriteStream(archive.rawPath),
+        createWriteStream(archive.rawPath),
       ]);
 
       await unlink(archive.path);
@@ -80,9 +81,9 @@ export async function editAction({
   await Promise.all(
     archives.map(async (archive) => {
       await createPromiseFromStreams([
-        Fs.createReadStream(archive.rawPath),
+        createReadStream(archive.rawPath),
         createGzip({ level: Z_BEST_COMPRESSION }),
-        Fs.createWriteStream(archive.path),
+        createWriteStream(archive.path),
       ]);
 
       await unlink(archive.rawPath);

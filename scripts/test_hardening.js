@@ -30,7 +30,7 @@
 
 var execFileSync = require('child_process').execFileSync;
 var path = require('path');
-var globSync = require('glob');
+var { globSync } = require('glob');
 var program = require('commander');
 
 program

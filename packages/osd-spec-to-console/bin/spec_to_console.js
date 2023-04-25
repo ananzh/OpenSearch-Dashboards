@@ -31,7 +31,7 @@
 const fs = require('fs');
 const path = require('path');
 const program = require('commander');
-const globSync = require('glob');
+const { globSync } = require('glob');
 const chalk = require('chalk');
 
 const packageJSON = require('../package.json');

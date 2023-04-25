@@ -28,7 +28,6 @@
  * under the License.
  */
 
-import Fs from 'fs';
 import Path from 'path';
 import { rename } from 'fs/promises';
 

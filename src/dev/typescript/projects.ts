@@ -28,7 +28,7 @@
  * under the License.
  */
 
-import globSync from 'glob';
+import { globSync} from 'glob';
 import { resolve } from 'path';
 import { REPO_ROOT } from '@osd/utils';
 import { Project } from './project';

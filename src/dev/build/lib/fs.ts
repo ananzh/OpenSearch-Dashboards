@@ -34,7 +34,7 @@ import { Writable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { resolve, dirname, isAbsolute, sep } from 'path';
 import { createGunzip } from 'zlib';
-import { inspect, promisify } from 'util';
+import { inspect } from 'util';
 
 import archiver from 'archiver';
 import * as StreamZip from 'node-stream-zip';
