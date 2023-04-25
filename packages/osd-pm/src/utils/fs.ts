@@ -28,8 +28,8 @@
  * under the License.
  */
 
-import cmdShimCb from 'cmd-shim';
-import fs from 'fs';
+import cmdShim from 'cmd-shim';
+import { Stats } from 'fs';
 import { lstat, symlink, mkdir, unlink } from 'fs/promises';
 import { ncp } from 'ncp';
 import { dirname, relative } from 'path';
@@ -37,11 +37,10 @@ import { promisify } from 'util';
 
 export { readFile, writeFile, chmod, unlink } from 'fs/promises';
 
-const cmdShim = promisify<string, string>(cmdShimCb);
 export const mkdirp = async (path: string) => await mkdir(path, { recursive: true });
 export const copyDirectory = promisify(ncp);
 
-async function statTest(path: string, block: (stats: fs.Stats) => boolean) {
+async function statTest(path: string, block: (stats: Stats) => boolean) {
   try {
     return block(await lstat(path));
   } catch (e) {
