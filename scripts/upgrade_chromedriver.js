@@ -74,7 +74,9 @@ if (majorVersion) {
   if (process.argv.includes('--install')) {
     console.log(`Installing chromedriver@^${majorVersion}`);
 
-    spawnSync(`yarn add --dev chromedriver@^${majorVersion}`, {
+    // TODO: Temporary fix to install chromedriver 112.0.0; revert this once Node is bumped to 16+.
+    // https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3975
+    spawnSync('yarn add --dev chromedriver@112.0.0', {
       stdio: 'inherit',
       cwd: process.cwd(),
       shell: true,
@@ -90,10 +92,9 @@ if (majorVersion) {
     });
     rl.on('line', (line) => {
       if (line.includes('"chromedriver": "')) {
-        line = line.replace(
-          /"chromedriver":\s*"[~^]?\d[\d.]*\d"/,
-          `"chromedriver": "^${majorVersion}"`
-        );
+        // TODO: Temporary fix to install chromedriver 112.0.0; revert this once Node is bumped to 16+.
+        // https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3975
+        line = line.replace(/"chromedriver":\s*"[~^]?\d[\d.]*\d"/, `"chromedriver": "112.0.0"`);
         upgraded = true;
       }
       writeStream.write(line + '\n', 'utf8');
