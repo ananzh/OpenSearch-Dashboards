@@ -74,7 +74,8 @@ if (majorVersion) {
   if (process.argv.includes('--install')) {
     console.log(`Installing chromedriver@^${majorVersion}`);
 
-    spawnSync(`yarn add --dev chromedriver@^${majorVersion}`, {
+    // Temporary fix: Install chromedriver 112.0.0; revert this once Node is bumped to 16+
+    spawnSync('yarn add --dev chromedriver@112.0.0', {
       stdio: 'inherit',
       cwd: process.cwd(),
       shell: true,
@@ -90,10 +91,8 @@ if (majorVersion) {
     });
     rl.on('line', (line) => {
       if (line.includes('"chromedriver": "')) {
-        line = line.replace(
-          /"chromedriver":\s*"[~^]?\d[\d.]*\d"/,
-          `"chromedriver": "^${majorVersion}"`
-        );
+        // Temporary fix: Use exact version 112.0.0; revert this once Node is bumped to 16+
+        line = line.replace(/"chromedriver":\s*"[~^]?\d[\d.]*\d"/, `"chromedriver": "112.0.0"`);
         upgraded = true;
       }
       writeStream.write(line + '\n', 'utf8');
