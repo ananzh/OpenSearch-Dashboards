@@ -29,7 +29,7 @@
  */
 
 import _, { merge } from 'lodash';
-import { globSync} from 'glob';
+import { globSync } from 'glob';
 import { basename, join, resolve } from 'path';
 import { readFileSync } from 'fs';
 

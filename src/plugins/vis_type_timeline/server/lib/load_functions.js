@@ -29,7 +29,7 @@
  */
 
 import _ from 'lodash';
-import { globSync} from 'glob';
+import { globSync } from 'glob';
 import path from 'path';
 import processFunctionDefinition from './process_function_definition';
 
@@ -40,8 +40,9 @@ export default function (directory) {
 
   // Get a list of all files and use the filename as the object key
   const files = _.map(
-    globSync(path.resolve(__dirname, '../' + directory + '/*.js'))
-      .filter((filename) => !filename.includes('.test')),
+    globSync(path.resolve(__dirname, '../' + directory + '/*.js')).filter(
+      (filename) => !filename.includes('.test')
+    ),
     function (file) {
       const name = file.substring(file.lastIndexOf('/') + 1, file.lastIndexOf('.'));
       return getTuple(directory, name);

@@ -48,7 +48,7 @@ export const writePidFile = async ({
 
   const pid = String(process.pid);
 
-  try{
+  try {
     await stat(path);
     const message = `pid file already exists at ${path}`;
     if (pidConfig.exclusive) {

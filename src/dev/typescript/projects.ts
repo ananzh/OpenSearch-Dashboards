@@ -28,7 +28,7 @@
  * under the License.
  */
 
-import { globSync} from 'glob';
+import { globSync } from 'glob';
 import { resolve } from 'path';
 import { REPO_ROOT } from '@osd/utils';
 import { Project } from './project';
@@ -42,16 +42,21 @@ export const PROJECTS = [
   // NOTE: using globSync rather than glob-all or globby
   // because it takes less than 10 ms, while the other modules
   // both took closer to 1000ms.
-  ...globSync('packages/*/tsconfig.json', { cwd: REPO_ROOT })
-    .map((path) => new Project(resolve(REPO_ROOT, path))),
-  ...globSync('src/plugins/*/tsconfig.json', { cwd: REPO_ROOT })
-    .map((path) => new Project(resolve(REPO_ROOT, path))),
-  ...globSync('examples/*/tsconfig.json', { cwd: REPO_ROOT })
-    .map((path) => new Project(resolve(REPO_ROOT, path))),
-  ...globSync('test/plugin_functional/plugins/*/tsconfig.json', { cwd: REPO_ROOT })
-    .map((path) => new Project(resolve(REPO_ROOT, path))),
-  ...globSync('test/interpreter_functional/plugins/*/tsconfig.json', { cwd: REPO_ROOT })
-    .map((path) => new Project(resolve(REPO_ROOT, path))),
+  ...globSync('packages/*/tsconfig.json', { cwd: REPO_ROOT }).map(
+    (path) => new Project(resolve(REPO_ROOT, path))
+  ),
+  ...globSync('src/plugins/*/tsconfig.json', { cwd: REPO_ROOT }).map(
+    (path) => new Project(resolve(REPO_ROOT, path))
+  ),
+  ...globSync('examples/*/tsconfig.json', { cwd: REPO_ROOT }).map(
+    (path) => new Project(resolve(REPO_ROOT, path))
+  ),
+  ...globSync('test/plugin_functional/plugins/*/tsconfig.json', { cwd: REPO_ROOT }).map(
+    (path) => new Project(resolve(REPO_ROOT, path))
+  ),
+  ...globSync('test/interpreter_functional/plugins/*/tsconfig.json', { cwd: REPO_ROOT }).map(
+    (path) => new Project(resolve(REPO_ROOT, path))
+  ),
 ];
 
 export function filterProjectsByFlag(projectFlag?: string) {

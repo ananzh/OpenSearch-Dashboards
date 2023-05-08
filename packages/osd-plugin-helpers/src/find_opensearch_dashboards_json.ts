@@ -32,10 +32,11 @@ import Path from 'path';
 import { stat } from 'fs/promises';
 
 export async function findOpenSearchDashboardsJson(directory: string): Promise<string | undefined> {
-  try{
+  try {
     await stat(Path.resolve(directory, 'opensearch_dashboards.json'));
     return directory;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error getting file stats:', error);
     const parent = Path.dirname(directory);
     if (parent === directory) {
