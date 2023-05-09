@@ -156,7 +156,7 @@ jobs:
           yarn config set network-timeout 1000000 -g
 
       - name: Setup chromedriver
-        run: node scripts/upgrade_chromedriver.js
+        run: node scripts/upgrade_chromedriver.js --install
 
       - name: Run bootstrap (Linux)
         if: matrix.os != 'windows-2019'

@@ -68,6 +68,7 @@ versionCheckCommands.some((cmd) => {
 });
 
 // Versions 90+
+
 const majorVersion = versionCheckOutput?.match?.(/(?:^|\s)(9\d|\d{3})\./)?.[1];
 
 if (majorVersion) {
@@ -77,7 +78,7 @@ if (majorVersion) {
   //       Exit if major version is greater than 112.
   //       Revert this once node is bumped to 16+.
   // https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3975
-  if (parseInt(majorVersion) === 112) {
+  if (parseInt(majorVersion) > 112) {
     targetVersion = '112.0.0';
   } else if (parseInt(majorVersion) > 112) {
     console.error(
