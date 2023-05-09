@@ -37,7 +37,7 @@ export async function RemoteProvider({ getService }: FtrProviderContext) {
   const log = getService('log');
   const config = getService('config');
   const browserType: Browsers = config.get('browser.type');
-  type BrowserStorage = 'sessionStorage' | 'localStorage';
+  type BrowserStorage = 'sess_ionStorage' | 'localStorage';
 
   const clearBrowserStorage = async (storageType: BrowserStorage) => {
     try {
