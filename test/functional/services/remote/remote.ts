@@ -37,7 +37,7 @@ export async function RemoteProvider({ getService }: FtrProviderContext) {
   const log = getService('log');
   const config = getService('config');
   const browserType: Browsers = config.get('browser.type');
-  type BrowserStorage = 'sess_ionStorage' | 'localStorage';
+  type BrowserStorage = 'sessionStorage' | 'localStorage';
 
   const clearBrowserStorage = async (storageType: BrowserStorage) => {
     try {
@@ -54,18 +54,7 @@ export async function RemoteProvider({ getService }: FtrProviderContext) {
     acceptInsecureCerts: config.get('browser.acceptInsecureCerts'),
   };
 
-  // Set the chromeDriverPath based on the installed Chrome version
-  const chromeDriverPath =
-    process.env.CHROME_DRIVER_PATH ||
-    'C:\\hostedtoolcache\\windows\\chromium\\1099944\\x64\\chromedriver.exe';
-
-  const { driver, consoleLog$ } = await initWebDriver(
-    log,
-    browserType,
-    lifecycle,
-    browserConfig,
-    chromeDriverPath
-  );
+  const { driver, consoleLog$ } = await initWebDriver(log, browserType, lifecycle, browserConfig);
   const caps = await driver.getCapabilities();
 
   log.info(`Remote initialized: ${caps.get('browserName')} ${caps.get('browserVersion')}`);
