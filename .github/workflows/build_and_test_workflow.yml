@@ -33,7 +33,7 @@ jobs:
     name: Run functional tests on ${{ matrix.name }} (ciGroup${{ matrix.group }})
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-2019]
+        os: [windows-2019]
         group: [1]
         include:
           - os: ubuntu-latest

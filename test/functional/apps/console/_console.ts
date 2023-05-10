@@ -54,18 +54,17 @@ export default function ({ getService, getPageObjects }: FtrProviderContext) {
     before(async () => {
       log.debug('navigateTo console');
       await PageObjects.common.navigateToApp('console');
+      log.debug('Navigated to console');
     });
 
     it('should show the default request', async () => {
-      // collapse the help pane because we only get the VISIBLE TEXT, not the part that is scrolled
-      // on IE11, the dialog that says 'Your browser does not meet the security requirements for OpenSearch Dashboards '
-      // blocks the close help button for several seconds so just retry until we can click it.
       await retry.try(async () => {
         await PageObjects.console.collapseHelp();
+        log.debug('Collapsed help');
       });
       await retry.try(async () => {
         const actualRequest = await PageObjects.console.getRequest();
-        log.debug(actualRequest);
+        log.debug(`Actual request: ${actualRequest}`);
         expect(actualRequest.trim()).to.eql(DEFAULT_REQUEST);
       });
     });
@@ -73,23 +72,24 @@ export default function ({ getService, getPageObjects }: FtrProviderContext) {
     it('default request response should include `"timed_out" : false`', async () => {
       const expectedResponseContains = '"timed_out": false,';
       await PageObjects.console.clickPlay();
+      log.debug('Clicked play');
       await retry.try(async () => {
         const actualResponse = await PageObjects.console.getResponse();
-        log.debug(actualResponse);
+        log.debug(`Actual response: ${actualResponse}`);
         expect(actualResponse).to.contain(expectedResponseContains);
       });
     });
 
     it('settings should allow changing the text size', async () => {
       await PageObjects.console.setFontSizeSetting(20);
+      log.debug('Set font size to 20');
       await retry.try(async () => {
-        // the settings are not applied synchronously, so we retry for a time
         expect(await PageObjects.console.getRequestFontSize()).to.be('20px');
       });
 
       await PageObjects.console.setFontSizeSetting(24);
+      log.debug('Set font size to 24');
       await retry.try(async () => {
-        // the settings are not applied synchronously, so we retry for a time
         expect(await PageObjects.console.getRequestFontSize()).to.be('24px');
       });
     });
@@ -97,8 +97,10 @@ export default function ({ getService, getPageObjects }: FtrProviderContext) {
     it('should resize the editor', async () => {
       const editor = await find.byCssSelector('.conApp');
       await browser.setWindowSize(1300, 1100);
+      log.debug('Set window size to 1300x1100');
       const initialSize = await editor.getSize();
       await browser.setWindowSize(1000, 1100);
+      log.debug('Set window size to 1000x1100');
       const afterSize = await editor.getSize();
       expect(initialSize.width).to.be.greaterThan(afterSize.width);
     });
