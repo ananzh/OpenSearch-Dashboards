@@ -89,7 +89,6 @@ function usingWorkerProc<T>(
             ? [`${inspectFlag}=${inspectPortCounter++}`]
             : []),
           ...(config.maxWorkerCount <= 3 ? ['--max-old-space-size=2048'] : []),
-          '--openssl-legacy-provider',
         ],
         buffer: false,
         stderr: 'pipe',
