@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        group: [1]
+        group: [3]
         include:
           - os: ubuntu-latest
             name: Linux
