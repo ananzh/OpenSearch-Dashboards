@@ -45,12 +45,16 @@ export default function ({ getService, getPageObjects }) {
         defaultIndex: '0bf35f60-3dc9-11e8-8660-4d65aa086b3c',
       });
       await PageObjects.common.navigateToApp('dashboard');
+      console.log('navigate to app dashboard');
       await PageObjects.dashboard.preserveCrossAppState();
       await PageObjects.dashboard.loadSavedDashboard('few panels');
+      console.log('load saved dashboard');
     });
 
     it('option not available in edit mode', async () => {
+      console.log('switch to edit mode');
       await PageObjects.dashboard.switchToEditMode();
+      console.log('click full screen mode');
       const exists = await PageObjects.dashboard.fullScreenModeMenuItemExists();
       expect(exists).to.be(false);
     });
