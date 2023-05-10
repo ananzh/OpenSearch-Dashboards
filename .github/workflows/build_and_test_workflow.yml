@@ -98,8 +98,8 @@ jobs:
         if: matrix.os == 'windows-2019'
         run: yarn osd bootstrap || yarn osd bootstrap
 
-      - name: Build plugins
-        run: node scripts/build_opensearch_dashboards_platform_plugins --no-examples --workers 10
+      #- name: Build plugins
+      #  run: node scripts/build_opensearch_dashboards_platform_plugins --no-examples --workers 10
 
       - name: Run CI test group ${{ matrix.group }}
         id: ftr-tests
