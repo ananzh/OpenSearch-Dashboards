@@ -95,10 +95,11 @@ if (majorVersion) {
   if (parseInt(majorVersion) === 112) {
     targetVersion = '112.0.0';
   } else if (parseInt(majorVersion) > 112) {
-    console.error(
-      `::error::Chrome version (${majorVersion}) is not supported by this script. The largest chrome version we support is 112.`
-    );
-    process.exit(1);
+    //console.error(
+    //  `::error::Chrome version (${majorVersion}) is not supported by this script. The largest chrome version we support is 112.`
+    //);
+    //process.exit(1);
+    targetVersion = '112.0.0';
   }
 
   if (process.argv.includes('--install')) {
