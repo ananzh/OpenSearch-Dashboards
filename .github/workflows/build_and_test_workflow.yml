@@ -131,8 +131,12 @@ jobs:
         run: |
           $current_path = Get-Location
           echo "Current directory: $current_path"
-          echo "Contents of the target directory:"
+          echo "Contents of the osd-ui-shared-deps target directory:"
           Get-ChildItem "${current_path}\packages\osd-ui-shared-deps\target" | Format-Table
+          echo "Contents of the osd-ace target directory:"
+          Get-ChildItem "${current_path}\packages\osd-ace\target" | Format-Table
+          echo "Contents of the osd-monaco target directory:"
+          Get-ChildItem "${current_path}\packages\osd-monaco\target" | Format-Table
 
       - name: Build plugins
         run: node scripts/build_opensearch_dashboards_platform_plugins --no-examples --workers 10
