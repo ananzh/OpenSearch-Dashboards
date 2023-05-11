@@ -133,6 +133,8 @@ jobs:
           echo "Current directory: $current_path"
           echo "Contents of the osd-ui-shared-deps target directory:"
           Get-ChildItem "${current_path}\packages\osd-ui-shared-deps\target" | Format-Table
+          echo "Contents of the osd-interpreter target directory:"
+          Get-ChildItem "${current_path}\packages\osd-interpreter\target" | Format-Table
           echo "Contents of the osd-ace target directory:"
           Get-ChildItem "${current_path}\packages\osd-ace\target" | Format-Table
           echo "Contents of the osd-monaco target directory:"
