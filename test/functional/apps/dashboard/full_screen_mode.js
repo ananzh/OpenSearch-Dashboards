@@ -40,22 +40,28 @@ export default function ({ getService, getPageObjects }) {
 
   describe('full screen mode', () => {
     before(async () => {
+      console.debug('0000');
       await opensearchArchiver.load('dashboard/current/opensearch_dashboards');
+      console.debug('1111');
       await opensearchDashboardsServer.uiSettings.replace({
         defaultIndex: '0bf35f60-3dc9-11e8-8660-4d65aa086b3c',
       });
+      console.debug('2222');
       await PageObjects.common.navigateToApp('dashboard');
-      console.log('navigate to app dashboard');
+      console.debug('3333');
       await PageObjects.dashboard.preserveCrossAppState();
+      console.debug('4444');
       await PageObjects.dashboard.loadSavedDashboard('few panels');
-      console.log('load saved dashboard');
+      console.debug('5555');
     });
 
     it('option not available in edit mode', async () => {
       console.log('switch to edit mode');
+      console.debug('6666');
       await PageObjects.dashboard.switchToEditMode();
-      console.log('click full screen mode');
+      console.debug('7777');
       const exists = await PageObjects.dashboard.fullScreenModeMenuItemExists();
+      console.debug('8888');
       expect(exists).to.be(false);
     });
 

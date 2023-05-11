@@ -252,9 +252,12 @@ export function CommonPageProvider({ getService, getPageObjects }: FtrProviderCo
           // since we're using hash URLs, always reload first to force re-render
           log.debug('navigate to: ' + appUrl);
           await browser.get(appUrl, insertTimestamp);
+          log.debug('returned from browser.get');
           // accept alert if it pops up
           const alert = await browser.getAlert();
+          log.debug('returned from getAlert');
           await alert?.accept();
+          log.debug('returned from browser alert accept');
           await this.sleep(700);
           log.debug('returned from get, calling refresh');
           await browser.refresh();
