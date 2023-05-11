@@ -32,21 +32,22 @@ import { format } from 'util';
 
 import Mocha from 'mocha';
 import { ToolingLogTextWriter } from '@osd/dev-utils';
-import moment from 'moment';
+//import moment from 'moment';
 
 import { setupJUnitReportGeneration } from '../../../../../../../src/dev';
 import * as colors from './colors';
 import * as symbols from './symbols';
 import { ms } from './ms';
 import { writeEpilogue } from './write_epilogue';
-import { recordLog, snapshotLogsForRunnable } from '../../../../../../../src/dev/mocha/log_cache';
+import { snapshotLogsForRunnable } from '../../../../../../../src/dev/mocha/log_cache';
+//import { recordLog, snapshotLogsForRunnable } from '../../../../../../../src/dev/mocha/log_cache';
 
 export function MochaReporterProvider({ getService }) {
   const log = getService('log');
   const config = getService('config');
   const failureMetadata = getService('failureMetadata');
   let originalLogWriters;
-  let reporterCaptureStartTime;
+  //let reporterCaptureStartTime;
 
   const failuresOverTime = [];
 
@@ -79,7 +80,7 @@ export function MochaReporterProvider({ getService }) {
           'debug logs are being captured, only error logs will be written to the console'
         );
 
-        reporterCaptureStartTime = moment();
+        //reporterCaptureStartTime = moment();
         originalLogWriters = log.getWriters();
 
         log.setWriters([
@@ -89,28 +90,29 @@ export function MochaReporterProvider({ getService }) {
           }),
           new ToolingLogTextWriter({
             level: 'debug',
-            writeTo: {
-              write: (line) => {
-                // if the current runnable is a beforeEach hook then
-                // `runner.suite` is set to the suite that defined the
-                // hook, rather than the suite executing, so instead we
-                // grab the suite from the test, but that's only available
-                // when we are doing something test specific, so for global
-                // hooks we fallback to `runner.suite`
-                const currentSuite = this.runner.test ? this.runner.test.parent : this.runner.suite;
+            writeTo: process.stdout,
+            //writeTo: {
+            //  write: (line) => {
+            //    // if the current runnable is a beforeEach hook then
+            //    // `runner.suite` is set to the suite that defined the
+            //    // hook, rather than the suite executing, so instead we
+            //    // grab the suite from the test, but that's only available
+            //    // when we are doing something test specific, so for global
+            //    // hooks we fallback to `runner.suite`
+            //    const currentSuite = this.runner.test ? this.runner.test.parent : this.runner.suite;
 
-                // We are computing the difference between the time when this
-                // reporter has started and the time when each line are being
-                // logged in order to be able to label the test results log lines
-                // with this relative time information
-                const diffTimeSinceStart = moment().diff(reporterCaptureStartTime);
-                const readableDiffTimeSinceStart = `[${moment(diffTimeSinceStart).format(
-                  'HH:mm:ss'
-                )}] `;
+            //    // We are computing the difference between the time when this
+            //    // reporter has started and the time when each line are being
+            //    // logged in order to be able to label the test results log lines
+            //    // with this relative time information
+            //    const diffTimeSinceStart = moment().diff(reporterCaptureStartTime);
+            //    const readableDiffTimeSinceStart = `[${moment(diffTimeSinceStart).format(
+            //      'HH:mm:ss'
+            //    )}] `;
 
-                recordLog(currentSuite, `${readableDiffTimeSinceStart} ${line}`);
-              },
-            },
+            //    recordLog(currentSuite, `${readableDiffTimeSinceStart} ${line}`);
+            //  },
+            //},
           }),
         ]);
       }
