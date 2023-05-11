@@ -144,7 +144,6 @@ exports.getWebpackConfig = ({ dev = false } = {}) => ({
     }),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': dev ? '"development"' : '"production"',
-      'process.env.NODE_OPTIONS': '--openssl-legacy-provider',
     }),
     ...(dev
       ? []

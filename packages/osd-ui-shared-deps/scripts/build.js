@@ -45,11 +45,13 @@ run(
     log.info('cleaning previous build output');
     await del(DIST_DIR);
 
-    const compiler = webpack(
-      getWebpackConfig({
-        dev: flags.dev,
-      })
-    );
+    const webpackConfig = getWebpackConfig({
+      dev: flags.dev,
+    });
+
+    console.debug('Webpack Output Path:', webpackConfig.output.path);
+
+    const compiler = webpack(webpackConfig);
 
     /** @param {webpack.Stats} stats */
     const onCompilationComplete = async (stats) => {

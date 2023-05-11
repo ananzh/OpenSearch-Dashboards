@@ -118,6 +118,22 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: yarn osd bootstrap || yarn osd bootstrap
 
+      - name: Check file creation (Linux)
+        if: matrix.os != 'windows-latest'
+        run: |
+          current_path=$(pwd)
+          echo "Current directory: $current_path"
+          echo "Contents of the target directory:"
+          ls -l "${current_path}/packages/osd-ui-shared-deps/target"
+
+      - name: Check file creation (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $current_path = Get-Location
+          echo "Current directory: $current_path"
+          echo "Contents of the target directory:"
+          Get-ChildItem "${current_path}\packages\osd-ui-shared-deps\target" | Format-Table
+
       - name: Build plugins
         run: node scripts/build_opensearch_dashboards_platform_plugins --no-examples --workers 10
 
