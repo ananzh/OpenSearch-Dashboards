@@ -140,22 +140,23 @@ jobs:
           echo "Contents of the osd-monaco target directory:"
           Get-ChildItem "${current_path}\packages\osd-monaco\target" | Format-Table
 
-      #- name: Re-run Build in osd-monaco (Windows)
-      #  if: matrix.os == 'windows-latest'
-      #  run: |
-      #    pushd packages\osd-monaco
-      #    node --openssl-legacy-provider .\scripts\build.js
-      #    popd
+      - name: Re-run Build in osd-monaco (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          pushd packages\osd-monaco
+          $env:NODE_OPTIONS="--openssl-legacy-provider " + $env:NODE_OPTIONS
+          node .\scripts\build.js
+          popd
 
-      #- name: Re-check file creation osd-monaco (Windows)
-      #  if: matrix.os == 'windows-latest'
-      #  run: |
-      #    $current_path = Get-Location
-      #    echo "Current directory: $current_path"
-      #    echo "Contents of the osd-monaco target directory:"
-      #    Get-ChildItem "${current_path}\packages\osd-monaco\target" | Format-Table
-      #    echo "Contents of the osd-monaco node_module\.bin directory:"
-      #    Get-ChildItem "${current_path}\packages\osd-monaco\node_modules\.bin" | Format-Table
+      - name: Re-check file creation osd-monaco (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $current_path = Get-Location
+          echo "Current directory: $current_path"
+          echo "Contents of the osd-monaco target directory:"
+          Get-ChildItem "${current_path}\packages\osd-monaco\target" | Format-Table
+          echo "Contents of the osd-monaco node_module\.bin directory:"
+          Get-ChildItem "${current_path}\packages\osd-monaco\node_modules\.bin" | Format-Table
 
       - name: Re-run Build in osd-ui-shared-deps (Windows)
         if: matrix.os == 'windows-latest'
