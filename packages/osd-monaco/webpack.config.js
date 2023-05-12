@@ -30,8 +30,10 @@
 
 const path = require('path');
 
+const isDev = process.argv.includes('--dev');
+
 const createLangWorkerConfig = (lang) => ({
-  mode: 'production',
+  mode: isDev ? 'development' : 'production',
   entry: path.resolve(__dirname, 'src', lang, 'worker', `${lang}.worker.ts`),
   output: {
     path: path.resolve(__dirname, 'target/public'),
