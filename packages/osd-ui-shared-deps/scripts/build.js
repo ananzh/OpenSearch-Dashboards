@@ -49,6 +49,8 @@ run(
       dev: flags.dev,
     });
 
+    process.env.NODE_OPTIONS = '--openssl-legacy-provider ' + (process.env.NODE_OPTIONS || '');
+
     console.debug('Webpack Output Path:', webpackConfig.output.path);
 
     const compiler = webpack(webpackConfig);
