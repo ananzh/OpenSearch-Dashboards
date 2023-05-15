@@ -25,6 +25,7 @@ env:
   TEST_OPENSEARCH_TRANSPORT_PORT: 9403
   TEST_OPENSEARCH_PORT: 9400
   OSD_SNAPSHOT_SKIP_VERIFY_CHECKSUM: true
+  NODE_OPTIONS: "--max-old-space-size=6144 --dns-result-order=ipv4first"
   # Version 112.0.5615.0
   CHROME_VERSION: 1109208
 
@@ -208,6 +209,27 @@ jobs:
       - name: Run bootstrap (Windows)
         if: matrix.os == 'windows-latest'
         run: yarn osd bootstrap || yarn osd bootstrap
+
+      - name: Re-build osd-ui-shared-deps (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          pushd packages\osd-ui-shared-deps
+          node --openssl-legacy-provider scripts\build
+          popd
+
+      - name: Check file creation (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $current_path = Get-Location
+          echo "Current directory: $current_path"
+          echo "Contents of the osd-ui-shared-deps target directory:"
+          Get-ChildItem "${current_path}\packages\osd-ui-shared-deps\target" | Format-Table
+          echo "Contents of the osd-interpreter target directory:"
+          Get-ChildItem "${current_path}\packages\osd-interpreter\target" | Format-Table
+          echo "Contents of the osd-ace target directory:"
+          Get-ChildItem "${current_path}\packages\osd-ace\target" | Format-Table
+          echo "Contents of the osd-monaco target directory:"
+          Get-ChildItem "${current_path}\packages\osd-monaco\target" | Format-Table
 
       - name: Build plugins
         run: node scripts/build_opensearch_dashboards_platform_plugins --no-examples --workers 10
