@@ -30,7 +30,7 @@
 
 const Path = require('path');
 const Fs = require('fs');
-
+process.env.NODE_OPTIONS = '--openssl-legacy-provider ' + (process.env.NODE_OPTIONS || '');
 const { run, createFailError, CiStatsReporter } = require('@osd/dev-utils');
 const webpack = require('webpack');
 const Stats = require('webpack/lib/Stats');
