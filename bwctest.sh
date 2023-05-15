@@ -97,4 +97,7 @@ if [ -z "$OPENSEARCH" ]; then
     OPENSEARCH="https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/$VERSION/latest/$PLATFORM/$ARCH/tar/dist/opensearch/opensearch-$VERSION-$PLATFORM-$ARCH.tar.gz"
 fi
 
+echo "DASHBOARDS: $DASHBOARDS"
+echo "Current directory: $(pwd)"
+echo "DASHBOARDS directory: $(dirname "$DASHBOARDS")"
 source scripts/bwctest_osd.sh -b $BIND_ADDRESS -p $BIND_PORT -s $SECURITY_ENABLED -c $CREDENTIAL -o $OPENSEARCH -d $DASHBOARDS -v $BWC_VERSIONS

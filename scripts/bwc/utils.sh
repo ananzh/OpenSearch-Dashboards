@@ -54,7 +54,8 @@ function check_status() {
   check_status_end_time=$(expr 180 + "$(date '+%s')")
   while [ ! -f $1 ] || ! grep -q "$2" $1 && [ $check_status_end_time -lt $(date '+%s') ]; do
      if [ -f $1 ]; then rm $1; fi
-     curl $3 $4 > $1 || true
+     curl $3 $4 > $1 2>&1 || true
+     echo "curl OSDcommand result: $(cat $1)"
   done
   rm $1
 }

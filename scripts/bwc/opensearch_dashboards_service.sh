@@ -20,6 +20,14 @@ function run_dashboards() {
   echo "[ Attempting to start OpenSearch Dashboards... ]"
   cd "$DASHBOARDS_DIR"
   spawn_process_and_save_PID "./bin/opensearch-dashboards > ${LOGS_DIR}/opensearch_dashboards.log 2>&1 &"
+  # Wait until the log file is created
+  while [ ! -f ${LOGS_DIR}/opensearch_dashboards.log ]; do
+    echo "Waiting for OpenSearch Dashboards log file to be created..."
+    sleep 1
+  done
+
+  # Then print out its contents
+  cat ${LOGS_DIR}/opensearch_dashboards.log
 }
 
 # Checks the running status of OpenSearch Dashboards
@@ -27,7 +35,10 @@ function run_dashboards() {
 # if success, the while loop in the check_status will end and it prints out "OpenSearch Dashboards is up!"
 function check_dashboards_status {
   echo "Checking the OpenSearch Dashboards..."
+  echo "Current directory: $(pwd)"
   cd "$DIR"
+  echo "After cd dir directory: $(pwd)"
+
   check_status $DASHBOARDS_PATH "$DASHBOARDS_MSG" $DASHBOARDS_URL "$OPENSEARCH_ARGS"
   echo "OpenSearch Dashboards is up!"
 }
