@@ -57,7 +57,7 @@ function check_status() {
      curl $3 $4 > $1 2>&1 || true
      echo "curl OSDcommand result: $(cat $1)"
   done
-  rm $1
+  if [ -f $1 ]; then rm $1; fi
 }
 
 # this function copies the tested data for the required version to the opensearch data folder
