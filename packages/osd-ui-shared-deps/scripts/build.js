@@ -45,15 +45,11 @@ run(
     log.info('cleaning previous build output');
     await del(DIST_DIR);
 
-    const webpackConfig = getWebpackConfig({
-      dev: flags.dev,
-    });
-
-    process.env.NODE_OPTIONS = '--openssl-legacy-provider ' + (process.env.NODE_OPTIONS || '');
-
-    console.debug('Webpack Output Path:', webpackConfig.output.path);
-
-    const compiler = webpack(webpackConfig);
+    const compiler = webpack(
+      getWebpackConfig({
+        dev: flags.dev,
+      })
+    );
 
     /** @param {webpack.Stats} stats */
     const onCompilationComplete = async (stats) => {
