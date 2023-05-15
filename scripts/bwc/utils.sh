@@ -65,6 +65,15 @@ function check_status() {
 function upload_data() {
   rm -rf "$OPENSEARCH_DIR/data"
   cd $OPENSEARCH_DIR
+  echo "Current cwd path is $CWD"
+  echo "Listing content of $CWD:"
+  ls -l "$CWD"
+  echo "Listing content of $CWD/cypress:"
+  ls -l  "$CWD/cypress"
+  echo "Listing content of $CWD/cypress/test-data:"
+  ls -l "$CWD/cypress/test-data"
+  echo "Listing content of $CWD/cypress/test-data/$DASHBOARDS_TYPE:"
+  ls -l "$CWD/cypress/test-data/$DASHBOARDS_TYPE"
   cp "$CWD/cypress/test-data/$DASHBOARDS_TYPE/$1.tar.gz" .
   tar -xvf "$OPENSEARCH_DIR/$1.tar.gz" >> /dev/null 2>&1
   rm "$1.tar.gz"
