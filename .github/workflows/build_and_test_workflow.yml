@@ -124,7 +124,7 @@ jobs:
 
       - name: Check build files
         if: matrix.os != 'windows-latest'
-        run:
+        run: |
           echo "Listing all files in /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build:"
           ls -l /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build
           if [  -f "/home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build/opensearch-dashboards-3.0.0-linux-arm64" ]; then
