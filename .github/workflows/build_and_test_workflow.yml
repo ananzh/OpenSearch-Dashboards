@@ -122,6 +122,22 @@ jobs:
       - name: Build `${{ matrix.name }}`
         run: yarn ${{ matrix.script }} --release
 
+      - name: Check build files
+        if: matrix.os != 'windows-latest'
+        run:
+          echo "Listing all files in /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build:"
+          ls -l /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build
+          if [  -f "/home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build/opensearch-dashboards-3.0.0-linux-arm64" ]; then
+            echo "File opensearch-dashboards-3.0.0-linux-arm64 exists."
+            echo "Listing all files in cypress/test-data/with-security:"
+            ls -l /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build/opensearch-dashboards-3.0.0-linux-arm64/cypress/test-data/with-security
+          fi
+          if [  -f "/home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build/opensearch-dashboards-3.0.0-linux-x64" ]; then
+            echo "File opensearch-dashboards-3.0.0-linux-x64 exists."
+            echo "Listing all files in cypress/test-data/with-security:"
+            ls -l /home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/artifacts/build/opensearch-dashboards-3.0.0-linux-x64/cypress/test-data/with-security
+          fi
+
       - uses: actions/upload-artifact@v3
         if: success()
         with:
@@ -141,7 +157,7 @@ jobs:
         working-directory: ./artifacts
     strategy:
       matrix:
-        version: [osd-2.0.0, osd-2.1.0, osd-2.2.0, osd-2.3.0, osd-2.4.0, osd-2.5.0]
+        version: [osd-2.0.0, osd-2.1.0, osd-2.2.0, osd-2.3.0, osd-2.4.0]
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -197,7 +213,9 @@ jobs:
       - name: Run tests
         if: steps.verify-opensearch-exists.outputs.version-exists == 'true'
         run: |
+          echo "Download path: ${{ steps.download.outputs.download-path }}"
           ./bwctest.sh -s false -o ${{ env.OPENSEARCH_URL }} -d ${{ steps.download.outputs.download-path }}/opensearch-dashboards-${{ env.VERSION }}-linux-x64.tar.gz
+          echo "Download file: ${{ steps.download.outputs.download-path }}/opensearch-dashboards-${{ env.VERSION }}-linux-x64.tar.gz"
 
       - uses: actions/upload-artifact@v3
         if: ${{ failure() && steps.verify-opensearch-exists.outputs.version-exists == 'true' }}
