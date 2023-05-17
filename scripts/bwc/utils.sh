@@ -58,7 +58,7 @@ function check_status() {
 
   while [ ! -f $1 ] || ! grep -q "$2" $1; do
     if [ -f $1 ]; then rm $1; fi
-    curl $3 $4 > $1 || true
+    curl -v $3 $4 > $1 || true
 
     # Stop checking after $check_status_end_time
     if [ $check_status_end_time -lt $(date '+%s') ]; then
