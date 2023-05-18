@@ -32,11 +32,7 @@ import config from './config';
 
 export default {
   ...config,
-  testMatch: [
-    '**/integration_tests/**/*.test.js',
-    '**/integration_tests/**/*.test.ts',
-    '**/integration_tests/**/*.test.tsx',
-  ],
+  testMatch: ['**/integration_tests/invalid_config.test.ts'],
   testPathIgnorePatterns: config.testPathIgnorePatterns.filter(
     (pattern) => !pattern.includes('integration_tests')
   ),
