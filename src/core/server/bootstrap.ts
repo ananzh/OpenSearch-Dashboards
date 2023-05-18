@@ -37,6 +37,13 @@ import { CriticalError } from './errors';
 // ToDo: `isMaster` is a Node 14- prop; remove it when Node 18+ is the only engine supported
 const isClusterManager = cluster.isPrimary ?? cluster.isMaster;
 
+/* In the event of an exception being thrown during `Root.start`, shutdown is called but the
+ * exception is re-thrown, and it ends up being caught in the `bootstrap`, below, where shutdown
+ * is called again. Node 18+ doesn't like this. `isShuttingDown` will make sure the shutdown
+ * is executed only once.
+ */
+let isShuttingDown = false;
+
 interface OpenSearchDashboardsFeatures {
   // Indicates whether we can run OpenSearch Dashboards in a so called cluster mode in which
   // OpenSearch Dashboards is run as a "worker" process together with optimizer "worker" process
@@ -137,15 +144,22 @@ export async function bootstrap({
 }
 
 function onRootShutdown(reason?: any) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  const exitCode =
+    reason === undefined ? 0 : reason instanceof CriticalError ? reason.processExitCode : 1;
+
   if (reason !== undefined) {
     // There is a chance that logger wasn't configured properly and error that
     // that forced root to shut down could go unnoticed. To prevent this we always
     // mirror such fatal errors in standard output with `console.error`.
     // eslint-disable-next-line
     console.error(`\n${chalk.white.bgRed(' FATAL ')} ${reason}\n`);
-
-    process.exit(reason instanceof CriticalError ? reason.processExitCode : 1);
   }
 
-  process.exit(0);
+  setTimeout(() => {
+    process.exitCode = exitCode;
+    process.exit(exitCode);
+  }, 1000);
 }
