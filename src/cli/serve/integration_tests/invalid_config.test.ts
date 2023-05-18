@@ -46,6 +46,11 @@ describe('cli invalid config support', function () {
     function () {
       // Unused keys only throw once LegacyService starts, so disable migrations so that Core
       // will finish the start lifecycle without a running OpenSearch instance.
+
+      // eslint-disable-next-line no-console
+      console.log('REPO_ROOT is:', REPO_ROOT); // Added log
+      // eslint-disable-next-line no-console
+      console.log('INVALID_CONFIG_PATH is:', INVALID_CONFIG_PATH); // Added log
       const { error, status, stdout, stderr } = spawnSync(
         process.execPath,
         [
@@ -58,6 +63,12 @@ describe('cli invalid config support', function () {
           cwd: REPO_ROOT,
         }
       );
+      // eslint-disable-next-line no-console
+      console.log('spawnSync error is:', error); // Added log
+      // eslint-disable-next-line no-console
+      console.log('spawnSync stdout is:', stdout.toString('utf8')); // Added log
+      // eslint-disable-next-line no-console
+      console.log('spawnSync stderr is:', stderr.toString('utf8')); // Added log
 
       const [fatalLogLine] = stdout
         .toString('utf8')
