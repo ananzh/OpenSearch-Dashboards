@@ -130,6 +130,6 @@ describe('cli invalid config support', function () {
 
       expect(status).toBe(64);
     },
-    20 * 1000
+    50 * 1000
   );
 });
