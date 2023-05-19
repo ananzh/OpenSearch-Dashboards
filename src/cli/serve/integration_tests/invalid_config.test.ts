@@ -28,7 +28,7 @@
  * under the License.
  */
 
-import { spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 
 import { REPO_ROOT } from '@osd/dev-utils';
 
@@ -43,7 +43,7 @@ interface LogEntry {
 describe('cli invalid config support', function () {
   it(
     'exits with statusCode 64 and logs a single line when config is invalid',
-    function () {
+    async function () {
       // Unused keys only throw once LegacyService starts, so disable migrations so that Core
       // will finish the start lifecycle without a running OpenSearch instance.
 
@@ -51,18 +51,48 @@ describe('cli invalid config support', function () {
       console.log('REPO_ROOT is:', REPO_ROOT); // Added log
       // eslint-disable-next-line no-console
       console.log('INVALID_CONFIG_PATH is:', INVALID_CONFIG_PATH); // Added log
-      const { error, status, stdout, stderr } = spawnSync(
-        process.execPath,
-        [
-          'scripts/opensearch_dashboards',
-          '--config',
-          INVALID_CONFIG_PATH,
-          '--migrations.skip=true',
-        ],
-        {
-          cwd: REPO_ROOT,
-        }
+      // eslint-disable-next-line no-console
+      console.log(
+        'Running command:',
+        `${process.execPath} scripts/opensearch_dashboards --config ${INVALID_CONFIG_PATH} --migrations.skip=true`
       );
+
+      const result = await new Promise((resolve, reject) => {
+        const child = spawn(
+          process.execPath,
+          [
+            'scripts/opensearch_dashboards',
+            '--config',
+            INVALID_CONFIG_PATH,
+            '--migrations.skip=true',
+          ],
+          {
+            cwd: REPO_ROOT,
+          }
+        );
+
+        let stdoutData = '';
+        let stderrData = '';
+
+        child.stdout.on('data', (data) => {
+          stdoutData += data;
+        });
+
+        child.stderr.on('data', (data) => {
+          stderrData += data;
+        });
+
+        child.on('error', (spawnError) => {
+          resolve({ error: spawnError, stdout: stdoutData, stderr: stderrData, status: null });
+        });
+
+        child.on('close', (status) => {
+          resolve({ error: null, stdout: stdoutData, stderr: stderrData, status });
+        });
+      });
+
+      const { stdout, stderr, error, status } = result;
+
       // eslint-disable-next-line no-console
       console.log('spawnSync error is:', error); // Added log
       // eslint-disable-next-line no-console
@@ -83,7 +113,7 @@ describe('cli invalid config support', function () {
           error: '## Error with stack trace ##',
         }));
 
-      expect(error).toBe(undefined);
+      expect(error).toBeNull();
 
       if (!fatalLogLine) {
         throw new Error(
