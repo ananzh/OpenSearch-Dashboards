@@ -82,8 +82,8 @@ async function setup({ failOnUrl }: { failOnUrl?: string } = {}) {
     return {
       url: `https://mirrors.nodejs.org/dist/v${version}/node-v${version}-${architecture}.tar.gz`,
       downloadName: `node-v${version}-${architecture}.tar.gz`,
-      downloadPath: `${repoRoot}/.node_binaries/${version}/node-v${version}-${architecture}.tar.gz`,
-      extractDir: `${repoRoot}/.node_binaries/${version}/${architecture}`,
+      downloadPath: `/mocked/path/.node_binaries/${version}/node-v${version}-${architecture}.tar.gz`,
+      extractDir: `/mocked/path/.node_binaries/${version}/${architecture}`,
       version,
     };
   });
@@ -148,7 +148,7 @@ it('downloads node builds for each platform', async () => {
       ],
       Array [
         Object {
-          "destination": "/home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/.node_binaries/14.21.3/node-v14.21.3-linux-x64.tar.gz",
+          "destination": "/mocked/path/.node_binaries/14.21.3/node-v14.21.3-linux-x64.tar.gz",
           "log": <ToolingLog>,
           "retries": 3,
           "sha256": undefined,
@@ -157,7 +157,7 @@ it('downloads node builds for each platform', async () => {
       ],
       Array [
         Object {
-          "destination": "/home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/.node_binaries/14.21.3/node-v14.21.3-linux-arm64.tar.gz",
+          "destination": "/mocked/path/.node_binaries/14.21.3/node-v14.21.3-linux-arm64.tar.gz",
           "log": <ToolingLog>,
           "retries": 3,
           "sha256": undefined,
@@ -166,7 +166,7 @@ it('downloads node builds for each platform', async () => {
       ],
       Array [
         Object {
-          "destination": "/home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/.node_binaries/14.21.3/node-v14.21.3-darwin-x64.tar.gz",
+          "destination": "/mocked/path/.node_binaries/14.21.3/node-v14.21.3-darwin-x64.tar.gz",
           "log": <ToolingLog>,
           "retries": 3,
           "sha256": undefined,
@@ -175,7 +175,7 @@ it('downloads node builds for each platform', async () => {
       ],
       Array [
         Object {
-          "destination": "/home/runner/work/OpenSearch-Dashboards/OpenSearch-Dashboards/.node_binaries/14.21.3/node-v14.21.3-win32-x64.tar.gz",
+          "destination": "/mocked/path/.node_binaries/14.21.3/node-v14.21.3-win32-x64.tar.gz",
           "log": <ToolingLog>,
           "retries": 3,
           "sha256": undefined,
