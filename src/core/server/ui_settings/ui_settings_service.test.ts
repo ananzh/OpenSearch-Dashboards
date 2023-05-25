@@ -111,7 +111,7 @@ describe('uiSettings', () => {
         });
 
         await expect(service.start()).rejects.toMatchInlineSnapshot(
-          `[ValidationError: [ui settings defaults [custom]]: expected value of type [string] but got [number]]`
+          `[Error: [ui settings defaults [custom]]: expected value of type [string] but got [number]]`
         );
       });
 
@@ -134,7 +134,7 @@ describe('uiSettings', () => {
         });
 
         await expect(customizedService.start()).rejects.toMatchInlineSnapshot(
-          `[ValidationError: [ui settings overrides [custom]]: expected value of type [string] but got [number]]`
+          `[Error: [ui settings overrides [custom]]: expected value of type [string] but got [number]]`
         );
       });
     });

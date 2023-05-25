@@ -729,7 +729,7 @@ describe('OptimizerConfig::create()', () => {
           [Window],
         ],
         "invocationCallOrder": Array [
-          39,
+          36,
         ],
         "lastCall": Array [
           Symbol(parsed plugin scan dirs),
@@ -759,7 +759,7 @@ describe('OptimizerConfig::create()', () => {
           [Window],
         ],
         "invocationCallOrder": Array [
-          41,
+          38,
         ],
         "lastCall": Array [
           Array [],
@@ -790,7 +790,7 @@ describe('OptimizerConfig::create()', () => {
           [Window],
         ],
         "invocationCallOrder": Array [
-          40,
+          37,
         ],
         "lastCall": Array [
           Symbol(new platform plugins),
