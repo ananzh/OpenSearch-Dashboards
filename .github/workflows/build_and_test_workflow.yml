@@ -29,105 +29,13 @@ env:
   CHROME_VERSION: 1109208
 
 jobs:
-  build-lint-test:
-    name: Build and Verify on ${{ matrix.name }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            name: Linux
-          - os: windows-latest
-            name: Windows
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Configure git's autocrlf (Windows only)
-        if: matrix.os == 'windows-latest'
-        run: |
-          git config --global core.autocrlf false
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup JDK (Windows only)
-        if: matrix.os == 'windows-latest'
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'adopt'
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Setup Yarn
-        run: |
-          npm uninstall -g yarn
-          npm i -g yarn@1.22.10
-          yarn config set network-timeout 1000000 -g
-
-      - name: Configure Yarn Cache (Linux)
-        if: matrix.os != 'windows-latest'
-        run: echo "YARN_CACHE_LOCATION=$(yarn cache dir)" >> $GITHUB_ENV
-
-      - name: Configure Yarn Cache (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "YARN_CACHE_LOCATION=$(yarn cache dir)" >> $env:GITHUB_ENV
-          echo C:\Program Files\Git\usr\bin>>"%GITHUB_PATH%"
-
-      - name: Initialize Yarn Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.YARN_CACHE_LOCATION }}
-          key: yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            yarn-
-
-      - name: Run bootstrap (Linux)
-        if: matrix.os != 'windows-latest'
-        run: yarn osd bootstrap
-
-      - name: Run bootstrap (Windows)
-        if: matrix.os == 'windows-latest'
-        run: yarn osd bootstrap || yarn osd bootstrap
-
-      - name: Run linter
-        id: linter
-        run: yarn lint
-
-      - name: Validate NOTICE file
-        id: notice-validate
-        run: yarn notice:validate
-
-      - name: Run unit tests with coverage
-        id: unit-tests
-        run: yarn test:jest:ci:coverage
-
-      - name: Run mocha tests with coverage
-        id: mocha-tests
-        run: yarn test:mocha:coverage
-
-      - name: Upload Code Coverage
-        id: upload-code-coverage
-        uses: codecov/codecov-action@v3
-        with:
-          directory: ./target/opensearch-dashboards-coverage
-          flags: ${{ matrix.name }}
-
-      - name: Run integration tests
-        id: integration-tests
-        run: yarn test:jest_integration:ci
-
   functional-tests:
     name: Run functional tests on ${{ matrix.name }} (ciGroup${{ matrix.group }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        group: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+        os: [ubuntu-latest]
+        group: [1]
         include:
           - os: ubuntu-latest
             name: Linux

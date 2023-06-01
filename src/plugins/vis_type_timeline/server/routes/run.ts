@@ -30,9 +30,9 @@
 
 import { IRouter, Logger, CoreSetup } from 'opensearch-dashboards/server';
 import { schema } from '@osd/config-schema';
-import Bluebird from 'bluebird';
 import _ from 'lodash';
 // @ts-ignore
+import { cons } from 'fp-ts/lib/ReadonlyNonEmptyArray.js';
 import chainRunnerFn from '../handlers/chain_runner.js';
 // @ts-ignore
 import getNamespacesSettings from '../lib/get_namespaced_settings';
@@ -106,7 +106,8 @@ export function runRoute(
           savedObjectsClient: context.core.savedObjects.client,
         });
         const chainRunner = chainRunnerFn(tlConfig);
-        const sheet = await Bluebird.all(chainRunner.processRequest(request.body));
+        const promisesArray = await chainRunner.processRequest(request.body);
+        const sheet = await Promise.all(promisesArray);
 
         return response.ok({
           body: {
