@@ -24,9 +24,9 @@ import { DiscoverSidebar } from './sidebar';
 import { DataGridTable } from './data_grid/data_grid_table';
 import { getServices, IndexPattern } from '../../opensearch_dashboards_services';
 // @ts-ignore
-import { DiscoverNoResults } from '../angular/directives/no_results';
-import { DiscoverUninitialized } from '../angular/directives/uninitialized';
-import { DiscoverHistogram } from '../angular/directives/histogram';
+import { DiscoverNoResults } from './no_results/no_results';
+import { DiscoverUninitialized } from './uninitialized/uninitialized';
+import { DiscoverHistogram } from './histogram/histogram';
 import { LoadingSpinner } from './loading_spinner/loading_spinner';
 import { SkipBottomButton } from './skip_bottom_button';
 import {
@@ -37,8 +37,9 @@ import {
   Query,
   IndexPatternAttributes,
 } from '../../../../data/public';
-import { Chart } from '../angular/helpers/point_series';
-import { AppState } from '../angular/discover_state';
+import { Chart } from './chart/point_series';
+// TODO: Move to Data Explorer??
+// import { AppState } from '../angular/discover_state';
 import { SavedSearch } from '../../saved_searches';
 
 import { SavedObject } from '../../../../../core/types';
