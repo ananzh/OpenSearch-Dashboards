@@ -8,17 +8,17 @@ import ReactDOM from 'react-dom';
 import { ViewMountParameters } from '../../../../../data_explorer/public';
 import { OpenSearchDashboardsContextProvider } from '../../../../../opensearch_dashboards_react/public';
 import { DiscoverServices } from '../../../build_services';
+import { DiscoverCanvas } from './discover_canvas';
 
 export const renderCanvas = (
   { canvasElement }: ViewMountParameters,
   services: DiscoverServices
 ) => {
+  const { history: getHistory } = services;
+  const history = getHistory();
   ReactDOM.render(
     <OpenSearchDashboardsContextProvider services={services}>
-      {/* This is dummy code, inline styles will not be added in production */}
-      <div style={{ whiteSpace: 'pre-wrap' }}>
-        {JSON.stringify(services.capabilities.navLinks, null, 2)}
-      </div>
+      <DiscoverCanvas services={services} history={history} />
     </OpenSearchDashboardsContextProvider>,
     canvasElement
   );

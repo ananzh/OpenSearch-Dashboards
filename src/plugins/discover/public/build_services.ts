@@ -38,6 +38,7 @@ import {
   ToastsStart,
   IUiSettingsClient,
   PluginInitializerContext,
+  HttpStart,
 } from 'opensearch-dashboards/public';
 import {
   FilterManager,
@@ -81,6 +82,7 @@ export interface DiscoverServices {
   getSavedSearchUrlById: (id: string) => Promise<string>;
   uiSettings: IUiSettingsClient;
   visualizations: VisualizationsStart;
+  http: HttpStart;
 }
 
 export async function buildServices(
@@ -122,5 +124,6 @@ export async function buildServices(
     toastNotifications: core.notifications.toasts,
     uiSettings: core.uiSettings,
     visualizations: plugins.visualizations,
+    http: core.http,
   };
 }
