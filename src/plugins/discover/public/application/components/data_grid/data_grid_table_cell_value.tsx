@@ -13,7 +13,7 @@ import {
   EuiDescriptionListDescription,
 } from '@elastic/eui';
 import { IndexPattern } from '../../../opensearch_dashboards_services';
-import { OpenSearchSearchHit } from '../../doc_views/doc_views_types';
+import { OpenSearchSearchHit } from '../../doc_views_components/doc_views/doc_views_types';
 
 function fetchSourceTypeDataCell(
   idxPattern: IndexPattern,

@@ -28,18 +28,16 @@
  * under the License.
  */
 
-import React from 'react';
-import { EuiCodeBlock } from '@elastic/eui';
-import { i18n } from '@osd/i18n';
-import { DocViewRenderProps } from '../../doc_views_components/doc_views/doc_views_types';
+import { extractNanos } from './date_conversion';
 
-export function JsonCodeBlock({ hit }: DocViewRenderProps) {
-  const label = i18n.translate('discover.docViews.json.codeEditorAriaLabel', {
-    defaultMessage: 'Read only JSON view of an opensearch document',
+describe('function extractNanos', function () {
+  test('extract nanos of 2014-01-01', function () {
+    expect(extractNanos('2014-01-01')).toBe('000000000');
   });
-  return (
-    <EuiCodeBlock aria-label={label} language="json" isCopyable paddingSize="s">
-      {JSON.stringify(hit, null, 2)}
-    </EuiCodeBlock>
-  );
-}
+  test('extract nanos of 2014-01-01T12:12:12.234Z', function () {
+    expect(extractNanos('2014-01-01T12:12:12.234Z')).toBe('234000000');
+  });
+  test('extract nanos of 2014-01-01T12:12:12.234123321Z', function () {
+    expect(extractNanos('2014-01-01T12:12:12.234123321Z')).toBe('234123321');
+  });
+});

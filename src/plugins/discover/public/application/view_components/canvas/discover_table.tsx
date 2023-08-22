@@ -19,7 +19,7 @@ import {
 } from '../../utils/state_management';
 import { ResultStatus, SearchData } from '../utils/use_search';
 import { IndexPatternField, opensearchFilters } from '../../../../../data/public';
-import { DocViewFilterFn } from '../../doc_views/doc_views_types';
+import { DocViewFilterFn } from '../../doc_views_components/doc_views/doc_views_types';
 
 interface Props {
   history: History;

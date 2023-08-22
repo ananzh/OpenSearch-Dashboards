@@ -5,7 +5,10 @@
 
 import React from 'react';
 import { IndexPattern } from '../../../opensearch_dashboards_services';
-import { DocViewFilterFn, OpenSearchSearchHit } from '../../doc_views/doc_views_types';
+import {
+  DocViewFilterFn,
+  OpenSearchSearchHit,
+} from '../../doc_views_components/doc_views/doc_views_types';
 
 export interface DataGridContextProps {
   expandedHit?: OpenSearchSearchHit;

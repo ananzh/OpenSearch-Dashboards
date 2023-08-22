@@ -15,7 +15,7 @@ import {
 } from '@elastic/eui';
 import { DocViewer } from '../doc_viewer/doc_viewer';
 import { IndexPattern } from '../../../opensearch_dashboards_services';
-import { DocViewFilterFn } from '../../doc_views/doc_views_types';
+import { DocViewFilterFn } from '../../doc_views_components/doc_views/doc_views_types';
 import { DocViewerLinks } from '../doc_viewer_links/doc_viewer_links';
 
 interface Props {

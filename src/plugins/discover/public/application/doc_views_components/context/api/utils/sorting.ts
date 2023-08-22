@@ -28,18 +28,36 @@
  * under the License.
  */
 
-import React from 'react';
-import { EuiCodeBlock } from '@elastic/eui';
-import { i18n } from '@osd/i18n';
-import { DocViewRenderProps } from '../../doc_views_components/doc_views/doc_views_types';
+import { IndexPattern } from '../../../../../opensearch_dashboards_services';
 
-export function JsonCodeBlock({ hit }: DocViewRenderProps) {
-  const label = i18n.translate('discover.docViews.json.codeEditorAriaLabel', {
-    defaultMessage: 'Read only JSON view of an opensearch document',
-  });
-  return (
-    <EuiCodeBlock aria-label={label} language="json" isCopyable paddingSize="s">
-      {JSON.stringify(hit, null, 2)}
-    </EuiCodeBlock>
+export enum SortDirection {
+  asc = 'asc',
+  desc = 'desc',
+}
+
+/**
+ * The list of field names that are allowed for sorting, but not included in
+ * index pattern fields.
+ */
+const META_FIELD_NAMES: string[] = ['_seq_no', '_doc', '_uid'];
+
+/**
+ * Returns a field from the intersection of the set of sortable fields in the
+ * given index pattern and a given set of candidate field names.
+ */
+export function getFirstSortableField(indexPattern: IndexPattern, fieldNames: string[]) {
+  const sortableFields = fieldNames.filter(
+    (fieldName) =>
+      META_FIELD_NAMES.includes(fieldName) ||
+      // @ts-ignore
+      (indexPattern.fields.getByName(fieldName) || { sortable: false }).sortable
   );
+  return sortableFields[0];
+}
+
+/**
+ * Return the reversed sort direction.
+ */
+export function reverseSortDir(sortDirection: SortDirection) {
+  return sortDirection === SortDirection.asc ? SortDirection.desc : SortDirection.asc;
 }

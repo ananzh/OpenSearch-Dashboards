@@ -14,7 +14,7 @@ import { search } from '../../../../../data/public';
 import { validateTimeRange } from '../../helpers/validate_time_range';
 import { updateSearchSource } from './update_search_source';
 import { useIndexPattern } from './use_index_pattern';
-import { OpenSearchSearchHit } from '../../doc_views/doc_views_types';
+import { OpenSearchSearchHit } from '../../doc_view_components/doc_views/doc_views_types';
 import { TimechartHeaderBucketInterval } from '../../components/chart/timechart_header';
 import { tabifyAggResponse } from '../../../opensearch_dashboards_services';
 import {

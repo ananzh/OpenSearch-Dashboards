@@ -35,10 +35,13 @@ import { SavedObjectLoader } from '../../saved_objects/public';
 import { url } from '../../opensearch_dashboards_utils/public';
 import { DEFAULT_APP_CATEGORIES } from '../../../core/public';
 import { UrlGeneratorState } from '../../share/public';
-import { DocViewInput, DocViewInputFn } from './application/doc_views/doc_views_types';
-import { DocViewLink } from './application/doc_views_links/doc_views_links_types';
-import { DocViewsRegistry } from './application/doc_views/doc_views_registry';
-import { DocViewsLinksRegistry } from './application/doc_views_links/doc_views_links_registry';
+import {
+  DocViewInput,
+  DocViewInputFn,
+} from './application/doc_views_components/doc_views/doc_views_types';
+import { DocViewLink } from './application/doc_views_components/doc_views_links/doc_views_links_types';
+import { DocViewsRegistry } from './application/doc_views_components/doc_views/doc_views_registry';
+import { DocViewsLinksRegistry } from './application/doc_views_components/doc_views_links/doc_views_links_registry';
 import { DocViewTable } from './application/components/table/table';
 import { JsonCodeBlock } from './application/components/json_code_block/json_code_block';
 import {
@@ -267,7 +270,14 @@ export class DiscoverPlugin
         // This is for instances where the user navigates to the app from the application nav menu
         const path = window.location.hash;
         const v2Enabled = await core.uiSettings.get<boolean>(NEW_DISCOVER_APP);
-        if (!v2Enabled) {
+
+        if (path.startsWith('#/context') || path.startsWith('#/doc')) {
+          const { renderDocView } = await import('./application/doc_views_components');
+          const unmount = renderDocView(params.element);
+          return () => {
+            unmount();
+          };
+        } else if (!v2Enabled) {
           navigateToApp('discoverLegacy', {
             replace: true,
             path,

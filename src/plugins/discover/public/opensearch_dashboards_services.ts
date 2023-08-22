@@ -35,8 +35,8 @@ import { UiActionsStart } from 'src/plugins/ui_actions/public';
 import { DiscoverServices } from './build_services';
 import { createGetterSetter } from '../../opensearch_dashboards_utils/public';
 import { search } from '../../data/public';
-import { DocViewsRegistry } from './application/doc_views/doc_views_registry';
-import { DocViewsLinksRegistry } from './application/doc_views_links/doc_views_links_registry';
+import { DocViewsRegistry } from './application/doc_views_components/doc_views/doc_views_registry';
+import { DocViewsLinksRegistry } from './application/doc_views_components/doc_views_links/doc_views_links_registry';
 
 let services: DiscoverServices | null = null;
 let uiActions: UiActionsStart;
