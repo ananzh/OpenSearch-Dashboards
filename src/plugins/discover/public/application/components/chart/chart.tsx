@@ -23,7 +23,7 @@ interface DiscoverChartProps {
   data: DataPublicPluginStart;
   hits: number;
   resetQuery: () => void;
-  timeField?: string;
+  isTimeBased?: boolean;
   services: DiscoverServices;
 }
 
@@ -34,7 +34,7 @@ export const DiscoverChart = ({
   data,
   hits,
   resetQuery,
-  timeField,
+  isTimeBased,
   services,
 }: DiscoverChartProps) => {
   const { from, to } = data.query.timefilter.timefilter.getTime();
@@ -61,7 +61,7 @@ export const DiscoverChart = ({
       <EuiFlexItem grow={false} className="dscChart__hitsCounter">
         <HitsCounter hits={hits > 0 ? hits : 0} showResetButton={false} onResetQuery={resetQuery} />
       </EuiFlexItem>
-      {timeField && (
+      {isTimeBased && (
         <EuiFlexItem className="dscChart__TimechartHeader">
           <TimechartHeader
             bucketInterval={bucketInterval}
@@ -73,7 +73,7 @@ export const DiscoverChart = ({
           />
         </EuiFlexItem>
       )}
-      {timeField && chartData && (
+      {isTimeBased && chartData && (
         <EuiFlexItem grow={false}>
           <section
             aria-label={i18n.translate('discover.histogramOfFoundDocumentsAriaLabel', {
