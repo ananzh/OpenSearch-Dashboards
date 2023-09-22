@@ -69,7 +69,7 @@ export type RefetchSubject = Subject<SearchRefetch>;
 export const useSearch = (services: DiscoverServices) => {
   const [savedSearch, setSavedSearch] = useState<SavedSearch | undefined>(undefined);
   const { savedSearch: savedSearchId, sort, interval } = useSelector((state) => state.discover);
-  const { indexPattern, updateIndexPattern } = useIndexPattern(services);
+  const indexPattern = useIndexPattern(services);
   const { data, filterManager, getSavedSearchById, core, toastNotifications } = services;
   const timefilter = data.query.timefilter.timefilter;
   const fetchStateRef = useRef<{
@@ -282,7 +282,6 @@ export const useSearch = (services: DiscoverServices) => {
     data$,
     refetch$,
     indexPattern,
-    updateIndexPattern,
     savedSearch,
     inspectorAdapters,
   };
