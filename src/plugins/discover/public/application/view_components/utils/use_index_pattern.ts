@@ -10,7 +10,7 @@ import { useSelector } from '../../utils/state_management';
 import { DiscoverServices } from '../../../build_services';
 
 export const useIndexPattern = (services: DiscoverServices) => {
-  const indexPatternId = useSelector((state) => state.metadata.indexPattern);
+  let indexPatternId = useSelector((state) => state.metadata.indexPattern);
   const [indexPattern, setIndexPattern] = useState<IndexPattern | undefined>(undefined);
   const { data, toastNotifications } = services;
 
@@ -26,6 +26,9 @@ export const useIndexPattern = (services: DiscoverServices) => {
         },
       }
     );
+    if(indexPattern && indexPattern.id && indexPattern.id!==indexPatternId){
+      indexPatternId = indexPattern.id;
+    }
 
     data.indexPatterns
       .get(indexPatternId)
