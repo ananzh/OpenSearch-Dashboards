@@ -46,6 +46,7 @@ import { SavedObjectFinderUi } from '../../../../../saved_objects/public';
 import { useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
 import { DiscoverViewServices } from '../../../build_services';
 import { SAVED_OBJECT_TYPE } from '../../../saved_searches/_saved_search';
+import { useDiscoverContext } from '../../view_components/context';
 
 interface Props {
   onClose: () => void;
@@ -57,8 +58,11 @@ export function OpenSearchPanel({ onClose, makeUrl }: Props) {
     services: {
       core: { uiSettings, savedObjects },
       addBasePath,
+      indexPatterns,
+      store,
     },
   } = useOpenSearchDashboards<DiscoverViewServices>();
+  const { updateIndexPattern } = useDiscoverContext();
 
   return (
     <EuiFlyout ownFocus onClose={onClose} data-test-subj="loadSearchForm">
@@ -89,11 +93,14 @@ export function OpenSearchPanel({ onClose, makeUrl }: Props) {
               }),
             },
           ]}
-          onChoose={(id) => {
+          onChoose={(id, type, fullName, savedObject) => {
             setTimeout(() => {
               window.location.assign(makeUrl(id));
+              //store!.dispatch(setSavedSearchId(id));
+              const indexPatternId = savedObject.references[0].id;
+              updateIndexPattern(indexPatternId);
               // TODO: figure out why a history push doesn't update the app state. The page reload is a hack around it
-              window.location.reload();
+              //window.location.reload();
               onClose();
             }, 0);
           }}

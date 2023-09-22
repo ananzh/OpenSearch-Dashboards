@@ -10,9 +10,14 @@ import { useSelector } from '../../utils/state_management';
 import { DiscoverServices } from '../../../build_services';
 
 export const useIndexPattern = (services: DiscoverServices) => {
-  const indexPatternId = useSelector((state) => state.metadata.indexPattern);
+  let indexPatternId = useSelector((state) => state.metadata.indexPattern);
   const [indexPattern, setIndexPattern] = useState<IndexPattern | undefined>(undefined);
-  const { data, toastNotifications } = services;
+  const { data, toastNotifications, indexPatterns } = services;
+  const updateIndexPattern = async(id: string) => {
+    indexPatternId = id;
+    const updatedIndexPattern= await indexPatterns.get(indexPatternId );
+    setIndexPattern(updatedIndexPattern);
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -26,6 +31,9 @@ export const useIndexPattern = (services: DiscoverServices) => {
         },
       }
     );
+    if(indexPattern && indexPattern.id && indexPattern.id!==indexPatternId){
+      indexPatternId = indexPattern.id;
+    }
 
     data.indexPatterns
       .get(indexPatternId)
@@ -45,7 +53,7 @@ export const useIndexPattern = (services: DiscoverServices) => {
     return () => {
       isMounted = false;
     };
-  }, [indexPatternId, data.indexPatterns, toastNotifications]);
+  }, [indexPatternId, data.indexPatterns, toastNotifications, indexPattern]);
 
-  return indexPattern;
+  return { indexPattern, updateIndexPattern};
 };
