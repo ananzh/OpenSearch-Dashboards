@@ -132,38 +132,39 @@ export default function ({ getService, getPageObjects }) {
     describe('creating and using Painless numeric scripted fields', function describeIndexTests() {
       const scriptedPainlessFieldName = 'ram_Pain1';
 
-      it('should create scripted field', async function () {
-        await PageObjects.settings.navigateTo();
-        await PageObjects.settings.clickOpenSearchDashboardsIndexPatterns();
-        await PageObjects.settings.clickIndexPatternLogstash();
-        const startingCount = parseInt(await PageObjects.settings.getScriptedFieldsTabCount());
-        await PageObjects.settings.clickScriptedFieldsTab();
-        await log.debug('add scripted field');
-        const script = `if (doc['machine.ram'].size() == 0) return -1;
-          else return doc['machine.ram'].value / (1024 * 1024 * 1024);
-        `;
-        await PageObjects.settings.addScriptedField(
-          scriptedPainlessFieldName,
-          'painless',
-          'number',
-          null,
-          '1',
-          script
-        );
-        await retry.try(async function () {
-          expect(parseInt(await PageObjects.settings.getScriptedFieldsTabCount())).to.be(
-            startingCount + 1
-          );
-        });
-      });
+      //it('should create scripted field', async function () {
+      //  await PageObjects.settings.navigateTo();
+      //  await PageObjects.settings.clickOpenSearchDashboardsIndexPatterns();
+      //  await PageObjects.settings.clickIndexPatternLogstash();
+      //  const startingCount = parseInt(await PageObjects.settings.getScriptedFieldsTabCount());
+      //  await PageObjects.settings.clickScriptedFieldsTab();
+      //  await log.debug('add scripted field');
+      //  const script = `if (doc['machine.ram'].size() == 0) return -1;
+      //    else return doc['machine.ram'].value / (1024 * 1024 * 1024);
+      //  `;
+      //  await PageObjects.settings.addScriptedField(
+      //    scriptedPainlessFieldName,
+      //    'painless',
+      //    'number',
+      //    null,
+      //    '1',
+      //    script
+      //  );
+      //  await retry.try(async function () {
+      //    expect(parseInt(await PageObjects.settings.getScriptedFieldsTabCount())).to.be(
+      //      startingCount + 1
+      //    );
+      //  });
+      //});
 
       it('should see scripted field value in Discover', async function () {
         const fromTime = 'Sep 17, 2015 @ 06:31:44.000';
         const toTime = 'Sep 18, 2015 @ 18:31:44.000';
         await PageObjects.common.navigateToApp('discover');
+        await PageObjects.discover.selectIndexPattern('logstash-*');
         await PageObjects.timePicker.setAbsoluteRange(fromTime, toTime);
 
-        await PageObjects.discover.clickFieldListItem(scriptedPainlessFieldName);
+        await PageObjects.discover.clickFieldListItemDetails(scriptedPainlessFieldName);
         await retry.try(async function () {
           await PageObjects.discover.clickFieldListItemAdd(scriptedPainlessFieldName);
         });

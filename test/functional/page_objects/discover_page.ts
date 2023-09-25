@@ -206,6 +206,7 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
     }
 
     public async getDocHeader() {
+      const table = this.dataGrid;
       const docHeader = await find.byCssSelector('thead > tr:nth-child(1)');
       return await docHeader.getVisibleText();
     }
