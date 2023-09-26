@@ -28,6 +28,7 @@
  * under the License.
  */
 
+import { By } from 'selenium-webdriver';
 import { FtrProviderContext } from '../ftr_provider_context';
 
 export function DiscoverPageProvider({ getService, getPageObjects }: FtrProviderContext) {
@@ -443,6 +444,42 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
 
     public async getDataGridTableValues() {
       return await dataGridTable.getDataGridTableValues();
+    }
+
+    public async clickTableHeaderListItem(columnName: string, title: string): Promise<any> {
+      // locate the ul using the columnName
+      console.log('name:', `dataGridHeaderCellActionGroup-${columnName}`);
+      const ulElement = await testSubjects.find(`dataGridHeaderCellActionGroup-${columnName}`);
+      const $ = await ulElement.parseDomContent();
+
+      // loop through each <li> within the ul
+      const liElements = $('li').toArray();
+      let index = 0;
+
+      for (const liElement of liElements) {
+        const li = $(liElement);
+
+        // Check if the li contains the isClickable class substring
+        if (li.is('li[class*="euiListGroupItem-isClickable"]')) {
+          const span = li.find(`span[title="${title}"]`);
+
+          // If the span with the given title is found
+          if (span.length > 0) {
+            // find and click the button
+            const seleniumLiElement = await ulElement.findByCssSelector(
+              `li:nth-child(${index + 1}) button`
+            );
+            // Click on the located WebElement
+            await seleniumLiElement.click();
+            return;
+          }
+        }
+        index++;
+      }
+
+      throw new Error(
+        `Could not find a clickable list item for column "${columnName}" with list item "${title}".`
+      );
     }
   }
 
