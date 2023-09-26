@@ -440,6 +440,10 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
     public async clearSavedQuery() {
       await testSubjects.click('saved-query-management-clear-button');
     }
+
+    public async getDataGridTableValues() {
+      return await dataGridTable.getDataGridTableValues();
+    }
   }
 
   return new DiscoverPage();

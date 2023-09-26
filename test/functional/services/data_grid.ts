@@ -70,6 +70,26 @@ export function DataGridProvider({ getService }: FtrProviderContext) {
       };
     }
 
+    async getDataGridTableValues(): Promise<string[][]> {
+      const table = await testSubjects.find('docTable');
+      const $ = await table.parseDomContent();
+      const cellsArr = $.findTestSubjects('dataGridRowCell').toArray();
+      const rows: string[][] = [];
+      let rowIdx = -1;
+
+      for (const cell of cellsArr) {
+        const cCell = $(cell);
+        const isFirstColumn = cCell.attr('class').includes('euiDataGridRowCell--firstColumn');
+        if (isFirstColumn) {
+          rowIdx++;
+          rows[rowIdx] = [];
+        } else {
+          rows[rowIdx].push(this.getTextFromCell(cCell));
+        }
+      }
+      return Promise.resolve(rows);
+    }
+
     /**
      * Retrieves the header fields of the data grid.
      *
@@ -110,11 +130,16 @@ export function DataGridProvider({ getService }: FtrProviderContext) {
           const cCell = $(cell);
           if (cCell.hasClass(`euiDataGridRowCell--${selector}`)) {
             // The column structure is very nested to get the actual text
-            columnValues.push(cCell.children().children().children().children().text());
+            columnValues.push(this.getTextFromCell(cCell));
           }
         });
 
       return columnValues;
+    }
+
+    getTextFromCell(cCell: Cheerio): string {
+      // navigate the nested structure and get the text
+      return cCell.children().children().children().children().text();
     }
   }
 

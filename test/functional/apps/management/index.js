@@ -50,8 +50,8 @@ export default function ({ getService, loadTestFile }) {
       //loadTestFile(require.resolve('./_index_pattern_create_delete'));
       //loadTestFile(require.resolve('./_index_pattern_results_sort'));
       //loadTestFile(require.resolve('./_index_pattern_popularity'));
-      //loadTestFile(require.resolve('./_opensearch_dashboards_settings'));
-      loadTestFile(require.resolve('./_scripted_fields'));
+      loadTestFile(require.resolve('./_opensearch_dashboards_settings'));
+      //loadTestFile(require.resolve('./_scripted_fields'));
       //loadTestFile(require.resolve('./_scripted_fields_preview'));
       //loadTestFile(require.resolve('./_mgmt_import_saved_objects'));
       //loadTestFile(require.resolve('./_index_patterns_empty'));
