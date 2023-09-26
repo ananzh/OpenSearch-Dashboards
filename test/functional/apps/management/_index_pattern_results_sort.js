@@ -69,7 +69,6 @@ export default function ({ getService, getPageObjects }) {
     ];
 
     columns.forEach(function (col) {
-      console.log('columns:', columns);
       describe('sort by heading - ' + col.heading, function indexPatternCreation() {
         it('should sort ascending', async function () {
           await PageObjects.settings.sortBy(col.heading);
