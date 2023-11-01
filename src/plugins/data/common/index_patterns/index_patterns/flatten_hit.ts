@@ -34,7 +34,7 @@ import { IndexPattern } from './index_pattern';
 // Takes a hit, merges it with any stored/scripted fields, and with the metaFields
 // returns a flattened version
 
-function flattenHit(indexPattern: IndexPattern, hit: Record<string, any>, deep: boolean) {
+export function flattenHit(indexPattern: IndexPattern, hit: Record<string, any>, deep: boolean) {
   const flat = {} as Record<string, any>;
 
   // recursively merge _source
@@ -74,6 +74,12 @@ function flattenHit(indexPattern: IndexPattern, hit: Record<string, any>, deep: 
       flatten(val, key);
     });
   })(hit._source);
+
+  indexPattern?.metaFields?.forEach((metaField) => {
+    if (metaField !== '_source') {
+      flat[metaField] = hit[metaField];
+    }
+  });
 
   return flat;
 }

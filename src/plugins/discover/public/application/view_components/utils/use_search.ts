@@ -12,6 +12,7 @@ import { cloneDeep } from 'lodash';
 import { RequestAdapter } from '../../../../../inspector/public';
 import { DiscoverViewServices } from '../../../build_services';
 import { search } from '../../../../../data/public';
+import { flattenHit } from '../../../../../data/common';
 import { validateTimeRange } from '../../helpers/validate_time_range';
 import { updateSearchSource } from './update_search_source';
 import { useIndexPattern } from './use_index_pattern';
@@ -166,7 +167,7 @@ export const useSearch = (services: DiscoverViewServices) => {
       let bucketInterval = {};
       let chartData;
       for (const row of rows) {
-        const fields = Object.keys(indexPattern.flattenHit(row));
+        const fields = Object.keys(flattenHit(indexPattern, row, true));
         for (const fieldName of fields) {
           fetchStateRef.current.fieldCounts[fieldName] =
             (fetchStateRef.current.fieldCounts[fieldName] || 0) + 1;
