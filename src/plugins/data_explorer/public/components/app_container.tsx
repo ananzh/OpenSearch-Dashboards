@@ -20,19 +20,23 @@ export const AppContainer = ({ view, params }: { view?: View; params: AppMountPa
 
   const { Canvas, Panel, Context } = view;
 
+  const MemorizedCanvas = React.memo(Canvas);
+  const MemorizedPanel = React.memo(Panel);
+  const MemorizedContext = React.memo(Context);
+
   // Render the application DOM.
   return (
     <EuiPage className="deLayout" paddingSize="none">
       {/* TODO: improve fallback state */}
       <Suspense fallback={<div>Loading...</div>}>
-        <Context {...params}>
+        <MemorizedContext {...params}>
           <Sidebar>
-            <Panel {...params} />
+            <MemorizedPanel {...params} />
           </Sidebar>
           <EuiPageBody className="deLayout__canvas">
-            <Canvas {...params} />
+            <MemorizedCanvas {...params} />
           </EuiPageBody>
-        </Context>
+        </MemorizedContext>
       </Suspense>
     </EuiPage>
   );
