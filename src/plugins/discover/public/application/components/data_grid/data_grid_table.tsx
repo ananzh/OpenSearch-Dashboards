@@ -13,7 +13,6 @@ import { DataGridFlyout } from './data_grid_table_flyout';
 import { DiscoverGridContextProvider } from './data_grid_table_context';
 import { toolbarVisibility } from './constants';
 import { DocViewFilterFn, OpenSearchSearchHit } from '../../doc_views/doc_views_types';
-import { DiscoverServices } from '../../../build_services';
 import { usePagination } from '../utils/use_pagination';
 import { SortOrder } from '../../../saved_searches/types';
 import { buildColumns } from '../../utils/columns';
@@ -177,6 +176,7 @@ export const DataGridTable = ({
         data-title={title}
         data-description={description}
         data-test-subj="discoverTable"
+        className={'dscDiscoverGrid'}
       >
         <EuiPanel hasBorder={false} hasShadow={false} paddingSize="s" color="transparent">
           <EuiPanel paddingSize="s" style={{ height: '100%' }}>
