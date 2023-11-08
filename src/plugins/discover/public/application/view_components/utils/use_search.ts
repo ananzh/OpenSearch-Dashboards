@@ -165,6 +165,7 @@ export const useSearch = (services: DiscoverViewServices) => {
       const rows = fetchResp.hits.hits;
       let bucketInterval = {};
       let chartData;
+      // test
       for (const row of rows) {
         const fields = Object.keys(indexPattern.flattenHit(row));
         for (const fieldName of fields) {
