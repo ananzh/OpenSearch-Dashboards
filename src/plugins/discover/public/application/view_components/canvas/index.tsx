@@ -26,8 +26,17 @@ import './discover_canvas.scss';
 export default function DiscoverCanvas({ setHeaderActionMenu, history }: ViewProps) {
   const { data$, refetch$, indexPattern } = useDiscoverContext();
   const {
-    services: { uiSettings },
+    services,
   } = useOpenSearchDashboards<DiscoverViewServices>();
+  const {
+    uiSettings,
+    data: {
+      query: { filterManager },
+    },
+  } = services;
+  const filters = filterManager.getFilters();
+  console.log(filterManager)
+  console.log(filters);
   const { columns } = useSelector((state) => state.discover);
   const filteredColumns = filterColumns(
     columns,

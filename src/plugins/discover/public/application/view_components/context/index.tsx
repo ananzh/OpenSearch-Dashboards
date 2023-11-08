@@ -22,6 +22,12 @@ export default function DiscoverContext({ children }: React.PropsWithChildren<Vi
     ...deServices,
     ...services,
   });
+  const filterManager1 = services.data.query.filterManager;
+  const currentFilters1 = filterManager1.getFilters();
+  const filterManager2 = deServices.data.query.filterManager;
+  const currentFilters2 = filterManager2.getFilters();
+  console.log(currentFilters1);
+  console.log(currentFilters2);
 
   return (
     <OpenSearchDashboardsContextProvider services={services}>
