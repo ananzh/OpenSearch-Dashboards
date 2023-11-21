@@ -3,14 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AppMountParameters } from 'opensearch-dashboards/public';
 import { createGetterSetter } from '../../opensearch_dashboards_utils/common';
 import { DataPublicPluginStart, TimefilterContract } from '../../data/public';
 import { SavedVisBuilderLoader } from './saved_visualizations';
-import { HttpStart, IUiSettingsClient } from '../../../core/public';
+import { HttpStart, IUiSettingsClient, AppMountParameters } from '../../../core/public';
 import { ExpressionsStart } from '../../expressions/public';
 import { TypeServiceStart } from './services/type_service';
 import { UiActionsStart } from '../../ui_actions/public';
+import { VisBuilderServices } from './types';
+
+let visBuilderServices: VisBuilderServices | null = null;
+
+export function getVisBuilderServices(): VisBuilderServices {
+  if (!visBuilderServices) {
+    throw new Error('VisBuilder services have not been initialized.');
+  }
+  return visBuilderServices;
+}
+
+export function setVisBuilderServices(newServices: VisBuilderServices) {
+  visBuilderServices = newServices;
+}
 
 export const [getSearchService, setSearchService] = createGetterSetter<
   DataPublicPluginStart['search']

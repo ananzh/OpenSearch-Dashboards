@@ -11,16 +11,16 @@ import { Draft } from 'immer';
 import { EuiIconTip } from '@elastic/eui';
 import { NumberInputOption, SwitchOption } from '../../../../../charts/public';
 import {
-  useTypedDispatch,
-  useTypedSelector,
+  useDispatch,
+  useSelector,
   setStyleState,
 } from '../../../application/utils/state_management';
 import { TableOptionsDefaults } from '../table_viz_type';
-import { Option } from '../../../application/app';
+import { Option } from '../../../application/components/option';
 
 function TableVizOptions() {
-  const styleState = useTypedSelector((state) => state.style) as TableOptionsDefaults;
-  const dispatch = useTypedDispatch();
+  const styleState = useSelector((state) => state.vbStyle) as TableOptionsDefaults;
+  const dispatch = useDispatch();
 
   const setOption = useCallback(
     (callback: (draft: Draft<typeof styleState>) => void) => {

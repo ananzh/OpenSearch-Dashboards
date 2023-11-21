@@ -21,6 +21,8 @@ export interface DefaultViewState<T = unknown> {
 
 export type ViewProps = AppMountParameters;
 
+type SideEffect<T = any> = (store: Store, state: T, previousState?: T, services?: T) => void;
+
 export interface ViewDefinition<T = any> {
   readonly id: string;
   readonly title: string;
@@ -31,9 +33,7 @@ export interface ViewDefinition<T = any> {
       | (() => Promise<DefaultViewState>)
       | (() => Promise<Array<Promise<DefaultViewState<any>>>>);
     slices: Array<Slice<T>>;
-    sideEffects?: Array<
-      (store: Store, currentState: RootState, previousState?: RootState, services?: any) => void
-    >;
+    sideEffects?: Array<SideEffect<T>>;
   };
   readonly Canvas: LazyExoticComponent<(props: ViewProps) => React.ReactElement>;
   readonly Panel: LazyExoticComponent<(props: ViewProps) => React.ReactElement>;

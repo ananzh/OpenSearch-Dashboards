@@ -6,6 +6,7 @@ import { IconType } from '@elastic/eui';
 import { IExpressionLoaderParams } from '../../../../expressions/public';
 import { RenderState } from '../../application/utils/state_management';
 import { VisualizationTypeOptions } from './types';
+import { IndexPattern } from '../../../../data/common';
 
 type IVisualizationType = VisualizationTypeOptions;
 
@@ -18,7 +19,8 @@ export class VisualizationType implements IVisualizationType {
   public readonly ui: IVisualizationType['ui'];
   public readonly toExpression: (
     state: RenderState,
-    searchContext: IExpressionLoaderParams['searchContext']
+    searchContext: IExpressionLoaderParams['searchContext'],
+    indexPattern: IndexPattern
   ) => Promise<string | undefined>;
 
   constructor(options: VisualizationTypeOptions) {

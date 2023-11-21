@@ -3,22 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { setEditorState } from '../editor_slice';
+import { setStatus } from '../editor_slice';
 import { RootState, Store } from '../../../../../../data_explorer/public';
+import { VisBuilderViewServices } from '../../../../types';
 
-export const handlerEditorState = (store: Store, state: RootState, previousState: RootState) => {
+export const handlerEditorState = (
+  store: Store,
+  state: RootState,
+  previousState: RootState,
+  services: VisBuilderViewServices
+) => {
   const editor = state.vbEditor;
   const prevEditor = previousState.vbEditor;
   const renderState = {
     vbStyle: state.vbStyle,
     vbUi: state.vbUi,
     vbVisualization: state.vbVisualization,
-  }
+  };
   const prevRenderState = {
     vbStyle: previousState.vbStyle,
     vbUi: previousState.vbUi,
     vbVisualization: previousState.vbVisualization,
-  }
+  };
 
   // Need to make sure the editorStates are in the clean states(not the initial states) to indicate the viz finished loading
   // Because when loading a saved viz from saved object, the previousStore will differ from
@@ -29,6 +35,6 @@ export const handlerEditorState = (store: Store, state: RootState, previousState
     editor.status === 'clean' &&
     JSON.stringify(renderState) !== JSON.stringify(prevRenderState)
   ) {
-    store.dispatch(setEditorState({ state: 'dirty' }));
+    store.dispatch(setStatus({ status: 'dirty' }));
   }
 };

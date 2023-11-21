@@ -17,13 +17,13 @@ import {
   SwitchOption,
 } from '../../../../../charts/public';
 import {
-  useTypedDispatch,
-  useTypedSelector,
+  useDispatch,
+  useSelector,
   setStyleState,
 } from '../../../application/utils/state_management';
 import { MetricOptionsDefaults } from '../metric_viz_type';
 import { PersistedState } from '../../../../../visualizations/public';
-import { Option } from '../../../application/app';
+import { Option } from '../../../application/components/option';
 
 const METRIC_COLOR_MODES = [
   {
@@ -47,8 +47,8 @@ const METRIC_COLOR_MODES = [
 ];
 
 function MetricVizOptions() {
-  const styleState = useTypedSelector((state) => state.style) as MetricOptionsDefaults;
-  const dispatch = useTypedDispatch();
+  const styleState = useSelector((state) => state.vbStyle) as MetricOptionsDefaults;
+  const dispatch = useDispatch();
   const { metric } = styleState;
 
   const setOption = useCallback(

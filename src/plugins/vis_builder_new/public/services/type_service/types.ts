@@ -31,6 +31,7 @@ export interface VisualizationTypeOptions<T = any> {
   };
   readonly toExpression: (
     state: RenderState,
-    searchContext: IExpressionLoaderParams['searchContext']
+    searchContext: IExpressionLoaderParams['searchContext'],
+    indexPattern: string
   ) => Promise<string | undefined>;
 }

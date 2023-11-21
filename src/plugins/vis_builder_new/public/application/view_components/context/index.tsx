@@ -9,8 +9,10 @@ import {
   OpenSearchDashboardsContextProvider,
   useOpenSearchDashboards,
 } from '../../../../../opensearch_dashboards_react/public';
-import { VisBuilderServices, VisBuilderViewServices } from '../../../types';
+import { VisBuilderViewServices } from '../../../types';
 import { useVisBuilderState, VisBuilderContextValue } from '../utils/use_vis_builder_state';
+import { getVisBuilderServices } from '../../../plugin_services';
+import { DragDropProvider } from '../../../application/utils/drag_drop';
 
 // Define the context for VisBuilder
 const VBContext = React.createContext<VisBuilderContextValue>({} as VisBuilderContextValue);
@@ -18,13 +20,15 @@ const VBContext = React.createContext<VisBuilderContextValue>({} as VisBuilderCo
 // eslint-disable-next-line import/no-default-export
 export default function VisBuilderContext({ children }: React.PropsWithChildren<ViewProps>) {
   const { services: deServices } = useOpenSearchDashboards<DataExplorerServices>();
-  const { services: vbServices } = useOpenSearchDashboards<VisBuilderServices>();
-  const services: VisBuilderViewServices = { ...deServices, ...vbServices };
+  const visBuilderServices = getVisBuilderServices();
+  const services: VisBuilderViewServices = { ...deServices, ...visBuilderServices };
   const visBuilderParams = useVisBuilderState(services);
 
   return (
     <OpenSearchDashboardsContextProvider services={services}>
-      <VBContext.Provider value={visBuilderParams}>{children}</VBContext.Provider>
+      <DragDropProvider>
+        <VBContext.Provider value={visBuilderParams}>{children}</VBContext.Provider>
+      </DragDropProvider>
     </OpenSearchDashboardsContextProvider>
   );
 }

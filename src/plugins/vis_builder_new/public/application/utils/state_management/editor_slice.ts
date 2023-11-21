@@ -46,8 +46,8 @@ export const slice = createSlice({
       const { key, error } = action.payload;
       state.errors[key] = error;
     },
-    setEditorState: (state, action: PayloadAction<{ state: EditorStatus }>) => {
-      state.status = action.payload.state;
+    setStatus: (state, action: PayloadAction<{ status: EditorStatus }>) => {
+      state.status = action.payload.status;
     },
     setState: (_state, action: PayloadAction<EditorState>) => {
       return action.payload;
@@ -56,4 +56,4 @@ export const slice = createSlice({
 });
 
 export const { reducer } = slice;
-export const { setError, setEditorState, setState } = slice.actions;
+export const { setError, setStatus, setState } = slice.actions;

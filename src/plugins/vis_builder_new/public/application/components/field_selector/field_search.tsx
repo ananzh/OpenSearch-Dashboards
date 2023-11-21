@@ -7,7 +7,7 @@ import React from 'react';
 import { i18n } from '@osd/i18n';
 import { EuiFieldSearch, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
 import { setSearchField } from '../../utils/state_management/visualization_slice';
-import { useTypedDispatch } from '../../utils/state_management';
+import { useDispatch } from '../../utils/state_management';
 
 export interface Props {
   /**
@@ -25,7 +25,7 @@ export function FieldSearch({ value }: Props) {
     defaultMessage: 'Search field names',
   });
 
-  const dispatch = useTypedDispatch();
+  const dispatch = useDispatch();
 
   return (
     <React.Fragment>

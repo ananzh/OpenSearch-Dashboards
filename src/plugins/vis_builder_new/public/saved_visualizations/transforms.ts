@@ -7,27 +7,28 @@ import { i18n } from '@osd/i18n';
 import produce from 'immer';
 import { IndexPattern } from '../../../data/public';
 import { InvalidJSONProperty } from '../../../opensearch_dashboards_utils/public';
-import { RenderState, RootState, VisualizationState } from '../application/utils/state_management';
+import {
+  RenderState,
+  VisBuilderRootState,
+  VisualizationState,
+  MetadataState,
+} from '../application/utils/state_management';
 import { validateVisBuilderState } from '../application/utils/validations';
 import { VisBuilderSavedObject } from '../types';
 import { VisBuilderSavedObjectAttributes } from '../../common';
 
 export const saveStateToSavedObject = (
   obj: VisBuilderSavedObject,
-  state: RootState,
+  state: VisBuilderRootState,
   indexPattern: IndexPattern
 ): VisBuilderSavedObject => {
-  if (state.visualization.indexPattern !== indexPattern.id)
+  if (state.metadata.indexPattern !== indexPattern.id)
     throw new Error('indexPattern id should match the value in redux state');
 
-  obj.visualizationState = JSON.stringify(
-    produce(state.visualization, (draft: VisualizationState) => {
-      delete draft.indexPattern;
-    })
-  );
-  obj.styleState = JSON.stringify(state.style);
+  obj.visualizationState = JSON.stringify(state.vbVisualization);
+  obj.styleState = JSON.stringify(state.vbStyle);
   obj.searchSourceFields = { index: indexPattern };
-  obj.uiState = JSON.stringify(state.ui);
+  obj.uiState = JSON.stringify(state.vbUi);
 
   return obj;
 };
@@ -47,6 +48,8 @@ export const getStateFromSavedObject = (
   const visualizationState: VisualizationState = {
     searchField: '',
     ...vizStateWithoutIndex,
+  };
+  const metadataState: MetadataState = {
     indexPattern: obj.searchSourceFields?.index,
   };
 
@@ -62,7 +65,7 @@ export const getStateFromSavedObject = (
     );
   }
 
-  if (!visualizationState.indexPattern) {
+  if (!metadataState.indexPattern) {
     throw new Error(
       i18n.translate('visBuilder.getStateFromSavedObject.missingIndexPattern', {
         defaultMessage: 'The saved object is missing an index pattern',
@@ -75,9 +78,10 @@ export const getStateFromSavedObject = (
     title,
     description,
     state: {
-      visualization: visualizationState,
-      style: styleState,
-      ui: uiState,
+      vbVisualization: visualizationState,
+      vbStyle: styleState,
+      vbUi: uiState,
+      metadata: metadataState,
     },
   };
 };

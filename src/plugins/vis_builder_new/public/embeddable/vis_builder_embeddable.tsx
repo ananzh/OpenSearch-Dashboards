@@ -116,7 +116,7 @@ export class VisBuilderEmbeddable extends Embeddable<VisBuilderInput, VisBuilder
 
     this.deps = deps;
     this.savedVis = savedVis;
-    this.uiState = new PersistedState(savedVis.state.ui);
+    this.uiState = new PersistedState(savedVis.state.vbUi);
     this.uiState.on('change', this.uiStateChangeHandler);
     this.uiState.on('reload', this.reload);
 
@@ -138,23 +138,30 @@ export class VisBuilderEmbeddable extends Embeddable<VisBuilderInput, VisBuilder
       // Check if saved visualization exists
       const renderState = this.savedVis?.state;
       if (!renderState) throw new Error('No saved visualization');
+      const indexPattern = renderState.metadata.indexPattern
+        ? renderState.metadata.indexPattern
+        : '';
 
-      const visTypeString = renderState.visualization?.activeVisualization?.name || '';
+      const visTypeString = renderState.vbVisualization?.activeVisualization?.name || '';
       const visualizationType = getTypeService().get(visTypeString);
 
       if (!visualizationType) throw new Error(`Invalid visualization type ${visTypeString}`);
 
       const { toExpression, ui } = visualizationType;
       const schemas = ui.containerConfig.data.schemas;
-      const { valid, errorMsg } = validateSchemaState(schemas, renderState.visualization);
+      const { valid, errorMsg } = validateSchemaState(schemas, renderState.vbVisualization);
 
       if (!valid && errorMsg) throw new Error(errorMsg);
 
-      const exp = await toExpression(renderState, {
-        filters: this.filters,
-        query: this.query,
-        timeRange: this.timeRange,
-      });
+      const exp = await toExpression(
+        renderState,
+        {
+          filters: this.filters,
+          query: this.query,
+          timeRange: this.timeRange,
+        },
+        indexPattern
+      );
       return exp;
     } catch (error) {
       this.onContainerError(error as Error);
@@ -206,7 +213,7 @@ export class VisBuilderEmbeddable extends Embeddable<VisBuilderInput, VisBuilder
       this.handler.events$.subscribe(async (event) => {
         if (!this.input.disableTriggers) {
           const indexPattern = await getIndexPatterns().get(
-            this.savedVis?.state.visualization.indexPattern ?? ''
+            this.savedVis?.state.vbVisualization.indexPattern ?? ''
           );
 
           handleVisEvent(event, getUIActions(), indexPattern.timeFieldName);

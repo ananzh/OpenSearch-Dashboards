@@ -5,7 +5,7 @@
 
 import { findLast } from 'lodash';
 import { BUCKET_TYPES, IMetricAggType, search } from '../../../../../../data/public';
-import { VisBuilderServices } from '../../../../types';
+import { VisBuilderViewServices } from '../../../../types';
 import { RootState, Store } from '../../../../../../data_explorer/public';
 import { setAggParamValue } from '../visualization_slice';
 
@@ -16,12 +16,11 @@ import { setAggParamValue } from '../visualization_slice';
 export const handlerParentAggs = async (
   store: Store,
   state: RootState,
-  services: VisBuilderServices
+  previousState: RootState,
+  services: VisBuilderViewServices
 ) => {
-  const {
-     activeVisualization,
-     indexPattern = ''
-  } = state.vbVisualization;
+  const { activeVisualization } = state.vbVisualization;
+  const { indexPattern = '' } = state.metadata;
 
   const {
     data: {

@@ -4,13 +4,10 @@
  */
 
 import { i18n } from '@osd/i18n';
-import { BehaviorSubject } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
 import { lazy } from 'react';
 import {
   AppMountParameters,
   AppNavLinkStatus,
-  AppUpdater,
   CoreSetup,
   CoreStart,
   Plugin,
@@ -58,13 +55,14 @@ import {
   setTypeService,
   setQueryService,
   setHeaderActionMenuMounter,
+  getVisBuilderServices,
+  setVisBuilderServices,
 } from './plugin_services';
 import { createSavedVisBuilderLoader } from './saved_visualizations';
 import { registerDefaultTypes } from './visualizations';
 import { ConfigSchema } from '../config';
 import { createStartServicesGetter } from '../../opensearch_dashboards_utils/public';
-import { opensearchFilters } from '../../data/public';
-import { useOpenSearchDashboards } from '../../opensearch_dashboards_react/public';
+import { buildVisBuilderServices } from './types';
 
 export class VisBuilderPlugin
   implements
@@ -75,7 +73,6 @@ export class VisBuilderPlugin
       VisBuilderPluginStartDependencies
     > {
   private typeService = new TypeService();
-  private appStateUpdater = new BehaviorSubject<AppUpdater>(() => ({}));
   private stopUrlTracking?: () => void;
   private currentHistory?: ScopedHistory;
 
@@ -137,23 +134,7 @@ export class VisBuilderPlugin
       },
       ui: {
         defaults: async () => {
-          const [coreStart, pluginsStart, selfStart] = await core.getStartServices();
-          const services: VisBuilderServices = {
-            ...coreStart,
-            appName: PLUGIN_ID,
-            // history: this.currentHistory,
-            toastNotifications: coreStart.notifications.toasts,
-            data: pluginsStart.data,
-            savedObjectsPublic: pluginsStart.savedObjects,
-            navigation: pluginsStart.navigation,
-            expressions: pluginsStart.expressions,
-            types: typeService.start(),
-            savedVisBuilderLoader: selfStart.savedVisBuilderLoader,
-            embeddable: pluginsStart.embeddable,
-            dashboard: pluginsStart.dashboard,
-            uiActions: pluginsStart.uiActions,
-            scopedHistory: this.currentHistory,
-          };
+          const services: VisBuilderServices = getVisBuilderServices();
 
           return [
             getEditorSlicePreloadedState(services),
@@ -212,11 +193,9 @@ export class VisBuilderPlugin
     };
   }
 
-  public start(
-    core: CoreStart,
-    { expressions, data, uiActions }: VisBuilderPluginStartDependencies
-  ): VisBuilderStart {
+  public start(core: CoreStart, plugins: VisBuilderPluginStartDependencies): VisBuilderStart {
     const typeService = this.typeService.start();
+    const { expressions, data, uiActions } = plugins;
 
     const savedVisBuilderLoader = createSavedVisBuilderLoader({
       savedObjectsClient: core.savedObjects.client,
@@ -225,6 +204,15 @@ export class VisBuilderPlugin
       chrome: core.chrome,
       overlays: core.overlays,
     });
+
+    const services = buildVisBuilderServices(
+      core,
+      plugins,
+      this.currentHistory,
+      savedVisBuilderLoader,
+      typeService
+    );
+    setVisBuilderServices(services);
 
     // Register plugin services
     setSearchService(data.search);

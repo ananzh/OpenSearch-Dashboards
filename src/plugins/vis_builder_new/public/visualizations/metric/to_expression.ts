@@ -5,7 +5,7 @@
 
 import { SchemaConfig } from '../../../../visualizations/public';
 import { MetricVisExpressionFunctionDefinition } from '../../../../vis_type_metric/public';
-import { AggConfigs, IAggConfig } from '../../../../data/common';
+import { AggConfigs, IAggConfig, IndexPattern } from '../../../../data/common';
 import { buildExpression, buildExpressionFunction } from '../../../../expressions/public';
 import { RenderState } from '../../application/utils/state_management';
 import { MetricOptionsDefaults } from './metric_viz_type';
@@ -86,8 +86,14 @@ export interface MetricRootState extends RenderState {
   vbStyle: MetricOptionsDefaults;
 }
 
-export const toExpression = async ({ vbStyle: styleState, vbVisualization }: MetricRootState) => {
-  const { aggConfigs, expressionFns } = await getAggExpressionFunctions(vbVisualization);
+export const toExpression = async (
+  { vbStyle: styleState, vbVisualization }: MetricRootState,
+  indexPattern: IndexPattern
+) => {
+  const { aggConfigs, expressionFns } = await getAggExpressionFunctions(
+    vbVisualization,
+    indexPattern
+  );
 
   // TODO: Update to use the getVisSchemas function from the Visualizations plugin
   // const schemas = getVisSchemas(vis, params);

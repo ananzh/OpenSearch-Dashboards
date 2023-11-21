@@ -6,7 +6,7 @@
 import { useCallback } from 'react';
 import { IndexPatternField, opensearchFilters } from '../../../../../data/public';
 import { useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
-import { VisBuilderServices } from '../../../types';
+import { VisBuilderViewServices } from '../../../types';
 import { useVisBuilderContext } from '../../view_components/context';
 
 export const useOnAddFilter = () => {
@@ -16,7 +16,7 @@ export const useOnAddFilter = () => {
         query: { filterManager },
       },
     },
-  } = useOpenSearchDashboards<VisBuilderServices>();
+  } = useOpenSearchDashboards<VisBuilderViewServices>();
   const { indexPattern } = useVisBuilderContext();
   const { id = '' } = indexPattern ?? {};
   return useCallback(

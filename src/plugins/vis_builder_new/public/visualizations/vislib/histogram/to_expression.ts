@@ -13,13 +13,16 @@ import { HistogramOptionsDefaults } from './histogram_vis_type';
 import { getAggExpressionFunctions } from '../../common/expression_helpers';
 import { VislibRootState, getValueAxes, getPipelineParams } from '../common';
 import { createVis } from '../common/create_vis';
+import { IndexPattern } from '../../../../../data/common';
 
 export const toExpression = async (
   { vbStyle: styleState, vbVisualization }: VislibRootState<HistogramOptionsDefaults>,
-  searchContext: IExpressionLoaderParams['searchContext']
+  searchContext: IExpressionLoaderParams['searchContext'],
+  indexPattern: IndexPattern
 ) => {
-  const { aggConfigs, expressionFns, indexPattern } = await getAggExpressionFunctions(
-    vbVisualization
+  const { aggConfigs, expressionFns } = await getAggExpressionFunctions(
+    vbVisualization,
+    indexPattern
   );
   const { addLegend, addTooltip, legendPosition, type } = styleState;
 

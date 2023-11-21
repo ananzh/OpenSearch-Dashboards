@@ -6,15 +6,15 @@
 import React, { useCallback } from 'react';
 import { i18n } from '@osd/i18n';
 import produce, { Draft } from 'immer';
-import { useTypedDispatch, useTypedSelector } from '../../../../application/utils/state_management';
+import { useDispatch, useSelector } from '../../../../application/utils/state_management';
 import { HistogramOptionsDefaults } from '../histogram_vis_type';
 import { BasicVisOptions } from '../../common/basic_vis_options';
 import { setState } from '../../../../application/utils/state_management/style_slice';
-import { Option } from '../../../../application/app';
+import { Option } from '../../../../application/components/option';
 
 function HistogramVisOptions() {
-  const styleState = useTypedSelector((state) => state.style) as HistogramOptionsDefaults;
-  const dispatch = useTypedDispatch();
+  const styleState = useSelector((state) => state.vbStyle) as HistogramOptionsDefaults;
+  const dispatch = useDispatch();
 
   const setOption = useCallback(
     (callback: (draft: Draft<typeof styleState>) => void) => {

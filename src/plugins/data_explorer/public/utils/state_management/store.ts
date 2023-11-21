@@ -83,7 +83,7 @@ export const getPreloadedStore = async (services: DataExplorerServices) => {
     Object.entries(viewSideEffectsMap).forEach(([viewId, effects]) => {
       effects.forEach((effect) => {
         try {
-          effect(state, previousState, services);
+          effect(store, state, previousState, services);
         } catch (e) {
           // eslint-disable-next-line no-console
           console.error(`Error executing side effect for view ${viewId}:`, e);
