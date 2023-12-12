@@ -138,9 +138,7 @@ export class VisBuilderEmbeddable extends Embeddable<VisBuilderInput, VisBuilder
       // Check if saved visualization exists
       const renderState = this.savedVis?.state;
       if (!renderState) throw new Error('No saved visualization');
-      const indexPattern = renderState.metadata.indexPattern
-        ? renderState.metadata.indexPattern
-        : '';
+      const indexId = renderState.metadata.indexPattern ? renderState.metadata.indexPattern : '';
 
       const visTypeString = renderState.vbVisualization?.activeVisualization?.name || '';
       const visualizationType = getTypeService().get(visTypeString);
@@ -153,15 +151,11 @@ export class VisBuilderEmbeddable extends Embeddable<VisBuilderInput, VisBuilder
 
       if (!valid && errorMsg) throw new Error(errorMsg);
 
-      const exp = await toExpression(
-        renderState,
-        {
-          filters: this.filters,
-          query: this.query,
-          timeRange: this.timeRange,
-        },
-        indexPattern
-      );
+      const exp = await toExpression(renderState, indexId, {
+        filters: this.filters,
+        query: this.query,
+        timeRange: this.timeRange,
+      });
       return exp;
     } catch (error) {
       this.onContainerError(error as Error);
@@ -213,7 +207,7 @@ export class VisBuilderEmbeddable extends Embeddable<VisBuilderInput, VisBuilder
       this.handler.events$.subscribe(async (event) => {
         if (!this.input.disableTriggers) {
           const indexPattern = await getIndexPatterns().get(
-            this.savedVis?.state.vbVisualization.indexPattern ?? ''
+            this.savedVis?.state.metadata.indexPattern ?? ''
           );
 
           handleVisEvent(event, getUIActions(), indexPattern.timeFieldName);

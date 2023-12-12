@@ -96,9 +96,13 @@ export interface TableRootState extends RenderState {
   vbStyle: TableOptionsDefaults;
 }
 
-export const toExpression = async ({ vbStyle: styleState, vbVisualization }: TableRootState) => {
+export const toExpression = async (
+  { vbStyle: styleState, vbVisualization }: TableRootState,
+  indexId: string
+) => {
   const { aggConfigs, expressionFns } = await getAggExpressionFunctions(
     vbVisualization,
+    indexId,
     styleState
   );
   const { showPartialRows, showMetricsAtAllLevels } = styleState;

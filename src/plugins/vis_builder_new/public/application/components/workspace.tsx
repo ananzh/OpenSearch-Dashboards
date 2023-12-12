@@ -21,6 +21,7 @@ import fields_bg from '../../assets/fields_bg.svg';
 import './workspace.scss';
 import { ExperimentalInfo } from './experimental_info';
 import { handleVisEvent } from '../utils/handle_vis_event';
+import { useVisBuilderContext } from '../view_components/context';
 
 export const WorkspaceUI = () => {
   const { services } = useOpenSearchDashboards<VisBuilderViewServices>();
@@ -30,7 +31,6 @@ export const WorkspaceUI = () => {
     data,
     uiActions,
   } = services;
-  const indexPattern = useIndexPattern(services);
   const { toExpression, ui } = useVisualizationType();
   const { aggConfigs } = useAggs();
   const [expression, setExpression] = useState<string>();
@@ -44,6 +44,7 @@ export const WorkspaceUI = () => {
   // Visualizations require the uiState object to persist even when the expression changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const uiState = useMemo(() => new PersistedState(rootState.vbUi), []);
+  const indexId = rootState.metadata.indexPattern ? rootState.metadata.indexPattern : '';
 
   useEffect(() => {
     if (rootState.vbEditor.status === 'loaded') {
@@ -82,7 +83,7 @@ export const WorkspaceUI = () => {
 
         return;
       }
-      const exp = await toExpression(rootState, searchContext, indexPattern);
+      const exp = await toExpression(rootState, indexId, searchContext);
       setExpression(exp);
     }
 
@@ -94,7 +95,7 @@ export const WorkspaceUI = () => {
     ui.containerConfig.data.schemas,
     searchContext,
     aggConfigs,
-    indexPattern,
+    indexId,
   ]);
 
   useLayoutEffect(() => {

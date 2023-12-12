@@ -8,16 +8,18 @@ import { OpenSearchaggsExpressionFunctionDefinition } from '../../../../data/pub
 import { ExpressionFunctionOpenSearchDashboards } from '../../../../expressions';
 import { buildExpressionFunction } from '../../../../expressions/public';
 import { VisualizationState } from '../../application/utils/state_management';
-import { getSearchService } from '../../plugin_services';
+import { getSearchService, getIndexPatterns } from '../../plugin_services';
 import { StyleState } from '../../application/utils/state_management';
 
 export const getAggExpressionFunctions = async (
   visualization: VisualizationState,
-  indexPattern: IndexPattern,
+  indexId: string,
   style?: StyleState
 ) => {
   const { activeVisualization } = visualization;
   const { aggConfigParams } = activeVisualization || {};
+  const indexPatternsService = getIndexPatterns();
+  const indexPattern = await indexPatternsService.get(indexId);
 
   // aggConfigParams is the serealizeable aggConfigs that need to be reconstructed here using the agg servce
   const aggConfigs = getSearchService().aggs.createAggConfigs(

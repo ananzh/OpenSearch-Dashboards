@@ -13,18 +13,17 @@ import { LineOptionsDefaults } from './line_vis_type';
 import { getAggExpressionFunctions } from '../../common/expression_helpers';
 import { VislibRootState, getValueAxes, getPipelineParams } from '../common';
 import { createVis } from '../common/create_vis';
-import { IndexPattern } from '../../../../../data/common';
+import { getIndexPatterns } from '../../../plugin_services';
 
 export const toExpression = async (
   { vbStyle: styleState, vbVisualization }: VislibRootState<LineOptionsDefaults>,
-  indexPattern: IndexPattern,
+  indexId: string,
   searchContext: IExpressionLoaderParams['searchContext']
 ) => {
-  const { aggConfigs, expressionFns } = await getAggExpressionFunctions(
-    vbVisualization,
-    indexPattern
-  );
+  const { aggConfigs, expressionFns } = await getAggExpressionFunctions(vbVisualization, indexId);
   const { addLegend, addTooltip, legendPosition, type } = styleState;
+  const indexPatternsService = getIndexPatterns();
+  const indexPattern = await indexPatternsService.get(indexId);
 
   const vis = await createVis(type, aggConfigs, indexPattern, searchContext?.timeRange);
 

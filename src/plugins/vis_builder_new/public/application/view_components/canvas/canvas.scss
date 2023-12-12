@@ -7,23 +7,21 @@
 .vbLayout {
   padding: 0;
   display: grid;
-  grid-template-rows: 1fr min-content; // Two rows: topNav and the second row
-  grid-template-columns: minmax(auto, max-content) 1fr minmax(auto, max-content);
-  grid-template-areas: 
-   "topNav topNav topNav"
-   "leftNav workspaceNav rightNav";
+  grid-template:
+    "topNav topNav topNav" min-content
+    "leftNav workspaceNav rightNav" 1fr / #{$vbLeftNavWidth} 1fr #{$vbRightNavWidth};
   height: calc(100vh - #{$osdHeaderOffset});
- 
+
   &__resizeContainer {
     min-height: 0;
     background-color: $euiColorEmptyShade;
   }
- 
+
   &__resizeButton {
     transform: translateX(calc(-1 * $euiSizeM / 2));
   }
 }
- 
+
 .headerIsExpanded .vbLayout {
   height: calc(100vh - #{$osdHeaderOffset * 2});
 }

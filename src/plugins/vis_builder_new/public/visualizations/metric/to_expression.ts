@@ -88,12 +88,9 @@ export interface MetricRootState extends RenderState {
 
 export const toExpression = async (
   { vbStyle: styleState, vbVisualization }: MetricRootState,
-  indexPattern: IndexPattern
+  indexId: string
 ) => {
-  const { aggConfigs, expressionFns } = await getAggExpressionFunctions(
-    vbVisualization,
-    indexPattern
-  );
+  const { aggConfigs, expressionFns } = await getAggExpressionFunctions(vbVisualization, indexId);
 
   // TODO: Update to use the getVisSchemas function from the Visualizations plugin
   // const schemas = getVisSchemas(vis, params);
