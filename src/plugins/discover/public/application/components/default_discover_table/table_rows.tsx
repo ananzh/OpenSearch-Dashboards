@@ -54,6 +54,7 @@ export const TableRow = ({
           aria-label="Next"
           data-test-subj="docTableExpandToggleColumn"
           className="osdDocTableCell__toggleDetails"
+          iconSize={'s'}
         />
       </td>
       {columnIds.map((columnId) => {
@@ -96,12 +97,14 @@ export const TableRow = ({
 
         if (!fieldInfo?.filterable) {
           return (
-            // eslint-disable-next-line react/no-danger
             <td
               data-test-subj="docTableField"
               className="osdDocTableCell eui-textBreakAll eui-textBreakWord"
             >
-              <span dangerouslySetInnerHTML={{ __html: sanitizedCellValue }} />
+              <span
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{ __html: sanitizedCellValue }}
+              />
             </td>
           );
         }
