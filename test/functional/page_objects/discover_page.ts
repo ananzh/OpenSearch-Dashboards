@@ -516,6 +516,32 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
         `Could not find a clickable list item for column "${columnName}" with list item "${title}".`
       );
     }
+
+    public async switchDiscoverTable(tableType: string) {
+      // Find the button by its data-test-subj attribute
+      const button = await testSubjects.find('datagridTableButton');
+      const isButtonChecked = await button.getAttribute('aria-checked');
+
+      // Click the button based on the desired table type
+      if (tableType === 'new' && isButtonChecked === 'false') {
+        await button.click();
+      } else if (tableType === 'legacy' && isButtonChecked === 'true') {
+        await button.click();
+      }
+
+      // Wait for the query input to be visible
+      await this.waitForQueryInput();
+    }
+
+    async waitForQueryInput() {
+      // Wait for the query input to be visible
+      await retry.try(async () => {
+        const queryInputVisible = await testSubjects.exists('queryInput');
+        if (!queryInputVisible) {
+          throw new Error('Query input not yet visible');
+        }
+      });
+    }
   }
 
   return new DiscoverPage();
