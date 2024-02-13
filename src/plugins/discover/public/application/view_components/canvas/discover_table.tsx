@@ -12,7 +12,6 @@ import {
   addColumn,
   moveColumn,
   removeColumn,
-  reorderColumn,
   setColumns,
   setSort,
   useDispatch,

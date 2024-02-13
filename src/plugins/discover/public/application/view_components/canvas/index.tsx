@@ -104,14 +104,14 @@ export default function DiscoverCanvas({ setHeaderActionMenu, history }: ViewPro
           onQuerySubmit,
         }}
       />
-      {fetchState.status === ResultStatus.NO_RESULTS && (
+      {(fetchState.status === ResultStatus.NO_RESULTS || fetchState.hits == 0) && (
         <DiscoverNoResults timeFieldName={timeField} queryLanguage={''} />
       )}
       {fetchState.status === ResultStatus.UNINITIALIZED && (
         <DiscoverUninitialized onRefresh={() => refetch$.next()} />
       )}
-      {fetchState.status === ResultStatus.LOADING && <LoadingSpinner />}
-      {fetchState.status === ResultStatus.READY && (
+      {/* {fetchState.status === ResultStatus.LOADING && <LoadingSpinner />} */}
+      {(fetchState.status === ResultStatus.READY && fetchState.hits && fetchState.hits>0) && (
         <EuiPanel hasShadow={false} paddingSize="none" className="dscCanvas_results">
           <MemoizedDiscoverChartContainer {...fetchState} />
           <MemoizedDiscoverTable rows={rows} />

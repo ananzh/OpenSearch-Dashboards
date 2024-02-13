@@ -23,13 +23,14 @@ export const AppContainer = ({ view, params }: { view?: View; params: AppMountPa
 
   const MemoizedPanel = memo(Panel);
   const MemoizedCanvas = memo(Canvas);
+  const MemoizedContext = memo(Context);
 
   // Render the application DOM.
   return (
     <EuiPage className="deLayout" paddingSize="none">
       {/* TODO: improve fallback state */}
       <Suspense fallback={<div>Loading...</div>}>
-        <Context {...params}>
+        <MemoizedContext {...params}>
           <EuiResizableContainer direction={isMobile ? 'vertical' : 'horizontal'}>
             {(EuiResizablePanel, EuiResizableButton) => (
               <>
@@ -53,7 +54,7 @@ export const AppContainer = ({ view, params }: { view?: View; params: AppMountPa
               </>
             )}
           </EuiResizableContainer>
-        </Context>
+        </MemoizedContext>
       </Suspense>
     </EuiPage>
   );
