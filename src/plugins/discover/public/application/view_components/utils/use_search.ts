@@ -263,36 +263,35 @@ export const useSearch = (services: DiscoverViewServices) => {
     shouldSearchOnPageLoad,
   ]);
 
-  // Get savedSearch if it exists
   useEffect(() => {
     (async () => {
       const savedSearchInstance = await getSavedSearchById(savedSearchId);
       setSavedSearch(savedSearchInstance);
 
       // sync initial app filters from savedObject to filterManager
-      const filters = cloneDeep(savedSearchInstance.searchSource.getOwnField('filter'));
-      const query =
-        savedSearchInstance.searchSource.getField('query') ||
-        data.query.queryString.getDefaultQuery();
-      const actualFilters = [];
+      // const filters = cloneDeep(savedSearchInstance.searchSource.getOwnField('filter'));
+      // const query =
+      //   savedSearchInstance.searchSource.getField('query') ||
+      //   data.query.queryString.getDefaultQuery();
+      // const actualFilters = [];
 
-      if (filters !== undefined) {
-        const result = typeof filters === 'function' ? filters() : filters;
-        if (result !== undefined) {
-          actualFilters.push(...(Array.isArray(result) ? result : [result]));
-        }
-      }
+      // if (filters !== undefined) {
+      //   const result = typeof filters === 'function' ? filters() : filters;
+      //   if (result !== undefined) {
+      //     actualFilters.push(...(Array.isArray(result) ? result : [result]));
+      //   }
+      // }
 
-      filterManager.setAppFilters(actualFilters);
-      data.query.queryString.setQuery(query);
+      // filterManager.setAppFilters(actualFilters);
+      // data.query.queryString.setQuery(query);
 
-      if (savedSearchInstance?.id) {
-        chrome.recentlyAccessed.add(
-          savedSearchInstance.getFullPath(),
-          savedSearchInstance.title,
-          savedSearchInstance.id
-        );
-      }
+      // if (savedSearchInstance?.id) {
+      //   chrome.recentlyAccessed.add(
+      //     savedSearchInstance.getFullPath(),
+      //     savedSearchInstance.title,
+      //     savedSearchInstance.id
+      //   );
+      // }
     })();
 
     return () => {};
@@ -304,8 +303,8 @@ export const useSearch = (services: DiscoverViewServices) => {
   return {
     data$,
     refetch$,
-    indexPattern,
     savedSearch,
+    indexPattern,
     inspectorAdapters,
   };
 };

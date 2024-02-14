@@ -115,6 +115,11 @@ export const getTopNavLinks = (
               chrome.setBreadcrumbs([...getRootBreadcrumbs(), { text: savedSearch.title }]);
             }
 
+
+            // filterManager.setAppFilters(actualFilters);
+            // query.queryString.setQuery(query);  
+
+
             // set App state to clean
             store!.dispatch({ type: setSavedSearchId.type, payload: id });
 

@@ -41,10 +41,10 @@ export const TopNav = ({ opts }: TopNavProps) => {
 
   const topNavLinks = savedSearch ? getTopNavLinks(services, inspectorAdapters, savedSearch) : [];
 
-  connectStorageToQueryState(services.data.query, osdUrlStateStorage, {
-    filters: opensearchFilters.FilterStateStore.APP_STATE,
-    query: true,
-  });
+  // connectStorageToQueryState(services.data.query, osdUrlStateStorage, {
+  //   filters: opensearchFilters.FilterStateStore.APP_STATE,
+  //   query: true,
+  // });
 
   useEffect(() => {
     let isMounted = true;

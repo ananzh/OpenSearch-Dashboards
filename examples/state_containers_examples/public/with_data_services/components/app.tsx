@@ -176,7 +176,7 @@ function useIndexPattern(data: DataPublicPluginStart) {
 
   return indexPattern;
 }
-
+ 
 function useGlobalStateSyncing(
   query: DataPublicPluginStart['query'],
   osdUrlStateStorage: IOsdUrlStateStorage
