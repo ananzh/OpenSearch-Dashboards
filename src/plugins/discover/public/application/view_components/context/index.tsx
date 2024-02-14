@@ -1,11 +1,19 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useEffect, useMemo, useState } from 'react';
+import { matchPath } from 'react-router-dom';
+import { cloneDeep } from 'lodash';
 import { DataExplorerServices, ViewProps } from '../../../../../data_explorer/public';
-import { OpenSearchDashboardsContextProvider, useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
+import {
+  OpenSearchDashboardsContextProvider,
+  useOpenSearchDashboards,
+} from '../../../../../opensearch_dashboards_react/public';
 import { getServices } from '../../../opensearch_dashboards_services';
 import { useSearch, SearchContextValue } from '../utils/use_search';
 import { useDispatch, useSelector, setSavedSearchId } from '../../utils/state_management';
-import { matchPath } from 'react-router-dom';
-import { cloneDeep } from 'lodash';
 
 const SearchContext = React.createContext<SearchContextValue>({} as SearchContextValue);
 
@@ -35,14 +43,17 @@ export default function DiscoverContext({ children }: React.PropsWithChildren<Vi
   });
 
   const { getSavedSearchById, data, filterManager, chrome } = services;
-  const { savedSearch: savedSearchInstance} = searchParams;
+  // const { savedSearch: savedSearchInstance} = searchParams;
 
   useEffect(() => {
-    if(!savedSearchIdFromUrl || !savedSearchInstance) return;
+    if (!savedSearchIdInState || savedSearchIdInState === '') return;
     (async () => {
+      const savedSearchInstance = await getSavedSearchById(savedSearchIdInState);
       // Sync initial app filters from savedObject to filterManager
       const filters = cloneDeep(savedSearchInstance.searchSource.getOwnField('filter'));
-      const query = savedSearchInstance.searchSource.getField('query') || data.query.queryString.getDefaultQuery();
+      const query =
+        savedSearchInstance.searchSource.getField('query') ||
+        data.query.queryString.getDefaultQuery();
       const actualFilters = [];
 
       if (filters !== undefined) {
@@ -65,7 +76,7 @@ export default function DiscoverContext({ children }: React.PropsWithChildren<Vi
     })();
 
     // This effect will only run when savedSearchIdFromUrl changes
-  }, [getSavedSearchById, savedSearchInstance, data.query.queryString, filterManager, chrome]);
+  }, [getSavedSearchById, savedSearchIdInState, data.query.queryString, filterManager, chrome]);
 
   return (
     <OpenSearchDashboardsContextProvider services={services}>
