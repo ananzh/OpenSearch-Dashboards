@@ -14,7 +14,7 @@ import { getTopNavLinks } from '../../components/top_nav/get_top_nav_links';
 import { useDiscoverContext } from '../context';
 import { getRootBreadcrumbs } from '../../helpers/breadcrumbs';
 import { opensearchFilters, connectStorageToQueryState } from '../../../../../data/public';
-import { useDispatch, setSavedQuery, useSelector, setState } from '../../utils/state_management';
+import { useDispatch, setSavedQuery, useSelector } from '../../utils/state_management';
 
 export interface TopNavProps {
   opts: {
@@ -84,14 +84,7 @@ export const TopNav = ({ opts, showSaveQuery }: TopNavProps) => {
   ]);
 
   const updateSavedQueryId = (newSavedQueryId: string | undefined) => {
-    if (newSavedQueryId) {
-      dispatch(setSavedQuery(newSavedQueryId));
-    } else {
-      // remove savedQueryId from state
-      const newState = { ...state };
-      delete newState.savedQuery;
-      dispatch(setState(newState));
-    }
+    dispatch(setSavedQuery(newSavedQueryId));
   };
 
   return (

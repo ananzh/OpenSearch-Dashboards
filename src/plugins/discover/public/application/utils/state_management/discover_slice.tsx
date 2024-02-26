@@ -111,7 +111,7 @@ export const discoverSlice = createSlice({
     setState(state, action: PayloadAction<DiscoverState>) {
       return action.payload;
     },
-    getState(state, action:PayloadAction<DiscoverState>) {
+    getState(state, action: PayloadAction<DiscoverState>) {
       return state;
     },
     addColumn(state, action: PayloadAction<{ column: string; index?: number }>) {
@@ -192,12 +192,18 @@ export const discoverSlice = createSlice({
         },
       };
     },
-    setSavedQuery(state, action: PayloadAction<string>) {
-      return {
-        ...state,
-        savedQuery: action.payload,
+    setSavedQuery(state, action: PayloadAction<string | undefined>) {
+      if (action.payload === undefined) {
+        // if the payload is undefined, remove the savedQuery property
+        const { savedQuery, ...restState } = state;
+        return restState;
+      } else {
+        return {
+          ...state,
+          savedQuery: action.payload,
+        };
       }
-    }
+    },
   },
 });
 

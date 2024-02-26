@@ -13,12 +13,13 @@ import { VisBuilderServices } from '../../types';
 import './top_nav.scss';
 import { useIndexPatterns, useSavedVisBuilderVis } from '../utils/use';
 import { useTypedSelector, useTypedDispatch } from '../utils/state_management';
-import { setSavedQuery, setState } from '../utils/state_management/visualization_slice';
+import { setSavedQuery } from '../utils/state_management/visualization_slice';
 import { setEditorState } from '../utils/state_management/metadata_slice';
 import { useCanSave } from '../utils/use/use_can_save';
 import { saveStateToSavedObject } from '../../saved_visualizations/transforms';
 import { TopNavMenuData } from '../../../../navigation/public';
 import { opensearchFilters, connectStorageToQueryState } from '../../../../data/public';
+import { RootState } from '../../../../data_explorer/public';
 
 export const TopNav = () => {
   // id will only be set for the edit route
@@ -32,7 +33,7 @@ export const TopNav = () => {
     appName,
     capabilities,
   } = services;
-  const rootState = useTypedSelector((state) => state);
+  const rootState = useTypedSelector((state: RootState) => state);
   const dispatch = useTypedDispatch();
 
   const saveDisabledReason = useCanSave();
@@ -81,16 +82,9 @@ export const TopNav = () => {
   });
 
   const updateSavedQueryId = (newSavedQueryId: string | undefined) => {
-    if (newSavedQueryId) {
-      dispatch(setSavedQuery(newSavedQueryId));
-    } else {
-      // remove savedQueryId from state
-      const newState = rootState;
-      delete newState.visualization.savedQuery;
-      dispatch(setState(newState.visualization));
-    }
+    dispatch(setSavedQuery(newSavedQueryId));
   };
-  const showSaveQuery=!!capabilities['visualization-visbuilder']?.saveQuery;
+  const showSaveQuery = !!capabilities['visualization-visbuilder']?.saveQuery;
 
   return (
     <div className="vbTopNav">
