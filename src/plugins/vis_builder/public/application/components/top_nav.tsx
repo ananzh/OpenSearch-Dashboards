@@ -13,6 +13,7 @@ import { VisBuilderServices } from '../../types';
 import './top_nav.scss';
 import { useIndexPatterns, useSavedVisBuilderVis } from '../utils/use';
 import { useTypedSelector, useTypedDispatch } from '../utils/state_management';
+import { setSavedQuery, setState } from '../utils/state_management/visualization_slice';
 import { setEditorState } from '../utils/state_management/metadata_slice';
 import { useCanSave } from '../utils/use/use_can_save';
 import { saveStateToSavedObject } from '../../saved_visualizations/transforms';
@@ -29,6 +30,7 @@ export const TopNav = () => {
       ui: { TopNavMenu },
     },
     appName,
+    capabilities,
   } = services;
   const rootState = useTypedSelector((state) => state);
   const dispatch = useTypedDispatch();
@@ -78,6 +80,18 @@ export const TopNav = () => {
     dispatch(setEditorState({ state: 'loading' }));
   });
 
+  const updateSavedQueryId = (newSavedQueryId: string | undefined) => {
+    if (newSavedQueryId) {
+      dispatch(setSavedQuery(newSavedQueryId));
+    } else {
+      // remove savedQueryId from state
+      const newState = rootState;
+      delete newState.visualization.savedQuery;
+      dispatch(setState(newState.visualization));
+    }
+  };
+  const showSaveQuery=!!capabilities['visualization-visbuilder']?.saveQuery;
+
   return (
     <div className="vbTopNav">
       <TopNavMenu
@@ -87,8 +101,10 @@ export const TopNav = () => {
         indexPatterns={indexPattern ? [indexPattern] : []}
         showDatePicker={!!indexPattern?.timeFieldName ?? true}
         showSearchBar
-        showSaveQuery
+        showSaveQuery={showSaveQuery}
         useDefaultBehaviors
+        savedQueryId={rootState.visualization.savedQuery}
+        onSavedQueryIdChange={updateSavedQueryId}
       />
     </div>
   );

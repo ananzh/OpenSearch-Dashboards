@@ -46,6 +46,7 @@ export interface DiscoverState {
   /**
    * Metadata for the view
    */
+  savedQuery?: string;
   metadata?: {
     /**
      * Number of lines to display per row
@@ -109,6 +110,9 @@ export const discoverSlice = createSlice({
   reducers: {
     setState(state, action: PayloadAction<DiscoverState>) {
       return action.payload;
+    },
+    getState(state, action:PayloadAction<DiscoverState>) {
+      return state;
     },
     addColumn(state, action: PayloadAction<{ column: string; index?: number }>) {
       const columns = utils.addColumn(state.columns || [], action.payload);
@@ -188,6 +192,12 @@ export const discoverSlice = createSlice({
         },
       };
     },
+    setSavedQuery(state, action: PayloadAction<string>) {
+      return {
+        ...state,
+        savedQuery: action.payload,
+      }
+    }
   },
 });
 
@@ -201,8 +211,10 @@ export const {
   setSort,
   setInterval,
   setState,
+  getState,
   updateState,
   setSavedSearchId,
   setMetadata,
+  setSavedQuery,
 } = discoverSlice.actions;
 export const { reducer } = discoverSlice;
