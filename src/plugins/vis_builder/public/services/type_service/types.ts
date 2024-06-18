@@ -7,6 +7,7 @@ import { IconType } from '@elastic/eui';
 import { RenderState } from '../../application/utils/state_management';
 import { Schemas } from '../../../../vis_default_editor/public';
 import { IExpressionLoaderParams } from '../../../../expressions/public';
+import { VisualizationsStart } from '../../../../visualizations/public';
 
 export interface DataTabConfig {
   schemas: Schemas;
@@ -31,6 +32,7 @@ export interface VisualizationTypeOptions<T = any> {
   };
   readonly toExpression: (
     state: RenderState,
-    searchContext: IExpressionLoaderParams['searchContext']
+    searchContext: IExpressionLoaderParams['searchContext'],
+    visualizations: VisualizationsStart
   ) => Promise<string | undefined>;
 }

@@ -28,6 +28,7 @@ export const WorkspaceUI = () => {
       notifications: { toasts },
       data,
       uiActions,
+      visualizations,
     },
   } = useOpenSearchDashboards<VisBuilderServices>();
   const { toExpression, ui } = useVisualizationType();
@@ -82,7 +83,7 @@ export const WorkspaceUI = () => {
         return;
       }
 
-      const exp = await toExpression(rootState, searchContext);
+      const exp = await toExpression(rootState, searchContext, visualizations);
       setExpression(exp);
     }
 

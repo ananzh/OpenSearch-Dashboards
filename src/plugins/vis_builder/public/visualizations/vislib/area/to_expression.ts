@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { buildVislibDimensions } from '../../../../../visualizations/public';
+import { buildVislibDimensions, VisualizationsStart } from '../../../../../visualizations/public';
 import {
   buildExpression,
   buildExpressionFunction,
@@ -16,7 +16,8 @@ import { createVis } from '../common/create_vis';
 
 export const toExpression = async (
   { style: styleState, visualization }: VislibRootState<AreaOptionsDefaults>,
-  searchContext: IExpressionLoaderParams['searchContext']
+  searchContext: IExpressionLoaderParams['searchContext'],
+  visualizations: VisualizationsStart
 ) => {
   const { aggConfigs, expressionFns, indexPattern } = await getAggExpressionFunctions(
     visualization

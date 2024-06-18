@@ -12,7 +12,8 @@
     "navigation",
     "savedObjects",
     "visualizations",
-    "uiActions"
+    "uiActions",
+    "visTypeVega"
   ],
   "requiredBundles": [
     "charts",

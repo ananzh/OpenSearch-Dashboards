@@ -36,12 +36,16 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
   ) {
     // Render using vislib instead of vega-lite
     const visConfig = { ...vis.params, dimensions };
+    console.log('[vislib] visConfig for line', visConfig);
     const vislib = buildExpressionFunction<any>('vislib', {
       type: 'line',
       visConfig: JSON.stringify(visConfig),
     });
     const ast = buildExpression([opensearchaggsFn, vislib]);
-    return ast.toAst();
+    let a = ast.toAst();
+    let b = ast.toString();
+    console.log('[vislib] ast for line', b);
+    return a;
   } else {
     const visAugmenterConfig = get(
       params,

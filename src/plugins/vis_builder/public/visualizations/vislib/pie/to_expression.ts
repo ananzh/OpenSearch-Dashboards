@@ -126,7 +126,7 @@ export const toExpression = async ({
 
   if (useVegaLiteRendering) {
     const vegaSpecFn = buildExpressionFunction<any>('pie_vega_spec', {
-      // visConfig: JSON.stringify(visConfig),
+      visConfig: JSON.stringify(visConfig),
     });
 
     const vegaSpecFnExpressionBuilder = buildExpression([vegaSpecFn]);
@@ -135,12 +135,14 @@ export const toExpression = async ({
       spec: vegaSpecFnExpressionBuilder,
     });
 
-    return buildExpression([...expressionFns, vegaFn]).toString();
+    let a = buildExpression([...expressionFns, vegaFn]).toString();
+    return a;
   } else {
     const vislib = buildExpressionFunction<any>('opensearch_dashboards_pie', {
       visConfig: JSON.stringify(visConfig),
     });
 
-    return buildExpression([...expressionFns, vislib]).toString();
+    let a = buildExpression([...expressionFns, vislib]).toString();
+    return a;
   }
 };

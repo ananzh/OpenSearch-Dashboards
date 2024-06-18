@@ -7,10 +7,11 @@ import React, { useCallback } from 'react';
 import { i18n } from '@osd/i18n';
 import produce, { Draft } from 'immer';
 import { useTypedDispatch, useTypedSelector } from '../../../../application/utils/state_management';
+import { SwitchOption } from '../../../../../../charts/public';
 import { LineOptionsDefaults } from '../line_vis_type';
 import { setState } from '../../../../application/utils/state_management/style_slice';
 import { Option } from '../../../../application/app';
-import { BasicVisOptions } from '../../common/basic_vis_options';
+import { BasicVisOptions, RenderOption } from '../../common/basic_vis_options';
 
 function LineVisOptions() {
   const styleState = useTypedSelector((state) => state.style) as LineOptionsDefaults;
@@ -32,7 +33,20 @@ function LineVisOptions() {
         })}
         initialIsOpen
       >
+        <SwitchOption
+          label={i18n.translate('charts.controls.vislibLineOptions.donut', {
+            defaultMessage: 'Donut',
+          })}
+          paramName="donut"
+          value={styleState.isDonut}
+          setValue={(_, value) =>
+            setOption((draft) => {
+              draft.isDonut = value;
+            })
+          }
+        />
         <BasicVisOptions styleState={styleState} setOption={setOption} />
+        <RenderOption styleState={styleState} setOption={setOption} />
       </Option>
     </>
   );

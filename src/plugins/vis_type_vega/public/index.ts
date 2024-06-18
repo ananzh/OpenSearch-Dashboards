@@ -31,9 +31,12 @@
 import { PluginInitializerContext } from 'opensearch-dashboards/public';
 import { ConfigSchema } from '../config';
 import { VegaPlugin as Plugin } from './plugin';
+import { VegaVisEditor } from './components';
 
 export function plugin(initializerContext: PluginInitializerContext<ConfigSchema>) {
   return new Plugin(initializerContext);
 }
 
 export * from './expressions';
+export { VegaVisEditor };
+export { getDefaultSpec } from './default_spec';

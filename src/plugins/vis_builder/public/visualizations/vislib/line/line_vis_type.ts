@@ -14,6 +14,8 @@ import { BasicOptionsDefaults } from '../common/types';
 
 export interface LineOptionsDefaults extends BasicOptionsDefaults {
   type: 'line';
+  // TODO: Is needed? hierarchicalData: boolean;
+  isDonut: boolean;
 }
 
 export const createLineConfig = (): VisualizationTypeOptions<LineOptionsDefaults> => ({
@@ -90,6 +92,7 @@ export const createLineConfig = (): VisualizationTypeOptions<LineOptionsDefaults
           legendPosition: Positions.RIGHT,
           type: 'line',
           useVegaLiteRendering: false,
+          isDonut: true,
         },
         render: LineVisOptions,
       },

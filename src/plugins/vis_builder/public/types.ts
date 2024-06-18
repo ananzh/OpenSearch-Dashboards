@@ -7,7 +7,7 @@ import { History } from 'history';
 import { SavedObject, SavedObjectsStart } from '../../saved_objects/public';
 import { EmbeddableSetup, EmbeddableStart } from '../../embeddable/public';
 import { DashboardStart } from '../../dashboard/public';
-import { VisualizationsSetup } from '../../visualizations/public';
+import { VisualizationsSetup, VisualizationsStart } from '../../visualizations/public';
 import { ExpressionsStart } from '../../expressions/public';
 import { NavigationPublicPluginStart } from '../../navigation/public';
 import { DataPublicPluginStart } from '../../data/public';
@@ -36,6 +36,7 @@ export interface VisBuilderPluginStartDependencies {
   dashboard: DashboardStart;
   expressions: ExpressionsStart;
   uiActions: UiActionsStart;
+  visualizations: VisualizationsStart;
 }
 
 export interface VisBuilderServices extends CoreStart {
@@ -54,6 +55,7 @@ export interface VisBuilderServices extends CoreStart {
   osdUrlStateStorage: IOsdUrlStateStorage;
   dashboard: DashboardStart;
   uiActions: UiActionsStart;
+  visualizations: VisualizationsStart;
 }
 
 export interface ISavedVis {

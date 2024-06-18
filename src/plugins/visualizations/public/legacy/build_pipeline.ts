@@ -270,7 +270,8 @@ const adjustVislibDimensionFormmaters = (vis: Vis, dimensions: { y: any[] }): vo
 
 export const buildPipelineVisFunction: BuildPipelineVisFunction = {
   vega: (params) => {
-    return `vega ${prepareString('spec', params.spec)}`;
+    let a = `vega ${prepareString('spec', params.spec)}`
+    return a;
   },
   input_control_vis: (params) => {
     return `input_control_vis ${prepareJson('visConfig', params)}`;
@@ -410,6 +411,7 @@ export const buildPipeline = async (vis: Vis, params: BuildPipelineParams) => {
   if (vis.type.toExpressionAst) {
     const visAst = await vis.type.toExpressionAst(vis, params);
     pipeline += formatExpression(visAst);
+    console.log('pipeline', pipeline)
   } else {
     // request handler
     if (vis.type.requestHandler === 'courier') {
