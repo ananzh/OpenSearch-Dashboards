@@ -122,7 +122,8 @@ const handleCourierRequest = async ({
   });
 
   requestSearchSource.setField('aggs', function () {
-    return aggs.toDsl(metricsAtAllLevels);
+    const a = aggs.toDsl(metricsAtAllLevels);
+    return a;
   });
 
   requestSearchSource.onRequestStart((paramSearchSource, options) => {

@@ -533,7 +533,8 @@ export class SearchSource {
    */
   private mergeProps(root = this, searchRequest: SearchRequest = { body: {} }) {
     Object.entries(this.fields).forEach(([key, value]) => {
-      this.mergeProp(searchRequest, value, key as keyof SearchSourceFields);
+      const a = this.mergeProp(searchRequest, value, key as keyof SearchSourceFields);
+      return a;
     });
     if (this.parent) {
       this.parent.mergeProps(root, searchRequest);
