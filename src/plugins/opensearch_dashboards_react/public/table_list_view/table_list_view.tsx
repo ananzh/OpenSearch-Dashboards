@@ -438,7 +438,7 @@ class TableListView extends React.Component<TableListViewProps, TableListViewSta
           }
         ),
         icon: 'pencil', //adaggq
-        type: 'icon',
+        type: 'icon', //agae
         enabled: ({ error }: { error: string }) => !error,
         onClick: this.props.editItem,
       },
