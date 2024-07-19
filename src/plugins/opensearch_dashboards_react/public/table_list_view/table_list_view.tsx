@@ -28,7 +28,7 @@
  * under the License.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FormattedMessage } from '@osd/i18n/react';
 import { i18n } from '@osd/i18n';
 import { debounce, keyBy, sortBy, uniq } from 'lodash';
@@ -46,6 +46,9 @@ import {
   EuiCallOut,
   EuiBasicTableColumn,
   EuiText,
+  EuiPopover,
+  EuiContextMenuItem,
+  EuiContextMenuPanel
 } from '@elastic/eui';
 import { HttpFetchError, ToastsStart } from 'opensearch-dashboards/public';
 import { toMountPoint } from '../util';
@@ -81,6 +84,9 @@ export interface TableListViewProps {
    * If the table is not empty, this component renders its own h1 element using the same id.
    */
   headingId?: string;
+  popoverOpen: any;
+  togglePopover: any;
+  closePopover: any
 }
 
 export interface TableListViewState {
@@ -437,10 +443,49 @@ class TableListView extends React.Component<TableListViewProps, TableListViewSta
             defaultMessage: 'Edit',
           }
         ),
-        icon: 'pencil', //adaggq
-        type: 'icon', //agae
+        icon: 'pencil',
+        type: 'icon',
         enabled: ({ error }: { error: string }) => !error,
-        onClick: this.props.editItem,
+        render: (item: any) => (
+          <EuiPopover
+            button={(
+              <EuiContextMenuItem
+                icon="pencil"
+                onClick={() => this.props.togglePopover(item.id)}
+              >
+              </EuiContextMenuItem>
+            )}
+            isOpen={this.props.popoverOpen? this.props.popoverOpen[item.id] : false}
+            closePopover={() => this.props.closePopover(item.id)}
+            panelPaddingSize="none"
+            anchorPosition="downCenter"
+          >
+            <EuiContextMenuPanel
+              items={[
+                <EuiContextMenuItem
+                  key="edit"
+                  icon="pencil"
+                  onClick={() => {
+                    this.props.closePopover(item.id);
+                    this.props.editItem?.(item);
+                  }}
+                >
+                  Edit
+                </EuiContextMenuItem>,
+                <EuiContextMenuItem
+                  key="newAction"
+                  icon="plusInCircle"
+                  onClick={() => {
+                    this.props.closePopover(item.id);
+                    this.props.editItem?.(item);
+                  }}
+                >
+                  Import to VisBuilder
+                </EuiContextMenuItem>,
+              ]}
+            />
+          </EuiPopover>
+        ),
       },
     ];
 

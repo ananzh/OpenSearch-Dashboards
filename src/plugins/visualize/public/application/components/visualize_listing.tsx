@@ -29,7 +29,7 @@
  */
 
 import './visualize_listing.scss';
-import React, { useCallback, useRef, useMemo, useEffect } from 'react';
+import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react';
 import { i18n } from '@osd/i18n';
 import { useUnmount, useMount } from 'react-use';
 import { useLocation } from 'react-router-dom';
@@ -162,6 +162,15 @@ export const VisualizeListing = () => {
     [savedObjects.client, toastNotifications]
   );
 
+  const [popoverOpen, setPopoverOpen] = useState<{ [key: string]: boolean }>({});
+
+  const togglePopover = (id: string) => {
+    setPopoverOpen(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const closePopover = (id: string) => {
+    setPopoverOpen(prev => ({ ...prev, [id]: false }));
+  };
   return (
     <TableListView
       headingId="visualizeListingHeading"
@@ -186,6 +195,9 @@ export const VisualizeListing = () => {
         defaultMessage: 'Visualizations',
       })}
       toastNotifications={toastNotifications}
+      popoverOpen = {popoverOpen}
+      togglePopover = {togglePopover}
+      closePopover = {closePopover}
     />
   );
 };
