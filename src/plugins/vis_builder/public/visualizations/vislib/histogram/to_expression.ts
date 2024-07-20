@@ -50,7 +50,7 @@ export const toExpression = async (
     // Execute the expression to get the raw data
     const rawData = await executeExpression(dataExpression, searchContext);
 
-    const vegaSpec = buildVegaSpec(rawData, visConfig, visualization, styleState);
+    const vegaSpec = buildVegaSpec(rawData, visConfig, styleState);
 
     const visVega = await createVis('vega', aggConfigs, indexPattern, searchContext);
     visVega.params = {

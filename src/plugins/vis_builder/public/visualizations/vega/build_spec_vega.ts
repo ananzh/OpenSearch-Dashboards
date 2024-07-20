@@ -59,6 +59,20 @@ export const buildVegaSpecViaVega = (data: any, visConfig: any, style: StyleStat
     signals: [
       { name: 'splitCount', update: 'length(data("splits"))' },
       { name: 'chartWidth', update: 'width / splitCount - 10' },
+      {
+        name: 'selectedSeries',
+        value: null,
+        on: [
+          {
+            events: { marktype: 'legend', type: 'click' },
+            update: 'datum.value === selectedSeries ? selectedSeries : datum.value',
+          },
+          {
+            events: 'click[!event.item]',
+            update: 'null',
+          },
+        ],
+      },
     ],
     scales: [
       {

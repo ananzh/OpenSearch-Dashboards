@@ -99,4 +99,4 @@ export const mapFieldTypeToVegaType = (fieldType) => {
  * @returns {string} The corresponding Vega mark type
  */
 export const mapChartTypeToVegaType = (chartType) =>
-  chartType === 'histogram' ? 'rect' : chartType;
+  chartType === 'histogram' ? 'bar' : chartType;

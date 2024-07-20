@@ -109,7 +109,7 @@ const buildMarkForVega = (chartType: VegaMarkType): VegaMark[] => {
   switch (chartType) {
     case 'line':
       return buildMarkForLine();
-    case 'rect':
+    case 'bar':
       return buildMarkForHistogram();
     case 'area':
       return buildMarkForArea();
@@ -161,7 +161,7 @@ const buildMarkForLine = (): VegaMark[] => [
  */
 const buildMarkForHistogram = (): VegaMark[] => [
   {
-    type: 'rect',
+    type: 'bar',
     from: { data: 'source' },
     encode: {
       enter: {

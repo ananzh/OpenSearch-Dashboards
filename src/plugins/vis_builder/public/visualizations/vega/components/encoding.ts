@@ -74,7 +74,7 @@ export const buildEncoding = (
  * @returns {VegaEncoding} The Vega-Lite encoding configuration.
  */
 const buildVegaLiteEncoding = (dimensions: any, formats: AxisFormats): VegaEncoding => {
-  const { xAxisFormat, xAxisLabel, yAxisFormat, yAxisLabel, zAxisFormat } = formats;
+  const { xAxisFormat, xAxisLabel, yAxisFormat, yAxisLabel } = formats;
   const encoding: VegaEncoding = {};
 
   // Handle x-axis
@@ -84,10 +84,8 @@ const buildVegaLiteEncoding = (dimensions: any, formats: AxisFormats): VegaEncod
   encoding.y = buildAxisEncoding('y', dimensions.y, yAxisFormat, yAxisLabel);
 
   // Handle color encoding for multiple y dimensions or series
-  if (dimensions.y && dimensions.y.length > 1) {
+  if (dimensions.y) {
     encoding.color = buildColorEncoding('series', 'nominal');
-  } else if (dimensions.series) {
-    encoding.color = buildColorEncoding('series', mapFieldTypeToVegaType(zAxisFormat?.id || ''));
   }
 
   // Always add opacity encoding

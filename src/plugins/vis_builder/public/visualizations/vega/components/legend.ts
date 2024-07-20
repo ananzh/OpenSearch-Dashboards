@@ -44,6 +44,37 @@ const buildVegaLegend = (legendPosition: LegendPosition): VegaLegendConfig => {
   return {
     fill: 'color',
     orient: legendPosition,
+    encode: {
+      symbols: {
+        update: {
+          fillOpacity: [
+            {
+              test: '!selectedSeries || datum.label === selectedSeries',
+              value: 1,
+            },
+            { value: 0.2 },
+          ],
+          strokeOpacity: [
+            {
+              test: '!selectedSeries || datum.label === selectedSeries',
+              value: 1,
+            },
+            { value: 0.2 },
+          ],
+        },
+      },
+      labels: {
+        update: {
+          opacity: [
+            {
+              test: '!selectedSeries || datum.label === selectedSeries',
+              value: 1,
+            },
+            { value: 0.2 },
+          ],
+        },
+      },
+    },
   };
 };
 

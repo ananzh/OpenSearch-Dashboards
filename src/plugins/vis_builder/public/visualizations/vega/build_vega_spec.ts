@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { VisualizationState, StyleState } from '../../application/utils/state_management';
+import { StyleState } from '../../application/utils/state_management';
 import { flattenDataHandler } from './utils/helpers';
 import { buildVegaSpecViaVegaLite } from './build_spec_vega_lite';
 import { buildVegaSpecViaVega } from './build_spec_vega';
@@ -13,16 +13,10 @@ import { buildVegaSpecViaVega } from './build_spec_vega';
  *
  * @param {any} context - The context data for the visualization.
  * @param {any} visConfig - The visual configuration settings.
- * @param {VisualizationState} visualization - The visualization object (not used in this function, consider removing if unnecessary).
  * @param {StyleState} style - The style configuration for the visualization.
  * @returns {any} The complete Vega or Vega-Lite specification.
  */
-export const buildVegaSpec = (
-  context: any,
-  visConfig: VisConfig,
-  visualization: any,
-  style: Style
-): any => {
+export const buildVegaSpec = (context: any, visConfig: any, style: StyleState): any => {
   const { dimensions } = visConfig;
 
   // Transform the data using the flattenDataHandler
