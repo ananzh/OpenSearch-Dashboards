@@ -4,17 +4,32 @@
  */
 
 import { mapFieldTypeToVegaType } from '../utils/helpers';
-import { AxisFormats } from '../utils/types';
+import { AxisFormat, AxisFormats } from '../utils/types';
 
-interface EncodingChannel {
-  field: string;
-  type: string;
+interface BaseEncodingChannel {
+  field?: string;
+  type?: string;
+}
+
+interface AxisEncodingChannel extends BaseEncodingChannel {
   axis?: { title: string };
+}
+
+interface ColorEncodingChannel extends BaseEncodingChannel {
   legend?: { title: string | null };
 }
 
+interface OpacityEncodingChannel extends BaseEncodingChannel {
+  condition: { selection: string; value: number };
+  value: number;
+}
+
 interface VegaEncoding {
-  [key: string]: EncodingChannel;
+  x?: AxisEncodingChannel;
+  y?: AxisEncodingChannel;
+  color?: ColorEncodingChannel;
+  opacity?: OpacityEncodingChannel;
+  [key: string]: BaseEncodingChannel | undefined;
 }
 
 interface VegaScale {
@@ -25,7 +40,7 @@ interface VegaScale {
     field: string;
     filter?: string;
   };
-  range: string;
+  range?: string;
   padding?: number;
   nice?: boolean;
   zero?: boolean;
@@ -41,11 +56,9 @@ interface VegaScale {
  */
 export const buildEncoding = (
   dimensions: any,
-  formats: any,
+  formats: AxisFormats,
   isVega: boolean = false
 ): VegaEncoding | VegaScale[] => {
-  const { xAxisFormat, xAxisLabel, yAxisFormat, yAxisLabel, zAxisFormat } = formats;
-
   if (isVega) {
     return buildVegaScales(dimensions, formats);
   }
@@ -57,10 +70,10 @@ export const buildEncoding = (
  * Builds encoding configuration for Vega-Lite specifications.
  *
  * @param {any} dimensions - The dimensions of the data.
- * @param {any} formats - The formatting information for axes.
+ * @param {AxisFormats} formats - The formatting information for axes.
  * @returns {VegaEncoding} The Vega-Lite encoding configuration.
  */
-const buildVegaLiteEncoding = (dimensions: any, formats: any): VegaEncoding => {
+const buildVegaLiteEncoding = (dimensions: any, formats: AxisFormats): VegaEncoding => {
   const { xAxisFormat, xAxisLabel, yAxisFormat, yAxisLabel, zAxisFormat } = formats;
   const encoding: VegaEncoding = {};
 
@@ -76,6 +89,12 @@ const buildVegaLiteEncoding = (dimensions: any, formats: any): VegaEncoding => {
   } else if (dimensions.series) {
     encoding.color = buildColorEncoding('series', mapFieldTypeToVegaType(zAxisFormat?.id || ''));
   }
+
+  // Always add opacity encoding
+  encoding.opacity = {
+    condition: { selection: 'legend_selection', value: 1 },
+    value: 0.2,
+  };
 
   return encoding;
 };
@@ -129,13 +148,13 @@ const buildVegaScales = (dimensions: any, formats: any): VegaScale[] => {
 const buildAxisEncoding = (
   field: string,
   dimension: any[] | undefined,
-  axisFormat: AxisFormat,
-  axisLabel: string
+  axisFormat?: AxisFormat,
+  axisLabel?: string
 ): EncodingChannel => {
   return {
     field,
-    type: dimension ? mapFieldTypeToVegaType(axisFormat.id) : 'ordinal',
-    axis: { title: axisLabel },
+    type: dimension ? mapFieldTypeToVegaType(axisFormat?.id) : 'ordinal',
+    axis: { title: axisLabel ? axisLabel : '' },
   };
 };
 

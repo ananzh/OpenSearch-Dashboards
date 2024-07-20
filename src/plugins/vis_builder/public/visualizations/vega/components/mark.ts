@@ -5,11 +5,28 @@
 
 import { mapChartTypeToVegaType } from '../utils/helpers';
 
-type VegaMarkType = 'line' | 'rect' | 'area' | 'symbol' | 'bar' | 'point' | 'circle' | 'square';
+type VegaMarkType =
+  | 'line'
+  | 'rect'
+  | 'area'
+  | 'symbol'
+  | 'bar'
+  | 'point'
+  | 'circle'
+  | 'square'
+  | 'group';
 
 interface VegaMark {
   type: VegaMarkType;
-  from?: { data: string };
+  from?: {
+    data?: string;
+    facet?: {
+      name?: string;
+      data?: string;
+      groupby?: string;
+      filter?: string;
+    };
+  };
   encode?: {
     enter?: Record<string, any>;
     update?: Record<string, any>;
@@ -66,16 +83,19 @@ export const buildMark = (
  * @returns {VegaLiteMark} The Vega-Lite mark configuration.
  */
 const buildMarkForVegaLite = (vegaType: VegaMarkType): VegaLiteMark => {
+  const baseMark = {
+    opacity: { condition: { selection: 'hover', value: 1 }, value: 0.3 },
+  };
   switch (vegaType) {
     case 'line':
-      return { type: 'line', point: true };
+      return { ...baseMark, type: 'line', point: true };
     case 'area':
-      return { type: 'area', line: true };
+      return { ...baseMark, type: 'area', line: true, opacity: 1, fillOpacity: 1 };
     case 'rect':
     case 'bar':
-      return { type: 'bar' };
+      return { ...baseMark, type: 'bar' };
     default:
-      return { type: vegaType };
+      return { ...baseMark, type: vegaType };
   }
 };
 
@@ -184,7 +204,9 @@ const buildMarkForArea = (): VegaMark[] => [
             y: { scale: 'yscale', field: 'y' },
             y2: { scale: 'yscale', value: 0 },
             fill: { scale: 'color', field: 'series' },
-            fillOpacity: { value: 0.7 },
+            fillOpacity: { value: 1 },
+            stroke: { scale: 'color', field: 'series' },
+            strokeOpacity: { value: 1 },
           },
         },
       },

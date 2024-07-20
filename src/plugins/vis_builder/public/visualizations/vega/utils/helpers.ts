@@ -15,7 +15,7 @@ import { AxisFormats } from './types';
  * @param {Array} group - The group containing axis information
  */
 const setAxisProperties = (converted: any, group: any[]): void => {
-  const axes: Array<keyof AxisFormats> = ['xAxis', 'yAxis', 'zAxis'];
+  const axes = ['xAxis', 'yAxis', 'zAxis'];
   const properties = ['Format', 'Label'];
 
   axes.forEach((axis) => {

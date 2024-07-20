@@ -43,6 +43,13 @@ export interface VegaLiteSpec {
     legend?: any;
     [key: string]: any;
   };
+  selection?: {
+    legend_selection?: {
+      type: string;
+      fields: string[];
+      bind: string;
+    };
+  };
 }
 
 // Define a more general VegaSpec interface

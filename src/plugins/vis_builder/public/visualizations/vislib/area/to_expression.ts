@@ -32,22 +32,6 @@ export const toExpression = async (
   const params = getPipelineParams();
   const dimensions = await buildVislibDimensions(vis, params);
   const valueAxes = getValueAxes(dimensions.y);
-  const seriesParams = [
-    {
-        "show": true,
-        "type": "area",
-        "mode": "stacked",
-        "data": {
-            "label": "Count",
-            "id": "1"
-        },
-        "drawLinesBetweenPoints": true,
-        "lineWidth": 2,
-        "showCircles": true,
-        "interpolate": "linear",
-        "valueAxis": "ValueAxis-1"
-    }
-]
 
   // TODO: what do we want to put in this "vis config"?
   const visConfig = {
@@ -57,10 +41,7 @@ export const toExpression = async (
     addTooltip,
     dimensions,
     valueAxes,
-    seriesParams
   };
-
- 
 
   if (useVega === true) {
     const rawDataFn = buildExpressionFunction('rawData', {});
