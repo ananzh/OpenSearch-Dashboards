@@ -89,10 +89,10 @@ const buildVegaLiteEncoding = (dimensions: any, formats: AxisFormats): VegaEncod
   }
 
   // Always add opacity encoding
-  encoding.opacity = {
-    condition: { selection: 'legend_selection', value: 1 },
-    value: 0.2,
-  };
+  // encoding.opacity = {
+  //   condition: { selection: 'legend_selection', value: 1 },
+  //   value: 0.2,
+  // };
 
   return encoding;
 };

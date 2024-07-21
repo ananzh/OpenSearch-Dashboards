@@ -83,19 +83,16 @@ export const buildMark = (
  * @returns {VegaLiteMark} The Vega-Lite mark configuration.
  */
 const buildMarkForVegaLite = (vegaType: VegaMarkType): VegaLiteMark => {
-  const baseMark = {
-    opacity: { condition: { selection: 'hover', value: 1 }, value: 0.3 },
-  };
   switch (vegaType) {
     case 'line':
-      return { ...baseMark, type: 'line', point: true };
+      return { type: 'line', point: true };
     case 'area':
-      return { ...baseMark, type: 'area', line: true, opacity: 1, fillOpacity: 1 };
+      return { type: 'area', line: true, opacity: 1, fillOpacity: 1 };
     case 'rect':
     case 'bar':
-      return { ...baseMark, type: 'bar' };
+      return { type: 'bar' };
     default:
-      return { ...baseMark, type: vegaType };
+      return { type: vegaType };
   }
 };
 

@@ -49,7 +49,7 @@ export const buildVegaSpecViaVegaLite = (
     data: { values: transformedData },
     mark: buildMark(type),
     encoding: buildEncoding(dimensions, formats),
-    selection: buildSelection(),
+    //selection: buildSelection(),
   };
 
   // Handle special case for line charts with dot size
