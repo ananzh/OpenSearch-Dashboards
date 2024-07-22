@@ -63,7 +63,7 @@ export const buildVegaSpecViaVega = (data: any, visConfig: any, style: StyleStat
       {
         name: 'splitScale',
         type: 'band',
-        domain: { data: 'splits', field: 'split' },
+        domain: { data: type === 'area' ? 'stacked' : 'splits', field: 'split' },
         range: 'width',
         padding: 0.1,
       },
@@ -78,15 +78,32 @@ export const buildVegaSpecViaVega = (data: any, visConfig: any, style: StyleStat
       columns: { signal: 'splitCount' },
       padding: { row: 40, column: 20 },
     },
-    marks: [buildMark(type, true, dimensions, formats)],
+    marks: [buildMark(type, true, dimensions)],
   };
 
+  // Special case 1: Handle dot aggregation for line chart
   if (dimensions.z) {
     spec.scales!.push({
       name: 'size',
       type: 'sqrt',
       domain: { data: 'source', field: 'z' },
       range: [{ signal: '2' }, { signal: 'width * height / 500' }],
+    });
+  }
+
+  // Special case 2: Add stack transform for area charts
+  if (type === 'area') {
+    spec.data.push({
+      name: 'stacked',
+      source: 'source',
+      transform: [
+        {
+          type: 'stack',
+          groupby: ['split', 'x'],
+          sort: { field: 'series' },
+          field: 'y',
+        },
+      ],
     });
   }
 

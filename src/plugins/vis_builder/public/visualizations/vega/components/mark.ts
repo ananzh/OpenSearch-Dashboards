@@ -4,7 +4,6 @@
  */
 
 import { mapChartTypeToVegaType } from '../utils/helpers';
-import { AxisFormats } from '../utils/types';
 
 type VegaMarkType =
   | 'line'
@@ -63,19 +62,17 @@ type VegaLiteMark = BaseVegaLiteMark | LineVegaLiteMark | AreaVegaLiteMark | Bar
  * @param {string} chartType - The type of chart to build the mark for.
  * @param {boolean} isVega - Whether to build for Vega (true) or Vega-Lite (false).
  * @param {any} dimensions - The dimensions of the data.
- * @param {AxisFormats} formats - The formatting information for axes.
  * @returns {VegaMark[] | VegaLiteMark} The mark configuration.
  */
 export const buildMark = (
   chartType: string,
   isVega: boolean = false,
-  dimensions?: any,
-  formats?: AxisFormats
+  dimensions?: any
 ): VegaMark[] | VegaLiteMark => {
   const vegaType = mapChartTypeToVegaType(chartType) as VegaMarkType;
 
   if (isVega) {
-    return buildMarkForVega(vegaType, dimensions, formats);
+    return buildMarkForVega(vegaType, dimensions);
   }
 
   return buildMarkForVegaLite(vegaType);
@@ -92,7 +89,7 @@ const buildMarkForVegaLite = (vegaType: VegaMarkType): VegaLiteMark => {
     case 'line':
       return { type: 'line', point: true };
     case 'area':
-      return { type: 'area', line: true, opacity: 1, fillOpacity: 1 };
+      return { type: 'area', line: true, point: true, opacity: 1, fillOpacity: 1, baseline: 0 };
     case 'rect':
     case 'bar':
       return { type: 'bar' };
@@ -109,17 +106,13 @@ const buildMarkForVegaLite = (vegaType: VegaMarkType): VegaLiteMark => {
  * @param {AxisFormats} formats - The formatting information for axes.
  * @returns {VegaMark} An array of mark configurations.
  */
-const buildMarkForVega = (
-  chartType: VegaMarkType,
-  dimensions: any,
-  formats: AxisFormats
-): VegaMark => {
+const buildMarkForVega = (chartType: VegaMarkType, dimensions: any): VegaMark => {
   const baseMark: VegaMark = {
     type: 'group',
     from: {
       facet: {
         name: 'split_data',
-        data: 'source',
+        data: chartType === 'area' ? 'stacked' : 'split_data',
         groupby: 'split',
       },
     },
@@ -167,7 +160,7 @@ const buildMarkForVega = (
             groupby: 'series',
           },
         },
-        marks: buildChartTypeMarksForVega(chartType, dimensions, formats),
+        marks: buildChartTypeMarksForVega(chartType, dimensions),
       },
     ],
   };
@@ -181,7 +174,7 @@ const buildXScale = (chartType: VegaMarkType) => {
       return {
         name: 'x',
         type: 'band',
-        domain: { data: 'source', field: 'x' },
+        domain: { data: 'split_data', field: 'x' },
         range: 'width',
         padding: 0.1,
       };
@@ -191,7 +184,7 @@ const buildXScale = (chartType: VegaMarkType) => {
       return {
         name: 'x',
         type: 'point',
-        domain: { data: 'source', field: 'x' },
+        domain: { data: 'split_data', field: 'x' },
         range: 'width',
         padding: 0.5,
       };
@@ -202,7 +195,7 @@ const buildYScale = (chartType: VegaMarkType) => {
   return {
     name: 'y',
     type: 'linear',
-    domain: { data: 'source', field: 'y' },
+    domain: { data: 'split_data', field: chartType === 'area' ? 'y1' : 'y' },
     range: 'height',
     nice: true,
     zero: true,
@@ -217,20 +210,16 @@ const buildYScale = (chartType: VegaMarkType) => {
  * @param {AxisFormats} formats - The formatting information for axes.
  * @returns {VegaMark[]} An array of mark configurations.
  */
-const buildChartTypeMarksForVega = (
-  chartType: VegaMarkType,
-  dimensions: any,
-  formats: AxisFormats
-): VegaMark[] => {
+const buildChartTypeMarksForVega = (chartType: VegaMarkType, dimensions: any): VegaMark[] => {
   switch (chartType) {
     case 'line':
-      return buildMarkForLine(dimensions, formats);
+      return buildMarkForLine(dimensions);
     case 'bar':
-      return buildMarkForBar(dimensions, formats);
+      return buildMarkForBar();
     case 'area':
-      return buildMarkForArea(dimensions, formats);
+      return buildMarkForArea();
     default:
-      return buildMarkForLine(dimensions, formats);
+      return buildMarkForLine(dimensions);
   }
 };
 
@@ -238,10 +227,9 @@ const buildChartTypeMarksForVega = (
  * Builds a mark configuration for a line chart in Vega.
  *
  * @param {any} dimensions - The dimensions of the data.
- * @param {AxisFormats} formats - The formatting information for axes.
  * @returns {VegaMark[]} An array of mark configurations for line and point marks.
  */
-const buildMarkForLine = (dimensions: any, formats: AxisFormats): VegaMark[] => {
+const buildMarkForLine = (dimensions: any): VegaMark[] => {
   const marks: VegaMark[] = [
     {
       type: 'line',
@@ -276,7 +264,7 @@ const buildMarkForLine = (dimensions: any, formats: AxisFormats): VegaMark[] => 
  *
  * @returns {VegaMark[]} An array with a single mark configuration for rect marks.
  */
-const buildMarkForBar = (dimensions: any, formats: AxisFormats): VegaMark[] => {
+const buildMarkForBar = (): VegaMark[] => {
   return [
     {
       type: 'rect',
@@ -299,7 +287,7 @@ const buildMarkForBar = (dimensions: any, formats: AxisFormats): VegaMark[] => {
  *
  * @returns {VegaMark[]} An array with a single mark configuration for grouped area marks.
  */
-const buildMarkForArea = (dimensions: any, formats: AxisFormats): VegaMark[] => {
+const buildMarkForArea = (): VegaMark[] => {
   return [
     {
       type: 'area',
@@ -307,39 +295,14 @@ const buildMarkForArea = (dimensions: any, formats: AxisFormats): VegaMark[] => 
       encode: {
         enter: {
           x: { scale: 'x', field: 'x' },
-          y: { scale: 'y', field: 'y' },
-          y2: { scale: 'y', value: 0 },
+          y: { scale: 'y', field: 'y0' },
+          y2: { scale: 'y', field: 'y1' },
           fill: { scale: 'color', field: 'series' },
           fillOpacity: { value: 1 },
           stroke: { scale: 'color', field: 'series' },
-          strokeOpacity: { value: 1 },
+          strokeWidth: { value: 1 },
         },
       },
     },
   ];
 };
-// const buildMarkForArea = (dimensions: any, formats: AxisFormats): VegaMark[] => {
-//   return [
-//     {
-//       type: 'group',
-//       from: { data: 'series_data' },
-//       marks: [
-//         {
-//           type: 'area',
-//           from: { data: 'series_data' },
-//           encode: {
-//             enter: {
-//               x: { scale: 'x', field: 'x' },
-//               y: { scale: 'y', field: 'y0' },
-//               y2: { scale: 'y', field: 'y1' },
-//               fill: { scale: 'color', field: 'series' },
-//               fillOpacity: { value: 0.7 },
-//               stroke: { scale: 'color', field: 'series' },
-//               strokeWidth: { value: 1 },
-//             },
-//           },
-//         }
-//       ]
-//     }
-//   ];
-// };

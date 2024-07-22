@@ -7,7 +7,6 @@ import { buildEncoding } from './components/encoding';
 import { buildMark } from './components/mark';
 import { buildTooltip } from './components/tooltip';
 import { buildLegend } from './components/legend';
-import { buildSelection } from './components/selection';
 import { StyleState } from '../../application/utils/state_management';
 import { VegaLiteSpec, AxisFormats } from './utils/types';
 
@@ -49,7 +48,6 @@ export const buildVegaSpecViaVegaLite = (
     data: { values: transformedData },
     mark: buildMark(type),
     encoding: buildEncoding(dimensions, formats),
-    //selection: buildSelection(),
   };
 
   // Handle special case for line charts with dot size
