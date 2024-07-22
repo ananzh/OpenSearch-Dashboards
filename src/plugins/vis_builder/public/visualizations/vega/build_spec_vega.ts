@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { buildEncoding } from './components/encoding';
 import { buildMark } from './components/mark';
 import { buildLegend } from './components/legend';
 import { VegaSpec, AxisFormats } from './utils/types';
@@ -59,20 +58,6 @@ export const buildVegaSpecViaVega = (data: any, visConfig: any, style: StyleStat
     signals: [
       { name: 'splitCount', update: 'length(data("splits"))' },
       { name: 'chartWidth', update: 'width / splitCount - 10' },
-      {
-        name: 'selectedSeries',
-        value: null,
-        on: [
-          {
-            events: { marktype: 'legend', type: 'click' },
-            update: 'datum.value === selectedSeries ? selectedSeries : datum.value',
-          },
-          {
-            events: 'click[!event.item]',
-            update: 'null',
-          },
-        ],
-      },
     ],
     scales: [
       {
@@ -93,43 +78,17 @@ export const buildVegaSpecViaVega = (data: any, visConfig: any, style: StyleStat
       columns: { signal: 'splitCount' },
       padding: { row: 40, column: 20 },
     },
-    marks: [
-      {
-        type: 'group',
-        from: { data: 'splits' },
-        encode: {
-          enter: {
-            width: { signal: 'chartWidth' },
-            height: { signal: 'height' },
-            stroke: { value: '#ccc' },
-            strokeWidth: { value: 1 },
-          },
-        },
-        signals: [{ name: 'width', update: 'chartWidth' }],
-        scales: buildEncoding(dimensions, formats, true),
-        axes: [
-          {
-            orient: 'bottom',
-            scale: 'xscale',
-            zindex: 1,
-            labelAngle: -90,
-            labelAlign: 'right',
-            labelBaseline: 'middle',
-          },
-          { orient: 'left', scale: 'yscale', zindex: 1 },
-        ],
-        title: {
-          text: { signal: 'parent.split' },
-          anchor: 'middle',
-          offset: 10,
-          limit: { signal: 'chartWidth' },
-          wrap: true,
-          align: 'center',
-        },
-        marks: buildMark(type, true),
-      },
-    ],
+    marks: [buildMark(type, true, dimensions, formats)],
   };
+
+  if (dimensions.z) {
+    spec.scales!.push({
+      name: 'size',
+      type: 'sqrt',
+      domain: { data: 'source', field: 'z' },
+      range: [{ signal: '2' }, { signal: 'width * height / 500' }],
+    });
+  }
 
   // Add legend if specified
   if (addLegend) {
