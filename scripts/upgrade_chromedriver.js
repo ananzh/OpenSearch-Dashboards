@@ -68,7 +68,9 @@ versionCheckCommands.some((cmd) => {
 });
 
 // Versions 90+
-const majorVersion = versionCheckOutput?.match?.(/(?:^|\s)(9\d|\d{3})\./)?.[1];
+// const majorVersion = versionCheckOutput?.match?.(/(?:^|\s)(9\d|\d{3})\./)?.[1];
+// Adjusted to capture versions 88+
+const majorVersion = versionCheckOutput?.match?.(/(?:^|\s)(\d{2,3})\./)?.[1];
 
 if (majorVersion) {
   if (process.argv.includes('--install')) {
