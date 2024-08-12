@@ -57,6 +57,7 @@ export const EditActionDropdown: React.FC<EditActionDropdownProps> = ({
             closePopover();
             editItem?.(item);
           },
+          'data-test-subj': 'dashboardEditDashboard',
         },
         ...(isVisBuilderCompatible
           ? [
@@ -69,6 +70,7 @@ export const EditActionDropdown: React.FC<EditActionDropdownProps> = ({
                   closePopover();
                   visbuilderEditItem?.(item);
                 },
+                'data-test-subj': 'dashboardImportToVisBuilder',
               },
             ]
           : []),
@@ -78,7 +80,7 @@ export const EditActionDropdown: React.FC<EditActionDropdownProps> = ({
 
   return (
     <EuiPopover
-      button={<EuiIcon type="pencil" onClick={onButtonClick} />}
+      button={<EuiIcon type="pencil" onClick={onButtonClick} data-test-subj="dashboardEditBtn" />}
       isOpen={isPopoverOpen}
       closePopover={closePopover}
       panelPaddingSize="none"
