@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EuiContextMenu, EuiIcon, EuiPopover } from '@elastic/eui';
+import { EuiContextMenu, EuiIcon, EuiPopover, EuiText, EuiConfirmModal } from '@elastic/eui';
 import React, { useState } from 'react';
 import { i18n } from '@osd/i18n';
+import { useOpenSearchDashboards } from '../context';
 
 // TODO: include more types once VisBuilder supports more visualization types
 const types = ['Area', 'Vertical Bar', 'Line', 'Metric', 'Table'];
@@ -14,6 +15,7 @@ export interface VisualizationItem {
   typeTitle: string;
   id?: string;
   version?: number;
+  overlays? :any
 }
 
 interface EditActionDropdownProps {
@@ -27,6 +29,7 @@ export const EditActionDropdown: React.FC<EditActionDropdownProps> = ({
   editItem,
   visbuilderEditItem,
 }) => {
+  const { overlays } = useOpenSearchDashboards();
   const [isPopoverOpen, setPopoverOpen] = useState(false);
 
   const onButtonClick = () => {
@@ -43,6 +46,31 @@ export const EditActionDropdown: React.FC<EditActionDropdownProps> = ({
   const itemVersion = item.version;
   const isVisBuilderCompatible =
     types.includes(typeName) && itemVersion !== undefined && itemVersion <= 1;
+
+    const handleImportToVisBuilder = () => {
+      closePopover(); // Close the popover first
+  
+      const modal = overlays.openModal(
+        <EuiConfirmModal
+          title="Partial import"
+          onCancel={() => modal.close()}
+          onConfirm={async () => {
+            modal.close();
+            // Call visbuilderEditItem with the item
+            if (visbuilderEditItem) {
+              await visbuilderEditItem(item);
+            }
+          }}
+          cancelButtonText="Cancel"
+          confirmButtonText="Import"
+        >
+          <EuiText>
+            <p>The following settings are incompatible and will not be imported:</p>
+            <p>Comma, separated, list</p>
+          </EuiText>
+        </EuiConfirmModal>
+      );
+    }; 
 
   const panels = [
     {
@@ -65,10 +93,7 @@ export const EditActionDropdown: React.FC<EditActionDropdownProps> = ({
                   defaultMessage: 'Import to VisBuilder',
                 }),
                 icon: 'importAction',
-                onClick: () => {
-                  closePopover();
-                  visbuilderEditItem?.(item);
-                },
+                onClick: handleImportToVisBuilder,
               },
             ]
           : []),
