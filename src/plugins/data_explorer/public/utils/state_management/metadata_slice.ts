@@ -11,6 +11,7 @@ export interface MetadataState {
   indexPattern?: string;
   originatingApp?: string;
   view?: string;
+  selectedDataset?: any;
 }
 
 const initialState: MetadataState = {};
@@ -26,13 +27,16 @@ export const getPreloadedState = async ({
       .getStateTransfer(scopedHistory)
       .getIncomingEditorState({ keysToRemoveAfterFetch: ['id', 'input'] }) || {};
   const isQueryEnhancementEnabled = uiSettings.get(QUERY_ENHANCEMENT_ENABLED_SETTING);
-  const defaultIndexPattern = isQueryEnhancementEnabled
-    ? undefined
-    : await data.indexPatterns.getDefault();
+  const defaultIndexPattern = await data.indexPatterns.getDefault();
+  const selectedDataset =
+    data.query.queryString.getQuery().dataset ||
+    data.query.queryString.getDefaultQuery().dataset ||
+    undefined;
   const preloadedState: MetadataState = {
     ...initialState,
     originatingApp,
     indexPattern: defaultIndexPattern?.id,
+    selectedDataset,
   };
 
   return preloadedState;
@@ -51,6 +55,9 @@ export const slice = createSlice({
     setView: (state, action: PayloadAction<string>) => {
       state.view = action.payload;
     },
+    setSelectedDataset: (state, action: PayloadAction<any>) => {
+      state.selectedDataset = action.payload;
+    },
     setState: (_state, action: PayloadAction<MetadataState>) => {
       return action.payload;
     },
@@ -58,4 +65,10 @@ export const slice = createSlice({
 });
 
 export const { reducer } = slice;
-export const { setIndexPattern, setOriginatingApp, setView, setState } = slice.actions;
+export const {
+  setIndexPattern,
+  setOriginatingApp,
+  setView,
+  setState,
+  setSelectedDataset,
+} = slice.actions;

@@ -15,16 +15,23 @@ import {
 import { DataSourceOption, DatasetSelector } from '../../../../data/public/';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { DataExplorerServices } from '../../types';
-import { setIndexPattern, useTypedDispatch, useTypedSelector } from '../../utils/state_management';
+import {
+  setIndexPattern,
+  useTypedDispatch,
+  useTypedSelector,
+  setSelectedDataset,
+} from '../../utils/state_management';
 import './index.scss';
 
 export const Sidebar: FC = ({ children }) => {
-  const { indexPattern: indexPatternId } = useTypedSelector((state) => state.metadata);
+  const { indexPattern: indexPatternId, selectedDataset } = useTypedSelector(
+    (state) => state.metadata
+  );
   const dispatch = useTypedDispatch();
   const [selectedSources, setSelectedSources] = useState<DataSourceOption[]>([]);
   const [dataSourceOptionList, setDataSourceOptionList] = useState<DataSourceGroup[]>([]);
   const [activeDataSources, setActiveDataSources] = useState<DataSource[]>([]);
-
+  const { services } = useOpenSearchDashboards<DataExplorerServices>();
   const {
     services: {
       data: { indexPatterns, dataSources },
@@ -139,7 +146,14 @@ export const Sidebar: FC = ({ children }) => {
           className="deSidebar_dataSource"
         >
           {isEnhancementEnabled ? (
-            <DatasetSelector onSubmit={handleDatasetSubmit} />
+            <DatasetSelector
+              onSubmit={handleDatasetSubmit}
+              selectedDataset={selectedDataset}
+              setSelectedDataset={setSelectedDataset}
+              setIndexPattern={setIndexPattern}
+              dispatch={dispatch}
+              services={services}
+            />
           ) : (
             <DataSourceSelectable
               dataSources={activeDataSources}

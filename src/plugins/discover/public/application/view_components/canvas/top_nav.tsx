@@ -22,6 +22,7 @@ import { getTopNavLinks } from '../../components/top_nav/get_top_nav_links';
 import { getRootBreadcrumbs } from '../../helpers/breadcrumbs';
 import { useDiscoverContext } from '../context';
 import { useDispatch, setSavedQuery, useSelector } from '../../utils/state_management';
+import { setIndexPattern } from '../../../../../data_explorer/public';
 
 import './discover_canvas.scss';
 import { TopNavMenuItemRenderType } from '../../../../../navigation/public';
@@ -88,7 +89,7 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
   useEffect(() => {
     let isMounted = true;
     const initializeDataset = async () => {
-      await data.indexPatterns.ensureDefaultIndexPattern();
+      await data.indexPatterns.ensureDefaultIndexPattern(isEnhancementsEnabled ? false : true);
       const defaultIndexPattern = await data.indexPatterns.getDefault();
       // TODO: ROCKY do we need this?
       // const queryString = data.query.queryString;
@@ -107,7 +108,7 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
     return () => {
       isMounted = false;
     };
-  }, [data.indexPatterns, data.query]);
+  }, [data.indexPatterns, data.query, isEnhancementsEnabled]);
 
   useEffect(() => {
     const pageTitleSuffix = savedSearch?.id && savedSearch.title ? `: ${savedSearch.title}` : '';
