@@ -48,7 +48,7 @@ export class QueryEnhancementsPlugin
 
   public setup(
     core: CoreSetup<QueryEnhancementsPluginStartDependencies>,
-    { data, usageCollection }: QueryEnhancementsPluginSetupDependencies
+    { data, metricsRecorder }: QueryEnhancementsPluginSetupDependencies
   ): QueryEnhancementsPluginSetup {
     const { queryString } = data.query;
 
@@ -209,7 +209,7 @@ export class QueryEnhancementsPlugin
           this.isQuerySummaryCollapsed$,
           this.isSummaryAgentAvailable$,
           this.resultSummaryEnabled$,
-          usageCollection
+          metricsRecorder
         ),
       },
     });

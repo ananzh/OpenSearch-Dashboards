@@ -23,9 +23,9 @@ import { filter, distinctUntilChanged } from 'rxjs/operators';
 import { HttpSetup } from 'opensearch-dashboards/public';
 import { QueryAssistState, useQueryAssist } from '../hooks';
 import { DataPublicPluginSetup, QueryEditorExtensionDependencies } from '../../../../data/public';
-import { UsageCollectionSetup } from '../../../../usage_collection/public';
 import { CoreSetup } from '../../../../../core/public';
 import { FeedbackStatus } from '../../../common/query_assist';
+import { MetricsRecorderSetup } from '../../../../metrics_recorder/public';
 
 export interface QueryContext {
   question: string;
@@ -36,7 +36,7 @@ export interface QueryContext {
 interface QueryAssistSummaryProps {
   data: DataPublicPluginSetup;
   http: HttpSetup;
-  usageCollection?: UsageCollectionSetup;
+  metricsRecorder?: MetricsRecorderSetup
   dependencies: QueryEditorExtensionDependencies;
   core: CoreSetup;
   brandingLabel?: string;
@@ -117,29 +117,28 @@ export const QueryAssistSummary: React.FC<QueryAssistSummaryProps> = (props) => 
 
   const reportMetric = useCallback(
     (metric: string) => {
-      if (props.usageCollection) {
-        props.usageCollection.reportUiStats(
+      if (props.metricsRecorder) {
+        props.metricsRecorder.recordCount(
           METRIC_APP,
-          props.usageCollection.METRIC_TYPE.CLICK,
-          metric + '-' + uuidv4()
+          metric + '-' + uuidv4(),
+          1
         );
       }
     },
-    [props.usageCollection, METRIC_APP]
+    [props.metricsRecorder, METRIC_APP]
   );
 
   const reportCountMetric = useCallback(
     (metric: string, count: number) => {
-      if (props.usageCollection) {
-        props.usageCollection.reportUiStats(
+      if (props.metricsRecorder) {
+        props.metricsRecorder.recordCount(
           METRIC_APP,
-          props.usageCollection.METRIC_TYPE.COUNT,
           metric + '-' + uuidv4(),
           count
         );
       }
     },
-    [props.usageCollection, METRIC_APP]
+    [props.metricsRecorder, METRIC_APP]
   );
 
   useEffect(() => {

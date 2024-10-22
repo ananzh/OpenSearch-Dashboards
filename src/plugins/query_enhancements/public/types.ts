@@ -8,7 +8,7 @@ import { DataSourcePluginStart } from 'src/plugins/data_source/public';
 import { UiActionsStart } from 'src/plugins/ui_actions/public';
 import { BehaviorSubject } from 'rxjs';
 import { DataPublicPluginSetup, DataPublicPluginStart } from '../../data/public';
-import { UsageCollectionSetup } from '../../usage_collection/public';
+import { MetricsRecorderSetup } from '../../metrics_recorder/public';
 
 export interface QueryEnhancementsPluginSetup {
   isQuerySummaryCollapsed$: BehaviorSubject<boolean>;
@@ -21,7 +21,7 @@ export interface QueryEnhancementsPluginStart {}
 
 export interface QueryEnhancementsPluginSetupDependencies {
   data: DataPublicPluginSetup;
-  usageCollection?: UsageCollectionSetup;
+  metricsRecorder?: MetricsRecorderSetup;
 }
 
 export interface QueryEnhancementsPluginStartDependencies {

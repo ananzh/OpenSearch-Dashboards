@@ -19,7 +19,7 @@ import { API } from '../../../common';
 import { ConfigSchema } from '../../../common/config';
 import assistantMark from '../../assets/sparkle_mark.svg';
 import { QueryAssistBanner, QueryAssistBar, QueryAssistSummary } from '../components';
-import { UsageCollectionSetup } from '../../../../usage_collection/public';
+import { MetricsRecorderSetup } from '../../../../metrics_recorder/public';
 import { QueryAssistContext, QueryAssistState } from '../hooks/use_query_assist';
 import { CoreSetup } from '../../../../../core/public';
 import { isPPLSupportedType } from './language_support';
@@ -97,7 +97,7 @@ export const createQueryAssistExtension = (
   isQuerySummaryCollapsed$: BehaviorSubject<boolean>,
   isSummaryAgentAvailable$: BehaviorSubject<boolean>,
   resultSummaryEnabled$: BehaviorSubject<boolean>,
-  usageCollection?: UsageCollectionSetup
+  metricsRecorderSetup?: MetricsRecorderSetup
 ): QueryEditorExtensionConfig => {
   const http: HttpSetup = core.http;
   const assistQueryState$ = new BehaviorSubject<QueryAssistState>({
@@ -168,7 +168,7 @@ export const createQueryAssistExtension = (
             <QueryAssistSummary
               data={data}
               http={http}
-              usageCollection={usageCollection}
+              metricsRecorder={metricsRecorderSetup}
               dependencies={dependencies}
               core={core}
               brandingLabel={config.summary.branding.label}

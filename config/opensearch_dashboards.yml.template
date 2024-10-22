@@ -415,7 +415,7 @@ queryEnhancements.queryAssist.summary.branding.label: 'Amazon Q'
 assistant.subscription.enabled: ${SUBSCRIPTION_ENABLED}
 
 # Setting this value to enable metrics recorder plugin to publish metrics to CloudWatch
-# metricsRecorder.record.enabled: ${METRICS_REPORTING_ENABLED}
+metricsRecorder.record.enabled: ${METRICS_REPORTING_ENABLED}
 
 # Setting this value does not disable dynamic config service but its client will always return static yaml configs
 dynamic_config_service.enabled: true
