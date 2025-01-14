@@ -35,8 +35,12 @@ export const updateDashboardAdminStateForRequest = (
   configGroups: string[],
   configUsers: string[]
 ) => {
-  // If the security plugin is not installed, login defaults to OSD Admin
-  if (!groups.length && !users.length) {
+  // If security plugin is not installed or groups/users are not configured, or request is from control plane,
+  // login defaults to OSD Admin.
+  if (
+    (!groups.length && !users.length) ||
+    (process.env.CONTROL_PLANE_SPN && groups.includes(process.env.CONTROL_PLANE_SPN))
+  ) {
     return updateWorkspaceState(request, { isDashboardAdmin: true });
   }
   // If user config contains wildcard characters '*', login defaults to OSD Admin

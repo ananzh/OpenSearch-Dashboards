@@ -17,6 +17,8 @@ import { SavedObjectsPermissionControl } from './permission_control/client';
 import { DataSourcePluginSetup } from '../../data_source/server';
 import { DataSourceError } from '../../data_source/common/data_sources';
 
+const CONTROL_PLANE_SPN = 'cp_spn';
+
 describe('Workspace server plugin', () => {
   const mockDataSourcePluginSetup: DataSourcePluginSetup = {
     createDataSourceError(err: any): DataSourceError {
@@ -202,6 +204,29 @@ describe('Workspace server plugin', () => {
         isDashboardAdmin: false,
       });
       expect(toolKitMock.next).toBeCalledTimes(1);
+    });
+
+    it('with control plane is dashboard admin', async () => {
+      process.env.CONTROL_PLANE_SPN = CONTROL_PLANE_SPN;
+      jest
+        .spyOn(serverUtils, 'getPrincipalsFromRequest')
+        .mockImplementation(() => ({ groups: [CONTROL_PLANE_SPN] }));
+
+      await workspacePlugin.setup(setupMock, mockDeps);
+      const toolKitMock = httpServerMock.createToolkit();
+
+      await registerOnPostAuthFn(
+        requestWithWorkspaceInUrl,
+        httpServerMock.createResponseFactory(),
+        toolKitMock
+      );
+
+      expect(getWorkspaceState(requestWithWorkspaceInUrl)).toEqual({
+        isDashboardAdmin: true,
+      });
+      expect(toolKitMock.next).toBeCalledTimes(1);
+
+      delete process.env.CONTROL_PLANE_SPN;
     });
 
     it('with configuring wildcard * and anyone will be OSD admin', async () => {

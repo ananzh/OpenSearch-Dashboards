@@ -19,6 +19,8 @@ import { getWorkspaceState } from '../../../core/server/utils';
 import { DEFAULT_DATA_SOURCE_UI_SETTINGS_ID } from '../../data_source_management/common';
 import { OSD_ADMIN_WILDCARD_MATCH_ALL } from '../common/constants';
 
+const CONTROL_PLANE_SPN = 'cp_spn';
+
 describe('workspace utils', () => {
   it('should generate id with the specified size', () => {
     expect(generateRandomId(6)).toHaveLength(6);
@@ -91,6 +93,18 @@ describe('workspace utils', () => {
     const configUsers: string[] = [OSD_ADMIN_WILDCARD_MATCH_ALL];
     updateDashboardAdminStateForRequest(mockRequest, groups, users, configGroups, configUsers);
     expect(getWorkspaceState(mockRequest)?.isDashboardAdmin).toBe(true);
+  });
+
+  it('should be dashboard admin when request comes from control plane', () => {
+    process.env.CONTROL_PLANE_SPN = CONTROL_PLANE_SPN;
+    const mockRequest = httpServerMock.createOpenSearchDashboardsRequest();
+    const groups: string[] = [CONTROL_PLANE_SPN];
+    const users: string[] = [];
+    const configGroups: string[] = ['group1'];
+    const configUsers: string[] = ['user1'];
+    updateDashboardAdminStateForRequest(mockRequest, groups, users, configGroups, configUsers);
+    expect(getWorkspaceState(mockRequest)?.isDashboardAdmin).toBe(true);
+    delete process.env.CONTROL_PLANE_SPN;
   });
 
   it('should transfer current user placeholder in permissions', () => {
