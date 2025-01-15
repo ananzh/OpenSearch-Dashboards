@@ -509,6 +509,12 @@ export class WorkspaceSavedObjectsClientWrapper {
         return await wrapperOptions.client.find<T>(options);
       }
       const principals = this.permissionControl.getPrincipalsFromRequest(wrapperOptions.request);
+
+      // Filter the principals.groups array to include only IAM roles arn (arn:aws:iam::123456:role/Admin).
+      // Other types of IDC groups ID (48b18350-f0c1-7058-e9da-bee2042d677d) and IAM user groups arn (arn:aws:iam::123456:group/test) will be filtered.
+      // TODO: When support for IDC groups or IAM user groups is added, need to modify this logic.
+      const iamRolesARNPattern = /^arn:aws:iam::\d+:role\/.+$/;
+      principals.groups = principals.groups?.filter((group) => iamRolesARNPattern.test(group));
       const permittedWorkspaceIds = (
         await this.getWorkspaceTypeEnabledClient(wrapperOptions.request).find({
           type: WORKSPACE_TYPE,

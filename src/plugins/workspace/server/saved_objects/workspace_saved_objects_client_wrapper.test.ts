@@ -28,7 +28,7 @@ const DASHBOARD_ADMIN = 'dashboard_admin';
 const NO_DASHBOARD_ADMIN = 'no_dashboard_admin';
 const DATASOURCE_ADMIN = 'dataSource_admin';
 
-const generateWorkspaceSavedObjectsClientWrapper = (role = NO_DASHBOARD_ADMIN) => {
+const generateWorkspaceSavedObjectsClientWrapper = (role = NO_DASHBOARD_ADMIN, isFind = false) => {
   const savedObjectsStore: SavedObject[] = [
     {
       type: 'dashboard',
@@ -207,7 +207,19 @@ const generateWorkspaceSavedObjectsClientWrapper = (role = NO_DASHBOARD_ADMIN) =
     validateSavedObjectsACL: jest.fn(),
     batchValidate: jest.fn(),
     getPrincipalsFromRequest: jest.fn().mockImplementation(() => {
-      return { users: ['user-1'] };
+      return {
+        users: ['user-1'],
+        ...(isFind && {
+          groups: [
+            'idc_group1',
+            'AGPAY7DXUEIISE3PXDGVD',
+            'arn:aws:iam::123456:role/Admin',
+            'arn:aws:iam::123456:group/opensearch',
+            'arn:aws:iam::123456:role/',
+            'arn:aws:iam::123456:role',
+          ],
+        }),
+      };
     }),
     addToCacheAllowlist: jest.fn(),
     clearSavedObjectsCache: jest.fn(),
@@ -733,7 +745,10 @@ describe('WorkspaceSavedObjectsClientWrapper', () => {
     });
     describe('find', () => {
       it('should call client.find with consistent params when ACLSearchParams and workspaceOperator not provided', async () => {
-        const { wrapper, clientMock } = generateWorkspaceSavedObjectsClientWrapper();
+        const { wrapper, clientMock } = generateWorkspaceSavedObjectsClientWrapper(
+          NO_DASHBOARD_ADMIN,
+          true
+        );
         await wrapper.find({
           type: 'workspace',
         });
@@ -742,6 +757,7 @@ describe('WorkspaceSavedObjectsClientWrapper', () => {
           ACLSearchParams: {
             principals: {
               users: ['user-1'],
+              groups: ['arn:aws:iam::123456:role/Admin'],
             },
             permissionModes: ['read', 'write'],
           },
@@ -750,7 +766,10 @@ describe('WorkspaceSavedObjectsClientWrapper', () => {
         });
       });
       it('should call client.find with ACLSearchParams when only ACLSearchParams provided', async () => {
-        const { wrapper, clientMock } = generateWorkspaceSavedObjectsClientWrapper();
+        const { wrapper, clientMock } = generateWorkspaceSavedObjectsClientWrapper(
+          NO_DASHBOARD_ADMIN,
+          true
+        );
         await wrapper.find({
           type: 'workspace',
           ACLSearchParams: {
@@ -762,6 +781,7 @@ describe('WorkspaceSavedObjectsClientWrapper', () => {
           ACLSearchParams: {
             principals: {
               users: ['user-1'],
+              groups: ['arn:aws:iam::123456:role/Admin'],
             },
             permissionModes: ['read'],
           },
