@@ -383,16 +383,16 @@ data_source_management.dataSourceAdmin.groups: ["${CONTROL_PLANE_SPN}"]
 
 # Set the value of this setting to true to turn on dashboard assistant
 # assistant.chat.enabled: true
-# assistant.enabled: ${ASSISTANT_ENABLED}
+assistant.enabled: ${ASSISTANT_ENABLED}
 
 
 # Set the value of this settings to true to turn on OpenSearch Flow
 # flowFrameworkDashboards.enabled: ${OPENSEARCHFLOW_ENABLED}
 
 # Set the value of the following settings to true to turn features on dashboard assistant
-# assistant.text2viz.enabled: ${TEXT2VIZ_ENABLED}
-# assistant.alertInsight.enabled: ${ALERTINSIGHT_ENABLED}
-# assistant.smartAnomalyDetector.enabled: ${SMARTANOMALYDETECTOR_ENABLED}
+assistant.text2viz.enabled: ${TEXT2VIZ_ENABLED}
+assistant.alertInsight.enabled: ${ALERTINSIGHT_ENABLED}
+assistant.smartAnomalyDetector.enabled: ${SMARTANOMALYDETECTOR_ENABLED}
 queryEnhancements.queryAssist.summary.enabled: ${DISCOVER_SUMMARY_ENABLED}
 # Set the logo icon of assistant branding
 # assistant.branding.logo:
