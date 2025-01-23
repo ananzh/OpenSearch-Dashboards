@@ -395,9 +395,9 @@ assistant.alertInsight.enabled: ${ALERTINSIGHT_ENABLED}
 assistant.smartAnomalyDetector.enabled: ${SMARTANOMALYDETECTOR_ENABLED}
 queryEnhancements.queryAssist.summary.enabled: ${DISCOVER_SUMMARY_ENABLED}
 # Set the logo icon of assistant branding
-# assistant.branding.logo:
-  # gray: '/ui/logos/amazon_q_gray.svg'
-  # gradient: '/ui/logos/amazon_q_gradient.svg'
+assistant.branding.logo:
+  gray: '/ui/logos/amazon_q_gray.svg'
+  gradient: '/ui/logos/amazon_q_gradient.svg'
 
 # Setting this value to enable metrics recorder plugin to publish metrics to CloudWatch
 # metricsRecorder.record.enabled: ${METRICS_REPORTING_ENABLED}
