@@ -1,5 +1,5 @@
 package.OpenSearch-Dashboards = {
-    interfaces = (neo_devstack_szhongna_2.17.0);
+    interfaces = (neo_3.x);
     build-system = custom-build;
  
     build-environment = {
@@ -11,7 +11,7 @@ package.OpenSearch-Dashboards = {
     };
  
     build-tools = {
-        neo_devstack_szhongna_2.17.0 = {
+        neo_3.x = {
             ContainerBuild = 1.2;
         };
     };
@@ -21,7 +21,7 @@ package.OpenSearch-Dashboards = {
     # Use dependencies instead if you intend for these dependencies to
     # be exported to other packages that build against you.
     dependencies = {
-        neo_devstack_szhongna_2.17.0 = {
+        neo_3.x = {
             # AWSOpenSearchDashboardsMapsPlugin = neo_2.19.0;
             # AWSOpenSearchDashboardsSearchRelevancePlugin = neo_2.19.0;
             # AWSOpenSearchDashboardsMLCommonsPlugin = neo_2.19.0;
@@ -40,7 +40,7 @@ package.OpenSearch-Dashboards = {
     };
  
     runtime-dependencies = {
-        neo_devstack_szhongna_2.17.0 = {
+        neo_3.x = {
         };
     };
 };
