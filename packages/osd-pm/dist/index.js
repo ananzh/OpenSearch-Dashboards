@@ -716,10 +716,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__rest", function() { return __rest; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__decorate", function() { return __decorate; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__param", function() { return __param; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__esDecorate", function() { return __esDecorate; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__runInitializers", function() { return __runInitializers; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__propKey", function() { return __propKey; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__setFunctionName", function() { return __setFunctionName; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__metadata", function() { return __metadata; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__awaiter", function() { return __awaiter; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__generator", function() { return __generator; });
@@ -739,10 +735,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__importDefault", function() { return __importDefault; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__classPrivateFieldGet", function() { return __classPrivateFieldGet; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__classPrivateFieldSet", function() { return __classPrivateFieldSet; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__classPrivateFieldIn", function() { return __classPrivateFieldIn; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__addDisposableResource", function() { return __addDisposableResource; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "__disposeResources", function() { return __disposeResources; });
-/******************************************************************************
+/*! *****************************************************************************
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any
@@ -756,7 +749,7 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol */
+/* global Reflect, Promise */
 
 var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf ||
@@ -807,51 +800,6 @@ function __param(paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 }
 
-function __esDecorate(ctor, descriptorIn, decorators, contextIn, initializers, extraInitializers) {
-    function accept(f) { if (f !== void 0 && typeof f !== "function") throw new TypeError("Function expected"); return f; }
-    var kind = contextIn.kind, key = kind === "getter" ? "get" : kind === "setter" ? "set" : "value";
-    var target = !descriptorIn && ctor ? contextIn["static"] ? ctor : ctor.prototype : null;
-    var descriptor = descriptorIn || (target ? Object.getOwnPropertyDescriptor(target, contextIn.name) : {});
-    var _, done = false;
-    for (var i = decorators.length - 1; i >= 0; i--) {
-        var context = {};
-        for (var p in contextIn) context[p] = p === "access" ? {} : contextIn[p];
-        for (var p in contextIn.access) context.access[p] = contextIn.access[p];
-        context.addInitializer = function (f) { if (done) throw new TypeError("Cannot add initializers after decoration has completed"); extraInitializers.push(accept(f || null)); };
-        var result = (0, decorators[i])(kind === "accessor" ? { get: descriptor.get, set: descriptor.set } : descriptor[key], context);
-        if (kind === "accessor") {
-            if (result === void 0) continue;
-            if (result === null || typeof result !== "object") throw new TypeError("Object expected");
-            if (_ = accept(result.get)) descriptor.get = _;
-            if (_ = accept(result.set)) descriptor.set = _;
-            if (_ = accept(result.init)) initializers.unshift(_);
-        }
-        else if (_ = accept(result)) {
-            if (kind === "field") initializers.unshift(_);
-            else descriptor[key] = _;
-        }
-    }
-    if (target) Object.defineProperty(target, contextIn.name, descriptor);
-    done = true;
-};
-
-function __runInitializers(thisArg, initializers, value) {
-    var useValue = arguments.length > 2;
-    for (var i = 0; i < initializers.length; i++) {
-        value = useValue ? initializers[i].call(thisArg, value) : initializers[i].call(thisArg);
-    }
-    return useValue ? value : void 0;
-};
-
-function __propKey(x) {
-    return typeof x === "symbol" ? x : "".concat(x);
-};
-
-function __setFunctionName(f, name, prefix) {
-    if (typeof name === "symbol") name = name.description ? "[".concat(name.description, "]") : "";
-    return Object.defineProperty(f, "name", { configurable: true, value: prefix ? "".concat(prefix, " ", name) : name });
-};
-
 function __metadata(metadataKey, metadataValue) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
 }
@@ -872,7 +820,7 @@ function __generator(thisArg, body) {
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
-        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+        while (_) try {
             if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
             if (y = 0, t) op = [op[0] & 2, t.value];
             switch (op[0]) {
@@ -896,11 +844,7 @@ function __generator(thisArg, body) {
 
 var __createBinding = Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-        desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -984,7 +928,7 @@ function __asyncGenerator(thisArg, _arguments, generator) {
 function __asyncDelegator(o) {
     var i, p;
     return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
-    function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: __await(o[n](v)), done: false } : f ? f(v) : v; } : f; }
+    function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: __await(o[n](v)), done: n === "return" } : f ? f(v) : v; } : f; }
 }
 
 function __asyncValues(o) {
@@ -1030,88 +974,6 @@ function __classPrivateFieldSet(receiver, state, value, kind, f) {
     if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
     return (kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value)), value;
 }
-
-function __classPrivateFieldIn(state, receiver) {
-    if (receiver === null || (typeof receiver !== "object" && typeof receiver !== "function")) throw new TypeError("Cannot use 'in' operator on non-object");
-    return typeof state === "function" ? receiver === state : state.has(receiver);
-}
-
-function __addDisposableResource(env, value, async) {
-    if (value !== null && value !== void 0) {
-        if (typeof value !== "object" && typeof value !== "function") throw new TypeError("Object expected.");
-        var dispose;
-        if (async) {
-            if (!Symbol.asyncDispose) throw new TypeError("Symbol.asyncDispose is not defined.");
-            dispose = value[Symbol.asyncDispose];
-        }
-        if (dispose === void 0) {
-            if (!Symbol.dispose) throw new TypeError("Symbol.dispose is not defined.");
-            dispose = value[Symbol.dispose];
-        }
-        if (typeof dispose !== "function") throw new TypeError("Object not disposable.");
-        env.stack.push({ value: value, dispose: dispose, async: async });
-    }
-    else if (async) {
-        env.stack.push({ async: true });
-    }
-    return value;
-}
-
-var _SuppressedError = typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-    var e = new Error(message);
-    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};
-
-function __disposeResources(env) {
-    function fail(e) {
-        env.error = env.hasError ? new _SuppressedError(e, env.error, "An error was suppressed during disposal.") : e;
-        env.hasError = true;
-    }
-    function next() {
-        while (env.stack.length) {
-            var rec = env.stack.pop();
-            try {
-                var result = rec.dispose && rec.dispose.call(rec.value);
-                if (rec.async) return Promise.resolve(result).then(next, function(e) { fail(e); return next(); });
-            }
-            catch (e) {
-                fail(e);
-            }
-        }
-        if (env.hasError) throw env.error;
-    }
-    return next();
-}
-
-/* harmony default export */ __webpack_exports__["default"] = ({
-    __extends: __extends,
-    __assign: __assign,
-    __rest: __rest,
-    __decorate: __decorate,
-    __param: __param,
-    __metadata: __metadata,
-    __awaiter: __awaiter,
-    __generator: __generator,
-    __createBinding: __createBinding,
-    __exportStar: __exportStar,
-    __values: __values,
-    __read: __read,
-    __spread: __spread,
-    __spreadArrays: __spreadArrays,
-    __spreadArray: __spreadArray,
-    __await: __await,
-    __asyncGenerator: __asyncGenerator,
-    __asyncDelegator: __asyncDelegator,
-    __asyncValues: __asyncValues,
-    __makeTemplateObject: __makeTemplateObject,
-    __importStar: __importStar,
-    __importDefault: __importDefault,
-    __classPrivateFieldGet: __classPrivateFieldGet,
-    __classPrivateFieldSet: __classPrivateFieldSet,
-    __classPrivateFieldIn: __classPrivateFieldIn,
-    __addDisposableResource: __addDisposableResource,
-    __disposeResources: __disposeResources,
-});
 
 
 /***/ }),
@@ -6978,7 +6840,7 @@ function stringifyError(error) {
 }
 class ToolingLogTextWriter {
   constructor(config) {
-    this.level = (0, log_levels_1.parseLogLevel)(config.level);
+    this.level = log_levels_1.parseLogLevel(config.level);
     this.writeTo = config.writeTo;
     if (!this.writeTo || typeof this.writeTo.write !== 'function') {
       throw new Error('ToolingLogTextWriter requires the `writeTo` option be set to a stream (like process.stdout)');
@@ -6993,7 +6855,7 @@ class ToolingLogTextWriter {
     return true;
   }
   static write(writeTo, prefix, msg) {
-    const txt = msg.type === 'error' ? stringifyError(msg.args[0]) : (0, util_1.format)(msg.args[0], ...msg.args.slice(1));
+    const txt = msg.type === 'error' ? stringifyError(msg.args[0]) : util_1.format(msg.args[0], ...msg.args.slice(1));
     (prefix + txt).split('\n').forEach((line, i) => {
       let lineIndent = '';
       if (msg.indent > 0) {
@@ -9244,7 +9106,7 @@ const BootstrapCommand = exports.BootstrapCommand = {
      * have to, as it will slow down the bootstrapping process.
      */
 
-    const checksums = await (0, _project_checksums.getAllChecksums)(osd, _log.log, yarnLock);
+    const checksums = new Map();
     const caches = new Map();
     let cachedProjectCount = 0;
     for (const project of projects.values()) {
@@ -11228,32 +11090,32 @@ var _tooling_log = __webpack_require__(5);
 function _defineProperty(obj, key, value) { key = _toPropertyKey(key); if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 function _toPropertyKey(arg) { var key = _toPrimitive(arg, "string"); return typeof key === "symbol" ? key : String(key); }
 function _toPrimitive(input, hint) { if (typeof input !== "object" || input === null) return input; var prim = input[Symbol.toPrimitive]; if (prim !== undefined) { var res = prim.call(input, hint || "default"); if (typeof res !== "object") return res; throw new TypeError("@@toPrimitive must return a primitive value."); } return (hint === "string" ? String : Number)(input); } /*
-                                                                                                                                                                                                                                                                                                                                                                                           * SPDX-License-Identifier: Apache-2.0
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * The OpenSearch Contributors require contributions made to
-                                                                                                                                                                                                                                                                                                                                                                                           * this file be licensed under the Apache-2.0 license or a
-                                                                                                                                                                                                                                                                                                                                                                                           * compatible open source license.
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * Any modifications Copyright OpenSearch Contributors. See
-                                                                                                                                                                                                                                                                                                                                                                                           * GitHub history for details.
-                                                                                                                                                                                                                                                                                                                                                                                           */ /*
-                                                                                                                                                                                                                                                                                                                                                                                               * Licensed to Elasticsearch B.V. under one or more contributor
-                                                                                                                                                                                                                                                                                                                                                                                               * license agreements. See the NOTICE file distributed with
-                                                                                                                                                                                                                                                                                                                                                                                               * this work for additional information regarding copyright
-                                                                                                                                                                                                                                                                                                                                                                                               * ownership. Elasticsearch B.V. licenses this file to you under
-                                                                                                                                                                                                                                                                                                                                                                                               * the Apache License, Version 2.0 (the "License"); you may
-                                                                                                                                                                                                                                                                                                                                                                                               * not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               *    http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing,
-                                                                                                                                                                                                                                                                                                                                                                                               * software distributed under the License is distributed on an
-                                                                                                                                                                                                                                                                                                                                                                                               * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-                                                                                                                                                                                                                                                                                                                                                                                               * KIND, either express or implied.  See the License for the
-                                                                                                                                                                                                                                                                                                                                                                                               * specific language governing permissions and limitations
-                                                                                                                                                                                                                                                                                                                                                                                               * under the License.
-                                                                                                                                                                                                                                                                                                                                                                                               */
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Any modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */ /*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 class Log extends _tooling_log.ToolingLog {
   constructor() {
     super();
@@ -15003,32 +14865,32 @@ var _targeted_build = __webpack_require__(334);
 function _defineProperty(obj, key, value) { key = _toPropertyKey(key); if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 function _toPropertyKey(arg) { var key = _toPrimitive(arg, "string"); return typeof key === "symbol" ? key : String(key); }
 function _toPrimitive(input, hint) { if (typeof input !== "object" || input === null) return input; var prim = input[Symbol.toPrimitive]; if (prim !== undefined) { var res = prim.call(input, hint || "default"); if (typeof res !== "object") return res; throw new TypeError("@@toPrimitive must return a primitive value."); } return (hint === "string" ? String : Number)(input); } /*
-                                                                                                                                                                                                                                                                                                                                                                                           * SPDX-License-Identifier: Apache-2.0
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * The OpenSearch Contributors require contributions made to
-                                                                                                                                                                                                                                                                                                                                                                                           * this file be licensed under the Apache-2.0 license or a
-                                                                                                                                                                                                                                                                                                                                                                                           * compatible open source license.
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * Any modifications Copyright OpenSearch Contributors. See
-                                                                                                                                                                                                                                                                                                                                                                                           * GitHub history for details.
-                                                                                                                                                                                                                                                                                                                                                                                           */ /*
-                                                                                                                                                                                                                                                                                                                                                                                               * Licensed to Elasticsearch B.V. under one or more contributor
-                                                                                                                                                                                                                                                                                                                                                                                               * license agreements. See the NOTICE file distributed with
-                                                                                                                                                                                                                                                                                                                                                                                               * this work for additional information regarding copyright
-                                                                                                                                                                                                                                                                                                                                                                                               * ownership. Elasticsearch B.V. licenses this file to you under
-                                                                                                                                                                                                                                                                                                                                                                                               * the Apache License, Version 2.0 (the "License"); you may
-                                                                                                                                                                                                                                                                                                                                                                                               * not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               *    http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing,
-                                                                                                                                                                                                                                                                                                                                                                                               * software distributed under the License is distributed on an
-                                                                                                                                                                                                                                                                                                                                                                                               * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-                                                                                                                                                                                                                                                                                                                                                                                               * KIND, either express or implied.  See the License for the
-                                                                                                                                                                                                                                                                                                                                                                                               * specific language governing permissions and limitations
-                                                                                                                                                                                                                                                                                                                                                                                               * under the License.
-                                                                                                                                                                                                                                                                                                                                                                                               */
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Any modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */ /*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 class Project {
   static async fromPath(path) {
     const pkgJson = await (0, _package_json.readPackageJson)(path);
@@ -19474,7 +19336,11 @@ module.exports = {
 /* 197 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const { MAX_SAFE_COMPONENT_LENGTH, MAX_SAFE_BUILD_LENGTH } = __webpack_require__(198)
+const {
+  MAX_SAFE_COMPONENT_LENGTH,
+  MAX_SAFE_BUILD_LENGTH,
+  MAX_LENGTH,
+} = __webpack_require__(198)
 const debug = __webpack_require__(199)
 exports = module.exports = {}
 
@@ -19495,7 +19361,7 @@ const LETTERDASHNUMBER = '[a-zA-Z0-9-]'
 // all input should have extra whitespace removed.
 const safeRegexReplacements = [
   ['\\s', 1],
-  ['\\d', MAX_SAFE_COMPONENT_LENGTH],
+  ['\\d', MAX_LENGTH],
   [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH],
 ]
 
@@ -20700,7 +20566,7 @@ class Range {
     this.set = this.raw
       .split('||')
       // map the range to a 2d array of comparators
-      .map(r => this.parseRange(r))
+      .map(r => this.parseRange(r.trim()))
       // throw out any comparator lists that are empty
       // this generally means that it was not a valid range, which is allowed
       // in loose mode, but will still throw if the WHOLE range is invalid.
@@ -26160,7 +26026,7 @@ const YARN_EXEC = process.env.npm_execpath || 'yarn';
  * Install all dependencies in the given directory
  */
 async function installInDir(directory, extraArgs = [], useAdd = false) {
-  const options = [useAdd ? 'add' : 'install', '--non-interactive', ...extraArgs];
+  const options = [useAdd ? 'add' : 'install', '--non-interactive', '--ignore-engines', ...extraArgs];
 
   // We pass the mutex flag to ensure only one instance of yarn runs at any
   // given time (e.g. to avoid conflicts).
@@ -40419,16 +40285,15 @@ exports.NAMESPACE_PREFIX = process.platform === 'win32' ? '\\\\?\\' : '';
  * @param {boolean} [escapedBackslashes=true] - on Windows, double-backslash the reference
  * @param {boolean} [returnUNC=false] - produce an extended reference
  */
-const standardize = (path, usePosix = true, escapedBackslashes = true, returnUNC = false) => {
+exports.standardize = (path, usePosix = true, escapedBackslashes = true, returnUNC = false) => {
   var _process;
   // Force os-dependant separators
-  const normal = (0, path_1.normalize)(path);
+  const normal = path_1.normalize(path);
   // Filter out in-browser executions as well as non-windows ones
   if (((_process = process) === null || _process === void 0 ? void 0 : _process.platform) !== 'win32') return normal;
   if (usePosix) return normal.replace(/\\/g, '/');else if (escapedBackslashes) return normal.replace(/\\/g, '\\\\');else if (returnUNC) return '\\\\?\\' + normal;
   return normal;
 };
-exports.standardize = standardize;
 /**
  * Windows-only function that uses PowerShell to calculate the full path
  * @param {string} path
@@ -40437,10 +40302,10 @@ exports.standardize = standardize;
 const getFullPathSync = path => {
   if (process.platform !== 'win32') return path;
   try {
-    var _ref, _ref$trim;
-    const fullName = (_ref = (0, child_process_1.execSync)(`powershell "(Get-Item -LiteralPath '${path}').FullName"`, {
+    var _child_process_1$exec, _child_process_1$exec2;
+    const fullName = (_child_process_1$exec = child_process_1.execSync(`powershell "(Get-Item -LiteralPath '${path}').FullName"`, {
       encoding: 'utf8'
-    })) === null || _ref === void 0 || (_ref$trim = _ref.trim) === null || _ref$trim === void 0 ? void 0 : _ref$trim.call(_ref);
+    })) === null || _child_process_1$exec === void 0 || (_child_process_1$exec2 = _child_process_1$exec.trim) === null || _child_process_1$exec2 === void 0 ? void 0 : _child_process_1$exec2.call(_child_process_1$exec);
     // Make sure we got something back
     if ((fullName === null || fullName === void 0 ? void 0 : fullName.length) > 2) return fullName;
   } catch (ex) {
@@ -40456,10 +40321,10 @@ const getFullPathSync = path => {
 const getShortPathSync = path => {
   if (process.platform !== 'win32') return path;
   try {
-    var _ref2, _ref2$trim;
-    const shortPath = (_ref2 = (0, child_process_1.execSync)(`powershell "$FSO = New-Object -ComObject Scripting.FileSystemObject; $O = (Get-Item -LiteralPath '${path}'); if ($O.PSIsContainer) { $FSO.GetFolder($O.FullName).ShortPath } else { $FSO.GetFile($O.FullName).ShortPath }"`, {
+    var _child_process_1$exec3, _child_process_1$exec4;
+    const shortPath = (_child_process_1$exec3 = child_process_1.execSync(`powershell "$FSO = New-Object -ComObject Scripting.FileSystemObject; $O = (Get-Item -LiteralPath '${path}'); if ($O.PSIsContainer) { $FSO.GetFolder($O.FullName).ShortPath } else { $FSO.GetFile($O.FullName).ShortPath }"`, {
       encoding: 'utf8'
-    })) === null || _ref2 === void 0 || (_ref2$trim = _ref2.trim) === null || _ref2$trim === void 0 ? void 0 : _ref2$trim.call(_ref2);
+    })) === null || _child_process_1$exec3 === void 0 || (_child_process_1$exec4 = _child_process_1$exec3.trim) === null || _child_process_1$exec4 === void 0 ? void 0 : _child_process_1$exec4.call(_child_process_1$exec3);
     // Make sure we got something back
     if ((shortPath === null || shortPath === void 0 ? void 0 : shortPath.length) > 2) return shortPath;
   } catch (ex) {
@@ -40471,19 +40336,18 @@ const getShortPathSync = path => {
  * Checks if Windows 8.3 short names are supported on the volume of the given path
  * @param {string} [path='.'] - the path to examine
  */
-const shortNamesSupportedSync = (path = '.') => {
+exports.shortNamesSupportedSync = (path = '.') => {
   if (process.platform !== 'win32') return false;
   const testFileName = '.___osd-cross-platform-test.file';
-  const file = (0, path_1.resolve)(path, testFileName);
+  const file = path_1.resolve(path, testFileName);
   // Create a test file if it doesn't exist
-  if (!(0, fs_1.existsSync)(file)) (0, fs_1.closeSync)((0, fs_1.openSync)(file, 'w'));
+  if (!fs_1.existsSync(file)) fs_1.closeSync(fs_1.openSync(file, 'w'));
   // If the returned value's basename is not the same as the requested file name, it must be a short name
-  const foundShortName = (0, path_1.basename)(getShortPathSync(file)) !== testFileName;
+  const foundShortName = path_1.basename(getShortPathSync(file)) !== testFileName;
   // Cleanup
-  (0, fs_1.unlinkSync)(file);
+  fs_1.unlinkSync(file);
   return foundShortName;
 };
-exports.shortNamesSupportedSync = shortNamesSupportedSync;
 /**
  * @borrows shortNamesSupportedSync
  */
@@ -40492,8 +40356,7 @@ exports.shortNameSupportedSync = exports.shortNamesSupportedSync;
  * Get the full pathname
  * @param {string} path - the path to resolve
  */
-const resolveToFullPathSync = path => getFullPathSync((0, path_1.resolve)(path));
-exports.resolveToFullPathSync = resolveToFullPathSync;
+exports.resolveToFullPathSync = path => getFullPathSync(path_1.resolve(path));
 /**
  * @borrows resolveToFullPathSync
  */
@@ -40502,8 +40365,7 @@ exports.resolveToFullNameSync = exports.resolveToFullPathSync;
  * Get the short pathname
  * @param {string} path - the path to resolve
  */
-const resolveToShortPathSync = path => getShortPathSync((0, path_1.resolve)(path));
-exports.resolveToShortPathSync = resolveToShortPathSync;
+exports.resolveToShortPathSync = path => getShortPathSync(path_1.resolve(path));
 /**
  * @borrows resolveToShortPathSync
  */
@@ -40512,8 +40374,7 @@ exports.resolveToShortNameSync = exports.resolveToShortPathSync;
  * Get the canonical pathname
  * @param {string} path - the path to resolve
  */
-const realPathSync = path => getFullPathSync((0, fs_1.realpathSync)(path, 'utf8'));
-exports.realPathSync = realPathSync;
+exports.realPathSync = path => getFullPathSync(fs_1.realpathSync(path, 'utf8'));
 /**
  * @borrows realPathSync
  */
@@ -40522,8 +40383,7 @@ exports.realpathSync = exports.realPathSync;
  * Get the canonical pathname
  * @param {string} path - the path to resolve
  */
-const realShortPathSync = path => getShortPathSync((0, fs_1.realpathSync)(path, 'utf8'));
-exports.realShortPathSync = realShortPathSync;
+exports.realShortPathSync = path => getShortPathSync(fs_1.realpathSync(path, 'utf8'));
 /**
  * @borrows realShortPathSync
  */
@@ -40550,13 +40410,13 @@ const path_1 = __webpack_require__(342);
  * @constant
  * @type {string}
  */
-exports.PROCESS_WORKING_DIR = (0, path_1.resolveToFullPathSync)(process.cwd());
+exports.PROCESS_WORKING_DIR = path_1.resolveToFullPathSync(process.cwd());
 /**
  * The full pathname of the working directory of the process, in POSIX format
  * @constant
  * @type {string}
  */
-exports.PROCESS_POSIX_WORKING_DIR = (0, path_1.standardize)(exports.PROCESS_WORKING_DIR);
+exports.PROCESS_POSIX_WORKING_DIR = path_1.standardize(exports.PROCESS_WORKING_DIR);
 
 /***/ }),
 /* 344 */
@@ -40603,13 +40463,13 @@ const load_json_file_1 = tslib_1.__importDefault(__webpack_require__(345));
 const path_2 = __webpack_require__(342);
 const readOpenSearchDashboardsPkgJson = dir => {
   try {
-    const path = (0, path_1.resolve)(dir, 'package.json');
+    const path = path_1.resolve(dir, 'package.json');
     const json = load_json_file_1.default.sync(path);
     if ((json === null || json === void 0 ? void 0 : json.name) === 'opensearch-dashboards') {
       return json;
     }
   } catch (error) {
-    if ((error === null || error === void 0 ? void 0 : error.code) === 'ENOENT') {
+    if (error && error.code === 'ENOENT') {
       return;
     }
     throw error;
@@ -40619,10 +40479,10 @@ const findOpenSearchDashboardsPackageJson = () => {
   // search for the opensearch-dashboards directory, since this file is moved around it might
   // not be where we think but should always be a relatively close parent
   // of this directory
-  const startDir = (0, path_2.realPathSync)(__dirname);
+  const startDir = path_2.realPathSync(__dirname);
   const {
     root: rootDir
-  } = (0, path_1.parse)(startDir);
+  } = path_1.parse(startDir);
   let cursor = startDir;
   while (true) {
     const opensearchDashboardsPkgJson = readOpenSearchDashboardsPkgJson(cursor);
@@ -40632,7 +40492,7 @@ const findOpenSearchDashboardsPackageJson = () => {
         opensearchDashboardsPkgJson: opensearchDashboardsPkgJson
       };
     }
-    const parent = (0, path_1.dirname)(cursor);
+    const parent = path_1.dirname(cursor);
     if (parent === rootDir) {
       throw new Error(`unable to find opensearch-dashboards directory from ${startDir}`);
     }
@@ -40643,26 +40503,23 @@ const {
   opensearchDashboardsDir,
   opensearchDashboardsPkgJson
 } = findOpenSearchDashboardsPackageJson();
-exports.REPO_ROOT = (0, path_2.resolveToFullPathSync)(opensearchDashboardsDir);
-exports.REPO_ROOT_8_3 = (0, path_2.resolveToShortPathSync)(opensearchDashboardsDir);
+exports.REPO_ROOT = path_2.resolveToFullPathSync(opensearchDashboardsDir);
+exports.REPO_ROOT_8_3 = path_2.resolveToShortPathSync(opensearchDashboardsDir);
 exports.UPSTREAM_BRANCH = opensearchDashboardsPkgJson.branch;
-const getMatchingRoot = (path, rootPaths) => {
+exports.getMatchingRoot = (path, rootPaths) => {
   const rootPathsArray = Array.isArray(rootPaths) ? rootPaths : [rootPaths];
   // We can only find the appropriate root if an absolute path was given
-  if (path && (0, path_1.isAbsolute)(path)) {
+  if (path && path_1.isAbsolute(path)) {
     // Return the matching root if one is found or return `undefined`
     return rootPathsArray.find(root => path.startsWith(root));
   }
   return undefined;
 };
-exports.getMatchingRoot = getMatchingRoot;
-const getRepoRoot = path => (0, exports.getMatchingRoot)(path, [exports.REPO_ROOT, exports.REPO_ROOT_8_3]);
-exports.getRepoRoot = getRepoRoot;
-const relativeToRepoRoot = path => {
-  const repoRoot = (0, exports.getRepoRoot)(path);
-  return repoRoot ? (0, path_1.relative)(repoRoot, path) : null;
+exports.getRepoRoot = path => exports.getMatchingRoot(path, [exports.REPO_ROOT, exports.REPO_ROOT_8_3]);
+exports.relativeToRepoRoot = path => {
+  const repoRoot = exports.getRepoRoot(path);
+  return repoRoot ? path_1.relative(repoRoot, path) : null;
 };
-exports.relativeToRepoRoot = relativeToRepoRoot;
 
 /***/ }),
 /* 345 */
@@ -40729,40 +40586,37 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _defineProperty(obj, key, value) { key = _toPropertyKey(key); if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 function _toPropertyKey(arg) { var key = _toPrimitive(arg, "string"); return typeof key === "symbol" ? key : String(key); }
 function _toPrimitive(input, hint) { if (typeof input !== "object" || input === null) return input; var prim = input[Symbol.toPrimitive]; if (prim !== undefined) { var res = prim.call(input, hint || "default"); if (typeof res !== "object") return res; throw new TypeError("@@toPrimitive must return a primitive value."); } return (hint === "string" ? String : Number)(input); } /*
-                                                                                                                                                                                                                                                                                                                                                                                           * SPDX-License-Identifier: Apache-2.0
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * The OpenSearch Contributors require contributions made to
-                                                                                                                                                                                                                                                                                                                                                                                           * this file be licensed under the Apache-2.0 license or a
-                                                                                                                                                                                                                                                                                                                                                                                           * compatible open source license.
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * Any modifications Copyright OpenSearch Contributors. See
-                                                                                                                                                                                                                                                                                                                                                                                           * GitHub history for details.
-                                                                                                                                                                                                                                                                                                                                                                                           */ /*
-                                                                                                                                                                                                                                                                                                                                                                                               * Licensed to Elasticsearch B.V. under one or more contributor
-                                                                                                                                                                                                                                                                                                                                                                                               * license agreements. See the NOTICE file distributed with
-                                                                                                                                                                                                                                                                                                                                                                                               * this work for additional information regarding copyright
-                                                                                                                                                                                                                                                                                                                                                                                               * ownership. Elasticsearch B.V. licenses this file to you under
-                                                                                                                                                                                                                                                                                                                                                                                               * the Apache License, Version 2.0 (the "License"); you may
-                                                                                                                                                                                                                                                                                                                                                                                               * not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               *    http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing,
-                                                                                                                                                                                                                                                                                                                                                                                               * software distributed under the License is distributed on an
-                                                                                                                                                                                                                                                                                                                                                                                               * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-                                                                                                                                                                                                                                                                                                                                                                                               * KIND, either express or implied.  See the License for the
-                                                                                                                                                                                                                                                                                                                                                                                               * specific language governing permissions and limitations
-                                                                                                                                                                                                                                                                                                                                                                                               * under the License.
-                                                                                                                                                                                                                                                                                                                                                                                               */
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Any modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */ /*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 class BootstrapCacheFile {
   constructor(osd, project, checksums) {
     _defineProperty(this, "path", void 0);
     _defineProperty(this, "expectedValue", void 0);
     this.path = _path.default.resolve(project.targetLocation, '.bootstrap-cache');
-    if (!checksums) {
-      return;
-    }
     const projectAndDepCacheKeys = Array.from(osd.getProjectAndDeps(project.name).values())
     // sort deps by name so that the key is stable
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -58925,32 +58779,32 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _defineProperty(obj, key, value) { key = _toPropertyKey(key); if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 function _toPropertyKey(arg) { var key = _toPrimitive(arg, "string"); return typeof key === "symbol" ? key : String(key); }
 function _toPrimitive(input, hint) { if (typeof input !== "object" || input === null) return input; var prim = input[Symbol.toPrimitive]; if (prim !== undefined) { var res = prim.call(input, hint || "default"); if (typeof res !== "object") return res; throw new TypeError("@@toPrimitive must return a primitive value."); } return (hint === "string" ? String : Number)(input); } /*
-                                                                                                                                                                                                                                                                                                                                                                                           * SPDX-License-Identifier: Apache-2.0
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * The OpenSearch Contributors require contributions made to
-                                                                                                                                                                                                                                                                                                                                                                                           * this file be licensed under the Apache-2.0 license or a
-                                                                                                                                                                                                                                                                                                                                                                                           * compatible open source license.
-                                                                                                                                                                                                                                                                                                                                                                                           *
-                                                                                                                                                                                                                                                                                                                                                                                           * Any modifications Copyright OpenSearch Contributors. See
-                                                                                                                                                                                                                                                                                                                                                                                           * GitHub history for details.
-                                                                                                                                                                                                                                                                                                                                                                                           */ /*
-                                                                                                                                                                                                                                                                                                                                                                                               * Licensed to Elasticsearch B.V. under one or more contributor
-                                                                                                                                                                                                                                                                                                                                                                                               * license agreements. See the NOTICE file distributed with
-                                                                                                                                                                                                                                                                                                                                                                                               * this work for additional information regarding copyright
-                                                                                                                                                                                                                                                                                                                                                                                               * ownership. Elasticsearch B.V. licenses this file to you under
-                                                                                                                                                                                                                                                                                                                                                                                               * the Apache License, Version 2.0 (the "License"); you may
-                                                                                                                                                                                                                                                                                                                                                                                               * not use this file except in compliance with the License.
-                                                                                                                                                                                                                                                                                                                                                                                               * You may obtain a copy of the License at
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               *    http://www.apache.org/licenses/LICENSE-2.0
-                                                                                                                                                                                                                                                                                                                                                                                               *
-                                                                                                                                                                                                                                                                                                                                                                                               * Unless required by applicable law or agreed to in writing,
-                                                                                                                                                                                                                                                                                                                                                                                               * software distributed under the License is distributed on an
-                                                                                                                                                                                                                                                                                                                                                                                               * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-                                                                                                                                                                                                                                                                                                                                                                                               * KIND, either express or implied.  See the License for the
-                                                                                                                                                                                                                                                                                                                                                                                               * specific language governing permissions and limitations
-                                                                                                                                                                                                                                                                                                                                                                                               * under the License.
-                                                                                                                                                                                                                                                                                                                                                                                               */
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Any modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */ /*
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /**
  * Helper class for dealing with a set of projects as children of
  * the OpenSearch Dashboards project. The osd/pm is currently implemented to be

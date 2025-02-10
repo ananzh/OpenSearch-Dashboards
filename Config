@@ -1,0 +1,46 @@
+package.OpenSearch-Dashboards = {
+    interfaces = (neo_devstack_szhongna_2.17.0);
+    build-system = custom-build;
+ 
+    build-environment = {
+        network-access = open;
+    };
+ 
+    libfarm = {
+        components = ("opensearch-dashboards-core");
+    };
+ 
+    build-tools = {
+        neo_devstack_szhongna_2.17.0 = {
+            ContainerBuild = 1.2;
+        };
+    };
+ 
+    # Use runtime-dependencies for when you want to bring in additional
+    # packages when deploying.
+    # Use dependencies instead if you intend for these dependencies to
+    # be exported to other packages that build against you.
+    dependencies = {
+        neo_devstack_szhongna_2.17.0 = {
+            # AWSOpenSearchDashboardsMapsPlugin = neo_2.19.0;
+            # AWSOpenSearchDashboardsSearchRelevancePlugin = neo_2.19.0;
+            # AWSOpenSearchDashboardsMLCommonsPlugin = neo_2.19.0;
+            # AWSOpenSearchNotificationsDashboards = neo_2.19.0;
+            # AWSSearchServices-KibanaADPlugin = neo_2.19.0;
+            # AWSSearchServicesKibanaAlertingPlugin = neo_2.19.0;
+            # AWSSearchServicesKibanaSecurityAnalyticsPlugin = neo_2.19.0;
+            # AWSSearchServicesKibanaStoragePlugin = neo_2.19.0;
+            # AWSSearchServicesSQLWorkbenchUIPlugin = neo_2.19.0;
+            # Opendistro-index-management-kibana-plugin = neo_2.19.0;
+            # Security-dashboards-plugin = neo_2.19.0;
+            # Insights-Observability-Kibana-Plugin = neo_2.19.0;
+            # AWSOpenSearchDashboardsAssistantPlugin = neo_2.19.0;
+            # AWSOpenSearchDashboardsFlowFrameworkPlugin = neo_2.19.0;
+        };
+    };
+ 
+    runtime-dependencies = {
+        neo_devstack_szhongna_2.17.0 = {
+        };
+    };
+};

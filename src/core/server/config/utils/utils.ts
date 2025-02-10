@@ -62,6 +62,7 @@ export const createLocalStore = (logger: Logger, request: Request, headers: stri
   return new Map(
     headers.map((header: string) => {
       try {
+        logger.info(`${header}: ${request.headers[header]}`);
         return [header, request.headers[header]];
       } catch (err) {
         logger.warn(`Header ${header} not found in request`);

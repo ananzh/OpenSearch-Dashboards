@@ -20,7 +20,7 @@ server.host: 0.0.0.0
 #server.maxPayloadBytes: 1048576
 
 # The OpenSearch Dashboards server's name.  This is used for display purposes.
-#server.name: "your-hostname"
+server.name: aosa
 
 # The URLs of the OpenSearch instances to use for all your queries.
 opensearch.hosts: []
@@ -110,7 +110,7 @@ opensearch.hosts: []
 
 # Time in milliseconds to wait for responses from the back end or OpenSearch. This value
 # must be a positive integer.
-#opensearch.requestTimeout: 30000
+opensearch.requestTimeout: 300000
 
 # Enables the memory circuit breaker that prevents heap out of memory errors for large query responses.
 # If enabled, we will provide additional check to prevent potential out of memory error in @openserach-project/opensearch.
@@ -135,7 +135,7 @@ opensearch.hosts: []
 #opensearch.customHeaders: {}
 
 # Time in milliseconds for OpenSearch to wait for responses from shards. Set to 0 to disable.
-#opensearch.shardTimeout: 30000
+opensearch.shardTimeout: 60000
 
 # Logs queries sent to OpenSearch. Requires logging.verbose set to true.
 #opensearch.logQueries: false
@@ -211,34 +211,34 @@ opensearch.hosts: []
 
 # vis_type_timeline.graphiteDeniedIPs: []
 
-# vis_type_timeline.graphiteDeniedIPs: [
+vis_type_timeline.graphiteDeniedIPs: [
 #  //Loopback
-#  '127.0.0.0/8',
-#  '::1/128',
+  '127.0.0.0/8',
+  '::1/128',
 #  //Link-local Address for IPv6
-#  'fe80::/10',
+  'fe80::/10',
 #  //Private IP address for IPv4
-#  '10.0.0.0/8',
-#  '172.16.0.0/12',
-#  '192.168.0.0/16',
+  '10.0.0.0/8',
+  '172.16.0.0/12',
+  '192.168.0.0/16',
 #  //Unique local address (ULA)
-#  'fc00::/7',
+  'fc00::/7',
 #  //Reserved IP address
-#  '0.0.0.0/8',
-#  '100.64.0.0/10',
-#  '192.0.0.0/24',
-#  '192.0.2.0/24',
-#  '198.18.0.0/15',
-#  '192.88.99.0/24',
-#  '198.51.100.0/24',
-#  '203.0.113.0/24',
-#  '224.0.0.0/4',
-#  '240.0.0.0/4',
-#  '255.255.255.255/32',
-#  '::/128',
-#  '2001:db8::/32',
-#  'ff00::/8',
-# ]
+  '0.0.0.0/8',
+  '100.64.0.0/10',
+  '192.0.0.0/24',
+  '192.0.2.0/24',
+  '198.18.0.0/15',
+  '192.88.99.0/24',
+  '198.51.100.0/24',
+  '203.0.113.0/24',
+  '224.0.0.0/4',
+  '240.0.0.0/4',
+  '255.255.255.255/32',
+  '::/128',
+  '2001:db8::/32',
+  'ff00::/8',
+]
 
 # opensearchDashboards.branding:
 #   logo:
@@ -257,7 +257,8 @@ opensearch.hosts: []
 # Set the value of this setting to true to capture region denied warnings and errors
 # for your map rendering services.
 
-# map.showRegionDeniedWarning: false
+map.showRegionDeniedWarning: true
+map.opensearchManifestServiceUrl: "https://maps.search-services.aws.a2z.com/v4/us-east-1/manifest"
 
 # Set the value of this setting to false to suppress search usage telemetry
 # for reducing the load of OpenSearch cluster.
@@ -321,15 +322,13 @@ data_source.authTypes:
   AWSSigV4:
     enabled: false
 
+data_source.clientPool.size: 100
+
 # Optional setting that controls the permissions of data source to create, update and delete.
 # "none": The data source is readonly for all users.
 # "dashboard_admin": The data source can only be managed by dashboard admin.
 # "all": The data source can be managed by all users. Default to "all".
-data_source_management.manageableBy: "none"
-
-# Set the backend roles in groups, whoever has the backend roles defined in this config will be regard as dataSourceAdmin.
-# DataSource Admin will have the access to all the data source saved objects inside OpenSearch Dashboards by api.
-data_source_management.dataSourceAdmin.groups: ["svc:aosd.aws.internal"]
+data_source_management.manageableBy: ${DATA_SOURCE_MANAGEMENT_MANAGEABLE_BY}
 
 # Set the value of this setting to false to hide the help menu link to the OpenSearch Dashboards user survey
 # opensearchDashboards.survey.url: "https://survey.opensearch.org"
@@ -337,8 +336,10 @@ data_source_management.dataSourceAdmin.groups: ["svc:aosd.aws.internal"]
 # @experimental Set the value of this setting to display navigation updates, including dev tool top right navigation
 # opensearchDashboards.futureNavigation: false
 
-# Set the value of this setting to true to enable plugin augmentation on Dashboard
-# vis_augmenter.pluginAugmentationEnabled: true
+# Set the value of this setting to true to enable plugin augmentation
+# We need to enable this yaml config for the advanced setting to be registered. The advanced setting is used to determine if vis augmenter is enabled.
+# Override in uiSettings below
+vis_augmenter.pluginAugmentationEnabled: true
 
 # Set the value to true to enable permission control for saved objects
 # Permission control depends on OpenSearch Dashboards has authentication enabled, set it to false when the security plugin is not installed,
@@ -349,13 +350,17 @@ savedObjects.permission.enabled: true
 # Please note, workspace will not work with multi-tenancy. To enable workspace feature, you need to disable multi-tenancy first with `opensearch_security.multitenancy.enabled: false`
 # Please uncomment below uiSettings to enable new home/navigation experience when workspace is enabled
 workspace.enabled: true
-# uiSettings:
-#   overrides:
-#     "home:useNewHomePage": true
+uiSettings:
+   overrides:
+     "home:useNewHomePage": true
+     "query:enhancements:enabled": true
+     "visualization:enablePluginAugmentation": false
+   defaults:
+     "theme:version": 'v9'
 
 # Set a maximum number of workspaces
 # by default, there is no limit.
-# workspace.maximum_workspaces: 100
+workspace.maximum_workspaces: 100
 
 # Optional settings to specify saved object types to be deleted during migration.
 # This feature can help address compatibility issues that may arise during the migration of saved objects, such as types defined by legacy applications.
@@ -367,15 +372,36 @@ workspace.enabled: true
 # This publishes the Application Usage and UI Metrics into the saved object, which can be accessed by /api/stats?extended=true&legacy=true&exclude_usage=false
 # usageCollection.uiMetric.enabled: false
 
-# Set the value to true to enable enhancements for the data plugin
-# data.enhancements.enabled: false
+# Set the backend roles in groups or users, whoever has the backend roles or exactly match the user ids defined in this config will be regard as dashboard admin.
+# Dashboard admin will have the access to all the workspaces(workspace.enabled: true) and objects inside OpenSearch Dashboards.
+# opensearchDashboards.dashboardAdmin.groups: ["dashboard_admin"]
+# opensearchDashboards.dashboardAdmin.users: ["dashboard_admin"]
+
+# Set the backend roles in groups, whoever has the backend roles defined in this config will be regard as dataSourceAdmin.
+# DataSource Admin will have the access to all the data source saved objects inside OpenSearch Dashboards by api.
+data_source_management.dataSourceAdmin.groups: ["${CONTROL_PLANE_SPN}"]
 
 # Set the value of this setting to true to turn on dashboard assistant
 # assistant.chat.enabled: true
+# assistant.enabled: ${ASSISTANT_ENABLED}
 
-# Set the value of the following settings to true to enable OpenSearch Flow in dashboards
-# flowFrameworkDashboards.enabled: false
- 
+
+# Set the value of this settings to true to turn on OpenSearch Flow
+# flowFrameworkDashboards.enabled: ${OPENSEARCHFLOW_ENABLED}
+
+# Set the value of the following settings to true to turn features on dashboard assistant
+# assistant.text2viz.enabled: ${TEXT2VIZ_ENABLED}
+# assistant.alertInsight.enabled: ${ALERTINSIGHT_ENABLED}
+# assistant.smartAnomalyDetector.enabled: ${SMARTANOMALYDETECTOR_ENABLED}
+queryEnhancements.queryAssist.summary.enabled: ${DISCOVER_SUMMARY_ENABLED}
+# Set the logo icon of assistant branding
+# assistant.branding.logo:
+  # gray: '/ui/logos/amazon_q_gray.svg'
+  # gradient: '/ui/logos/amazon_q_gradient.svg'
+
+# Setting this value to enable metrics recorder plugin to publish metrics to CloudWatch
+# metricsRecorder.record.enabled: ${METRICS_REPORTING_ENABLED}
+
 # Setting this value does not disable dynamic config service but its client will always return static yaml configs
 dynamic_config_service.enabled: true
 dynamic_config_service.skipMigrations: true
@@ -383,21 +409,19 @@ dynamic_config_service.skipMigrations: true
 # Neo specific configuration
 dashboardsPlugin.enabled: true
 migrations.skip: true
+dashboardsPlugin.validateJwt: ${VALIDATE_JWT}
+dashboardsPlugin.cpOnlyDataSourceManagement: ${CP_ONLY_DATA_SOURCE_MANAGEMENT}
+dashboardsPlugin.dqsEnabled: ${DQS_ENABLED}
+data.savedQueriesNewUI.enabled: ${SAVED_QUERIES_NEW_UI_ENABLED}
 
 # Minimal CSP rules that are appended to existing S3 customer configs
 # dashboardsPlugin.app_config.base_csp_rules: ["base-uri 'self'", "connect-src 'self' vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org", "default-src 'self' data:", "font-src 'self'", "frame-ancestors 'self'", "img-src data: 'self' tiles.maps.opensearch.org", "object-src 'none'", "script-src 'unsafe-eval' 'self'", "style-src 'unsafe-inline' 'self'", "worker-src blob: 'self'"]
- 
-# Config content-security-policy directives (fallback in case customer configs are not set in S3)
-csp.rules: ["base-uri 'self'","connect-src 'self' tiles.maps.opensearch.org vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' https://*.console.aws-dev.amazon.com https://*.console.aws.amazon.com https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","img-src data: 'self' tiles.maps.opensearch.org;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
- 
-vis_type_timeline.enabled: false
 
-# Set the backend roles in groups or users, whoever has the backend roles or exactly match the user ids defined in this config will be regard as dashboard admin.
-# Dashboard admin will have the access to all the workspaces(workspace.enabled: true) and objects inside OpenSearch Dashboards.
-# The default config is [], and no one will be dashboard admin.
-# If the user config is set to wildcard ["*"], anyone will be dashboard admin.
-opensearchDashboards.dashboardAdmin.groups: ["svc:aosd.aws.internal"]
-# opensearchDashboards.dashboardAdmin.users: ["dashboard_admin"]
+# Config content-security-policy directives (fallback in case customer configs are not set in S3)
+csp.rules: ["base-uri 'self'","connect-src 'self' ${CSP_RULE_CONNECT_SRC};","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' ${CSP_RULE_FRAME_ANCESTOR};","img-src data: 'self' tiles.maps.opensearch.org tiles.maps.search-services.aws.a2z.com;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
+
+
+#vis_type_timeline.enabled: false
 
 # Settings to enable ultrawarm and leviathan so that storage plugin can work.
 # opensearch_index_management.leviathan_enabled: true
@@ -405,6 +429,6 @@ opensearchDashboards.dashboardAdmin.groups: ["svc:aosd.aws.internal"]
 # storage.leviathan_enabled: true
 # storage.ultrawarm_enabled: true
 
-
-# Set the value to true to enable the new UI for savedQueries in Discover
-# data.savedQueriesNewUI.enabled: true
+# Server timeout setting
+server.keepaliveTimeout: 300000
+server.socketTimeout: 300000

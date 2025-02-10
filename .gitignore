@@ -36,6 +36,7 @@ disabledPlugins
 webpackstats.json
 /config/*
 !/config/opensearch_dashboards.yml
+!/config/opensearch_dashboards.yml.template
 !/config/node.options
 coverage
 selenium

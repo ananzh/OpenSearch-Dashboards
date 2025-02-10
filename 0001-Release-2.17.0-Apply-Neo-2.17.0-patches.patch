@@ -1,0 +1,1275 @@
+From 2505a734ce7414229a560aff6cda6dd52cb98366 Mon Sep 17 00:00:00 2001
+From: Zilong Xia <zilongx@amazon.com>
+Date: Mon, 9 Sep 2024 01:40:19 +0000
+Subject: [PATCH] [Neo Release 2.17.0] Apply neo patches for 2.17.0
+
+SIM: https://i.amazon.com/P152985048
+cr: https://code.amazon.com/reviews/CR-147763234
+---
+ .gitignore                                    |   1 +
+ Config                                        |  37 ++
+ build-tools/bin/custom-build                  |  10 +
+ config/opensearch_dashboards.yml              |  52 ++-
+ config/opensearch_dashboards.yml.template     | 392 ++++++++++++++++++
+ package.json                                  |  10 +-
+ .../osd-optimizer/src/optimizer/cache_keys.ts |  27 +-
+ .../src/optimizer/get_changes.test.ts         |  74 ----
+ .../src/optimizer/get_changes.ts              |  74 ----
+ packages/osd-pm/dist/index.js                 |   5 +-
+ packages/osd-pm/src/commands/bootstrap.ts     |  29 --
+ scripts/start_dashboards.sh                   |  20 +
+ src/core/server/config/utils/utils.ts         |   1 +
+ src/dev/build/lib/get_build_number.test.ts    |   2 +-
+ src/dev/build/lib/version_info.ts             |   2 -
+ .../server/client/configure_client.ts         |   2 +-
+ yarn.lock                                     | 128 +++++-
+ 17 files changed, 630 insertions(+), 236 deletions(-)
+ create mode 100644 Config
+ create mode 100755 build-tools/bin/custom-build
+ create mode 100644 config/opensearch_dashboards.yml.template
+ delete mode 100644 packages/osd-optimizer/src/optimizer/get_changes.test.ts
+ delete mode 100644 packages/osd-optimizer/src/optimizer/get_changes.ts
+ create mode 100644 scripts/start_dashboards.sh
+
+diff --git a/.gitignore b/.gitignore
+index f62e798ad6..4c9e8b7620 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -33,6 +33,7 @@ disabledPlugins
+ webpackstats.json
+ /config/*
+ !/config/opensearch_dashboards.yml
++!/config/opensearch_dashboards.yml.template
+ !/config/node.options
+ coverage
+ selenium
+diff --git a/Config b/Config
+new file mode 100644
+index 0000000000..f98539038f
+--- /dev/null
++++ b/Config
+@@ -0,0 +1,37 @@
++package.OpenSearch-Dashboards = {
++    interfaces = (neo_2.17.0);
++
++    build-system = custom-build;
++    build-tools = {
++        neo_2.17.0 = {
++        };
++    };
++
++    # Use runtime-dependencies for when you want to bring in additional
++    # packages when deploying.
++    # Use dependencies instead if you intend for these dependencies to
++    # be exported to other packages that build against you.
++    dependencies = {
++        neo_2.17.0 = {
++            NeoDashboardsPlugin = neo_2.17.0;
++            # AWSOpenSearchDashboardsMapsPlugin = neo_2.17.0;
++            # AWSOpenSearchDashboardsSearchRelevancePlugin = neo_2.17.0;
++            # AWSOpenSearchDashboardsMLCommonsPlugin = neo_2.17.0;
++            # AWSOpenSearchNotificationsDashboards = neo_2.17.0;
++            # AWSSearchServices-KibanaADPlugin = neo_2.17.0;
++            # AWSSearchServicesKibanaAlertingPlugin = neo_2.17.0;
++            # AWSSearchServicesKibanaSecurityAnalyticsPlugin = neo_2.17.0;
++            # AWSSearchServicesKibanaStoragePlugin = neo_2.17.0;
++            # AWSSearchServicesSQLWorkbenchUIPlugin = neo_2.17.0;
++            # Opendistro-index-management-kibana-plugin = neo_2.17.0;
++            # Security-dashboards-plugin= neo_2.17.0;
++            # Insights-Observability-Kibana-Plugin = neo_2.17.0;
++        };
++    };
++
++    runtime-dependencies = {
++        neo_2.17.0= {
++        };
++    };
++
++};
+\ No newline at end of file
+diff --git a/build-tools/bin/custom-build b/build-tools/bin/custom-build
+new file mode 100755
+index 0000000000..1e13a2346d
+--- /dev/null
++++ b/build-tools/bin/custom-build
+@@ -0,0 +1,10 @@
++#!/bin/bash
++set -o errexit
++set -o pipefail
++
++echo "copy OSD Core source code to build folder"
++
++rm -rf build/opensearch-dashboards-core
++mkdir -p build/opensearch-dashboards-core
++
++rsync -arv . build/opensearch-dashboards-core --exclude=".git"
+\ No newline at end of file
+diff --git a/config/opensearch_dashboards.yml b/config/opensearch_dashboards.yml
+index dae3c6aee0..7e3189ab48 100644
+--- a/config/opensearch_dashboards.yml
++++ b/config/opensearch_dashboards.yml
+@@ -4,7 +4,7 @@
+ # Specifies the address to which the OpenSearch Dashboards server will bind. IP addresses and host names are both valid values.
+ # The default is 'localhost', which usually means remote machines will not be able to connect.
+ # To allow connections from remote users, set this parameter to a non-loopback address.
+-#server.host: "localhost"
++server.host: 0.0.0.0
+ 
+ # Enables you to specify a path to mount OpenSearch Dashboards at if you are running behind a proxy.
+ # Use the `server.rewriteBasePath` setting to tell OpenSearch Dashboards if it should remove the basePath
+@@ -23,7 +23,7 @@
+ #server.name: "your-hostname"
+ 
+ # The URLs of the OpenSearch instances to use for all your queries.
+-#opensearch.hosts: ["http://localhost:9200"]
++opensearch.hosts: []
+ 
+ # OpenSearch Dashboards uses an index in OpenSearch to store saved searches, visualizations and
+ # dashboards. OpenSearch Dashboards creates a new index if the index doesn't already exist.
+@@ -268,9 +268,9 @@
+ # vis_builder.enabled: false
+ 
+ # Set the value of this setting to true to enable multiple data source feature.
+-#data_source.enabled: false
++data_source.enabled: true
+ # Set the value of this setting to true to hide local cluster in data source feature.
+-#data_source.hideLocalCluster: false
++data_source.hideLocalCluster: true
+ # Set the value of these settings to customize crypto materials to encryption saved credentials
+ # in data sources.
+ #data_source.encryption.wrappingKeyName: 'changeme'
+@@ -313,13 +313,13 @@
+ # Set enabled false to hide authentication method in OpenSearch Dashboards.
+ # If this setting is commented then all 3 options will be available in OpenSearch Dashboards.
+ # Default value will be considered to True.
+-#data_source.authTypes:
+-#   NoAuthentication:
+-#     enabled: true
+-#   UsernamePassword:
+-#     enabled: true
+-#   AWSSigV4:
+-#     enabled: true
++data_source.authTypes:
++  NoAuthentication:
++    enabled: false
++  UsernamePassword:
++    enabled: false
++  AWSSigV4:
++    enabled: false
+ 
+ # Optional setting that controls the permissions of data source to create, update and delete.
+ # "none": The data source is readonly for all users.
+@@ -343,12 +343,12 @@
+ # Set the value to true to enable permission control for saved objects
+ # Permission control depends on OpenSearch Dashboards has authentication enabled, set it to false when the security plugin is not installed,
+ # if the security plugin is not installed and this config is true, permission control takes no effect.
+-# savedObjects.permission.enabled: true
++savedObjects.permission.enabled: true
+ 
+ # Set the value to true to enable workspace feature
+ # Please note, workspace will not work with multi-tenancy. To enable workspace feature, you need to disable multi-tenancy first with `opensearch_security.multitenancy.enabled: false`
+ # Please uncomment below uiSettings to enable new home/navigation experience when workspace is enabled
+-# workspace.enabled: false
++workspace.enabled: true
+ # uiSettings:
+ #   overrides:
+ #     "home:useNewHomePage": true
+@@ -372,4 +372,28 @@
+ # Set the backend roles in groups or users, whoever has the backend roles or exactly match the user ids defined in this config will be regard as dashboard admin.
+ # Dashboard admin will have the access to all the workspaces(workspace.enabled: true) and objects inside OpenSearch Dashboards.
+ # opensearchDashboards.dashboardAdmin.groups: ["dashboard_admin"]
+-# opensearchDashboards.dashboardAdmin.users: ["dashboard_admin"]
+\ No newline at end of file
++# opensearchDashboards.dashboardAdmin.users: ["dashboard_admin"]
++
++# Set the value of this setting to true to turn on dashboard assistant
++# assistant.chat.enabled: true
++
++# Setting this value does not disable dynamic config service but its client will always return static yaml configs
++dynamic_config_service.enabled: true
++
++# Neo specific configuration
++dashboardsPlugin.enabled: true
++migrations.skip: true
++
++# Minimal CSP rules that are appended to existing S3 customer configs
++# dashboardsPlugin.app_config.base_csp_rules: ["base-uri 'self'", "connect-src 'self' vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org", "default-src 'self' data:", "font-src 'self'", "frame-ancestors 'self'", "img-src data: 'self' tiles.maps.opensearch.org", "object-src 'none'", "script-src 'unsafe-eval' 'self'", "style-src 'unsafe-inline' 'self'", "worker-src blob: 'self'"]
++
++# Config content-security-policy directives (fallback in case customer configs are not set in S3)
++csp.rules: ["base-uri 'self'","connect-src 'self' tiles.maps.opensearch.org vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' https://*.console.aws-dev.amazon.com https://*.console.aws.amazon.com https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","img-src data: 'self' tiles.maps.opensearch.org;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
++
++vis_type_timeline.enabled: false
++
++# Settings to enable ultrawarm and leviathan so that storage plugin can work.
++opensearch_index_management.leviathan_enabled: true
++opensearch_index_management.ultrawarm_enabled: true
++storage.leviathan_enabled: true
++storage.ultrawarm_enabled: true
+diff --git a/config/opensearch_dashboards.yml.template b/config/opensearch_dashboards.yml.template
+new file mode 100644
+index 0000000000..6902c80376
+--- /dev/null
++++ b/config/opensearch_dashboards.yml.template
+@@ -0,0 +1,392 @@
++# OpenSearch Dashboards is served by a back end server. This setting specifies the port to use.
++#server.port: 5601
++
++# Specifies the address to which the OpenSearch Dashboards server will bind. IP addresses and host names are both valid values.
++# The default is 'localhost', which usually means remote machines will not be able to connect.
++# To allow connections from remote users, set this parameter to a non-loopback address.
++server.host: 0.0.0.0
++
++# Enables you to specify a path to mount OpenSearch Dashboards at if you are running behind a proxy.
++# Use the `server.rewriteBasePath` setting to tell OpenSearch Dashboards if it should remove the basePath
++# from requests it receives, and to prevent a deprecation warning at startup.
++# This setting cannot end in a slash.
++#server.basePath: ""
++
++# Specifies whether OpenSearch Dashboards should rewrite requests that are prefixed with
++# `server.basePath` or require that they are rewritten by your reverse proxy.
++#server.rewriteBasePath: false
++
++# The maximum payload size in bytes for incoming server requests.
++#server.maxPayloadBytes: 1048576
++
++# The OpenSearch Dashboards server's name.  This is used for display purposes.
++#server.name: "your-hostname"
++
++# The URLs of the OpenSearch instances to use for all your queries.
++opensearch.hosts: []
++
++# OpenSearch Dashboards uses an index in OpenSearch to store saved searches, visualizations and
++# dashboards. OpenSearch Dashboards creates a new index if the index doesn't already exist.
++#opensearchDashboards.index: ".opensearch_dashboards"
++
++# OpenSearch Dashboards uses an index in OpenSearch to store dynamic configurations.
++# This shall be a different index from opensearchDashboards.index.
++# opensearchDashboards.configIndex: ".opensearch_dashboards_config"
++
++# Set the value of this setting to true to enable plugin application config. By default it is disabled.
++# application_config.enabled: false
++
++# Set the value of this setting to true to enable plugin CSP handler. By default it is disabled.
++# It requires the application config plugin as its dependency.
++# csp_handler.enabled: false
++
++# The default application to load.
++#opensearchDashboards.defaultAppId: "home"
++
++# Set the value to true to disable the welcome screen
++#home.disableWelcomeScreen: false
++
++# Set the value to true to disable the new theme introduction modal
++#home.disableNewThemeModal: false
++
++# Setting for an optimized healthcheck that only uses the local OpenSearch node to do Dashboards healthcheck.
++# This settings should be used for large clusters or for clusters with ingest heavy nodes.
++# It allows Dashboards to only healthcheck using the local OpenSearch node rather than fan out requests across all nodes.
++#
++# It requires the user to create an OpenSearch node attribute with the same name as the value used in the setting
++# This node attribute should assign all nodes of the same cluster an integer value that increments with each new cluster that is spun up
++# e.g. in opensearch.yml file you would set the value to a setting using node.attr.cluster_id:
++# Should only be enabled if there is a corresponding node attribute created in your OpenSearch config that matches the value here
++#opensearch.optimizedHealthcheck.id: "cluster_id"
++#opensearch.optimizedHealthcheck.filters: {
++#  attribute_key: "attribute_value",
++#}
++
++# If your OpenSearch is protected with basic authentication, these settings provide
++# the username and password that the OpenSearch Dashboards server uses to perform maintenance on the OpenSearch Dashboards
++# index at startup. Your OpenSearch Dashboards users still need to authenticate with OpenSearch, which
++# is proxied through the OpenSearch Dashboards server.
++#opensearch.username: "opensearch_dashboards_system"
++#opensearch.password: "pass"
++
++# Enables SSL and paths to the PEM-format SSL certificate and SSL key files, respectively.
++# These settings enable SSL for outgoing requests from the OpenSearch Dashboards server to the browser.
++#server.ssl.enabled: false
++#server.ssl.certificate: /path/to/your/server.crt
++#server.ssl.key: /path/to/your/server.key
++
++# Optional settings that provide the paths to the PEM-format SSL certificate and key files.
++# These files are used to verify the identity of OpenSearch Dashboards to OpenSearch and are required when
++# xpack.security.http.ssl.client_authentication in OpenSearch is set to required.
++#opensearch.ssl.certificate: /path/to/your/client.crt
++#opensearch.ssl.key: /path/to/your/client.key
++
++# Optional setting that enables you to specify a path to the PEM file for the certificate
++# authority for your OpenSearch instance.
++#opensearch.ssl.certificateAuthorities: [ "/path/to/your/CA.pem" ]
++
++# To disregard the validity of SSL certificates, change this setting's value to 'none'.
++#opensearch.ssl.verificationMode: full
++
++# Allowed cipher suites list can be configured below, in preference order.
++# Cipher suite names should be in OpenSSL format (https://www.openssl.org/docs/man1.1.1/man1/ciphers.html#CIPHER-SUITE-NAMES)
++# Default set of cipher suites for your system can be checked by running the following command in your terminal:
++# echo 'console.log(require("crypto").constants.defaultCoreCipherList.split(":"))' | node -
++# Below you can find an example of cipher suites considered to be secure
++# Keep in mind that older clients might not support them
++# Refer to https://ciphersuite.info/ and https://ssl-config.mozilla.org/ for more details and recommendations about cipher suites
++# Keep in mind that restricting cipher suites might disable older versions of TLS, as not all cipher suites are supported by them
++#server.ssl.cipherSuites:
++#  - TLS_AES_256_GCM_SHA384
++#  - TLS_CHACHA20_POLY1305_SHA256
++#  - TLS_AES_128_GCM_SHA256
++#  - ECDHE-ECDSA-AES256-GCM-SHA384
++#  - ECDHE-ECDSA-CHACHA20-POLY1305
++#  - ECDHE-ECDSA-AES128-GCM-SHA256
++
++# Time in milliseconds to wait for OpenSearch to respond to pings. Defaults to the value of
++# the opensearch.requestTimeout setting.
++#opensearch.pingTimeout: 1500
++
++# Time in milliseconds to wait for responses from the back end or OpenSearch. This value
++# must be a positive integer.
++#opensearch.requestTimeout: 30000
++
++# Enables the memory circuit breaker that prevents heap out of memory errors for large query responses.
++# If enabled, we will provide additional check to prevent potential out of memory error in @openserach-project/opensearch.
++# The default threshold is based on the `max-old-space-size` of NodeJS. It is configurable by tuning `opensearch.memoryCircuitBreaker.maxPercentage`.
++#opensearch.memoryCircuitBreaker.enabled: false
++
++# The pecentage of maximum heap allowed for processing response. The default value of the pecentage is `1.0`. The valid input range should be [0, 1] inclusively.
++# For reference, the `threshold of memoryCircuitBreaker` = `max-old-space-size of NodeJS` * `opensearch.memoryCircuitBreaker.maxPercentage`
++#opensearch.memoryCircuitBreaker.maxPercentage: 1.0
++
++# DEPRECATED: Use opensearch.requestHeadersAllowlist
++# List of OpenSearch Dashboards client-side headers to send to OpenSearch. To send *no* client-side
++# headers, set this value to [] (an empty list).
++#opensearch.requestHeadersWhitelist: [ authorization ]
++
++# List of OpenSearch Dashboards client-side headers to send to OpenSearch. To send *no* client-side
++# headers, set this value to [] (an empty list).
++#opensearch.requestHeadersAllowlist: [ authorization ]
++
++# Header names and values that are sent to OpenSearch. Any custom headers cannot be overwritten
++# by client-side headers, regardless of the opensearch.requestHeadersAllowlist configuration.
++#opensearch.customHeaders: {}
++
++# Time in milliseconds for OpenSearch to wait for responses from shards. Set to 0 to disable.
++#opensearch.shardTimeout: 30000
++
++# Logs queries sent to OpenSearch. Requires logging.verbose set to true.
++#opensearch.logQueries: false
++
++# Disables errors from the OpenSearch JS client and enables you to utilize protected words such as: 'boolean', 'proto', 'constructor'.
++# within cluster. By default, OpenSearch Dashboards and the client will protect you against prototype poisoning attacks.
++# WARNING: Index patterns are user-supplied data. Disabling this will place the expectation that you are handling the data safely.
++#opensearch.disablePrototypePoisoningProtection: false
++
++# Specifies the path where OpenSearch Dashboards creates the process ID file.
++#pid.file: /var/run/opensearchDashboards.pid
++
++# Enables you to specify a file where OpenSearch Dashboards stores log output.
++#logging.dest: stdout
++
++# This configuration option controls the handling of error messages in the logging stream. It is disabled by default.
++# When set to true, the 'ENOSPC' error message will not cause the OpenSearch Dashboards process to crash. Otherwise,
++# the original behavior will be maintained.
++#logging.ignoreEnospcError: false
++
++# Set the value of this setting to true to suppress all logging output.
++#logging.silent: false
++
++# Set the value of this setting to true to suppress all logging output other than error messages.
++#logging.quiet: false
++
++# Set the value of this setting to true to log all events, including system usage information
++# and all requests.
++#logging.verbose: false
++
++# Set the interval in milliseconds to sample system and process performance
++# metrics. Minimum is 100ms. Defaults to 5000.
++#ops.interval: 5000
++
++# Specifies locale to be used for all localizable strings, dates and number formats.
++# Supported languages are the following: English - en , by default , Chinese - zh-CN .
++#i18n.locale: "en"
++
++# Set the allowlist to check input graphite Url. Allowlist is the default check list.
++#vis_type_timeline.graphiteAllowedUrls: ['https://www.hostedgraphite.com/UID/ACCESS_KEY/graphite']
++
++# Set the denylist to check input graphite Url. Denylist is an IP list.
++# Below is an example for reference
++
++# vis_type_timeline.graphiteBlockedIPs: [
++#  //Loopback
++#  '127.0.0.0/8',
++#  '::1/128',
++#  //Link-local Address for IPv6
++#  'fe80::/10',
++#  //Private IP address for IPv4
++#  '10.0.0.0/8',
++#  '172.16.0.0/12',
++#  '192.168.0.0/16',
++#  //Unique local address (ULA)
++#  'fc00::/7',
++#  //Reserved IP address
++#  '0.0.0.0/8',
++#  '100.64.0.0/10',
++#  '192.0.0.0/24',
++#  '192.0.2.0/24',
++#  '198.18.0.0/15',
++#  '192.88.99.0/24',
++#  '198.51.100.0/24',
++#  '203.0.113.0/24',
++#  '224.0.0.0/4',
++#  '240.0.0.0/4',
++#  '255.255.255.255/32',
++#  '::/128',
++#  '2001:db8::/32',
++#  'ff00::/8',
++# ]
++
++# vis_type_timeline.graphiteDeniedIPs: []
++
++# vis_type_timeline.graphiteDeniedIPs: [
++#  //Loopback
++#  '127.0.0.0/8',
++#  '::1/128',
++#  //Link-local Address for IPv6
++#  'fe80::/10',
++#  //Private IP address for IPv4
++#  '10.0.0.0/8',
++#  '172.16.0.0/12',
++#  '192.168.0.0/16',
++#  //Unique local address (ULA)
++#  'fc00::/7',
++#  //Reserved IP address
++#  '0.0.0.0/8',
++#  '100.64.0.0/10',
++#  '192.0.0.0/24',
++#  '192.0.2.0/24',
++#  '198.18.0.0/15',
++#  '192.88.99.0/24',
++#  '198.51.100.0/24',
++#  '203.0.113.0/24',
++#  '224.0.0.0/4',
++#  '240.0.0.0/4',
++#  '255.255.255.255/32',
++#  '::/128',
++#  '2001:db8::/32',
++#  'ff00::/8',
++# ]
++
++# opensearchDashboards.branding:
++#   logo:
++#     defaultUrl: ""
++#     darkModeUrl: ""
++#   mark:
++#     defaultUrl: ""
++#     darkModeUrl: ""
++#   loadingLogo:
++#     defaultUrl: ""
++#     darkModeUrl: ""
++#   faviconUrl: ""
++#   applicationTitle: ""
++#   useExpandedHeader: false
++
++# Set the value of this setting to true to capture region denied warnings and errors
++# for your map rendering services.
++
++# map.showRegionDeniedWarning: false
++
++# Set the value of this setting to false to suppress search usage telemetry
++# for reducing the load of OpenSearch cluster.
++# data.search.usageTelemetry.enabled: false
++
++# Set the value of this setting to false to disable VisBuilder
++# functionality in Visualization.
++# vis_builder.enabled: false
++
++# Set the value of this setting to true to enable multiple data source feature.
++data_source.enabled: true
++# Set the value of this setting to true to hide local cluster in data source feature.
++data_source.hideLocalCluster: true
++# Set the value of these settings to customize crypto materials to encryption saved credentials
++# in data sources.
++#data_source.encryption.wrappingKeyName: 'changeme'
++#data_source.encryption.wrappingKeyNamespace: 'changeme'
++#data_source.encryption.wrappingKey: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
++
++#data_source.endpointDeniedIPs: [
++#    '127.0.0.0/8',
++#    '::1/128',
++#    '169.254.0.0/16',
++#    'fe80::/10',
++#    '10.0.0.0/8',
++#    '172.16.0.0/12',
++#    '192.168.0.0/16',
++#    'fc00::/7',
++#    '0.0.0.0/8',
++#    '100.64.0.0/10',
++#    '192.0.0.0/24',
++#    '192.0.2.0/24',
++#    '198.18.0.0/15',
++#    '192.88.99.0/24',
++#    '198.51.100.0/24',
++#    '203.0.113.0/24',
++#    '224.0.0.0/4',
++#    '240.0.0.0/4',
++#    '255.255.255.255/32',
++#    '::/128',
++#    '2001:db8::/32',
++#    'ff00::/8',
++# ]
++
++# Optional setting that enables you to specify a path to PEM files for the certificate
++# authority for your connected datasources.
++#data_source.ssl.certificateAuthorities: [ "/path/to/your/CA.pem" ]
++
++# To disregard the validity of SSL certificates for connected data sources, change this setting's value to 'none'.
++# Possible values include full, certificate and none
++#data_source.ssl.verificationMode: full
++
++# Set enabled false to hide authentication method in OpenSearch Dashboards.
++# If this setting is commented then all 3 options will be available in OpenSearch Dashboards.
++# Default value will be considered to True.
++data_source.authTypes:
++  NoAuthentication:
++    enabled: false
++  UsernamePassword:
++    enabled: false
++  AWSSigV4:
++    enabled: false
++
++# Optional setting that controls the permissions of data source to create, update and delete.
++# "none": The data source is readonly for all users.
++# "dashboard_admin": The data source can only be managed by dashboard admin.
++# "all": The data source can be managed by all users. Default to "all".
++data_source_management.manageableBy: ${DATA_SOURCE_MANAGEMENT_MANAGEABLE_BY}
++
++# Set the value of this setting to false to hide the help menu link to the OpenSearch Dashboards user survey
++# opensearchDashboards.survey.url: "https://survey.opensearch.org"
++
++# @experimental Set the value of this setting to display navigation updates, including dev tool top right navigation
++# opensearchDashboards.futureNavigation: false
++
++# Set the value of this setting to true to enable plugin augmentation
++# vis_augmenter.pluginAugmentationEnabled: true
++
++# Set the value to true to enable permission control for saved objects
++# Permission control depends on OpenSearch Dashboards has authentication enabled, set it to false when the security plugin is not installed,
++# if the security plugin is not installed and this config is true, permission control takes no effect.
++savedObjects.permission.enabled: true
++
++# Set the value to true to enable workspace feature
++# Please note, workspace will not work with multi-tenancy. To enable workspace feature, you need to disable multi-tenancy first with `opensearch_security.multitenancy.enabled: false`
++# Please uncomment below uiSettings to enable new home/navigation experience when workspace is enabled
++workspace.enabled: true
++uiSettings:
++   overrides:
++     "home:useNewHomePage": true
++
++# Optional settings to specify saved object types to be deleted during migration.
++# This feature can help address compatibility issues that may arise during the migration of saved objects, such as types defined by legacy applications.
++# Please note, using this feature carries a risk. Deleting saved objects during migration could potentially lead to unintended data loss. Use with caution.
++# migrations.delete.enabled: false
++# migrations.delete.types: []
++
++# Set the value to true to enable Ui Metric Collectors in Usage Collector
++# This publishes the Application Usage and UI Metrics into the saved object, which can be accessed by /api/stats?extended=true&legacy=true&exclude_usage=false
++# usageCollection.uiMetric.enabled: false
++
++# Set the backend roles in groups or users, whoever has the backend roles or exactly match the user ids defined in this config will be regard as dashboard admin.
++# Dashboard admin will have the access to all the workspaces(workspace.enabled: true) and objects inside OpenSearch Dashboards.
++# opensearchDashboards.dashboardAdmin.groups: ["dashboard_admin"]
++# opensearchDashboards.dashboardAdmin.users: ["dashboard_admin"]
++
++# Set the value of this setting to true to turn on dashboard assistant
++# assistant.chat.enabled: true
++
++# Setting this value does not disable dynamic config service but its client will always return static yaml configs
++dynamic_config_service.enabled: true
++
++# Neo specific configuration
++dashboardsPlugin.enabled: true
++migrations.skip: true
++dashboardsPlugin.validateJwt: ${VALIDATE_JWT}
++dashboardsPlugin.cpOnlyDataSourceManagement: ${CP_ONLY_DATA_SOURCE_MANAGEMENT}
++
++# Minimal CSP rules that are appended to existing S3 customer configs
++# dashboardsPlugin.app_config.base_csp_rules: ["base-uri 'self'", "connect-src 'self' vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org", "default-src 'self' data:", "font-src 'self'", "frame-ancestors 'self'", "img-src data: 'self' tiles.maps.opensearch.org", "object-src 'none'", "script-src 'unsafe-eval' 'self'", "style-src 'unsafe-inline' 'self'", "worker-src blob: 'self'"]
++
++# Config content-security-policy directives (fallback in case customer configs are not set in S3)
++csp.rules: ["base-uri 'self'","connect-src 'self' ${CSP_RULE_CONNECT_SRC};","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' ${CSP_RULE_FRAME_ANCESTOR};","img-src data: 'self' tiles.maps.opensearch.org;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
++
++
++#vis_type_timeline.enabled: false
++
++# Settings to enable ultrawarm and leviathan so tha t storage plugin can work.
++opensearch_index_management.leviathan_enabled: true
++opensearch_index_management.ultrawarm_enabled: true
++storage.leviathan_enabled: true
++storage.ultrawarm_enabled: true
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index 56bef8bb1c..a99c6fb309 100644
+--- a/package.json
++++ b/package.json
+@@ -63,7 +63,7 @@
+     "start": "scripts/use_node scripts/opensearch_dashboards --dev",
+     "start:docker": "scripts/use_node scripts/opensearch_dashboards --dev --opensearch.hosts=$OPENSEARCH_HOSTS --opensearch.ignoreVersionMismatch=true --server.host=$SERVER_HOST",
+     "start:security": "scripts/use_node scripts/opensearch_dashboards --dev --security",
+-    "start:enhancements": "scripts/use_node scripts/opensearch_dashboards --dev --uiSettings.overrides['query:enhancements:enabled']=true --uiSettings.overrides['home:useNewHomePage']=true",
++    "start:enhancements": "scripts/use_node scripts/opensearch_dashboards --dev --uiSettings.overrides['query:enhancements:enabled']=true --uiSettings.overrides['home:useNewHomePage']=true --uiSettings.overrides['state:storeInSessionStorage']=true",
+     "debug": "scripts/use_node --nolazy --inspect scripts/opensearch_dashboards --dev",
+     "debug-break": "scripts/use_node --nolazy --inspect-brk scripts/opensearch_dashboards --dev",
+     "lint": "yarn run lint:es && yarn run lint:style",
+@@ -74,7 +74,7 @@
+     "osd:watch": "scripts/use_node scripts/opensearch_dashboards --dev --logging.json=false",
+     "build:types": "scripts/use_node scripts/remove.js ./target/types && tsc --p tsconfig.types.json",
+     "docs:acceptApiChanges": "scripts/use_node --max-old-space-size=6144 scripts/check_published_api_changes.js --accept",
+-    "osd:bootstrap": "scripts/use_node scripts/build_ts_refs && scripts/use_node scripts/register_git_hook",
++    "osd:bootstrap": "scripts/use_node scripts/build_ts_refs",
+     "spec_to_console": "scripts/use_node scripts/spec_to_console",
+     "pkg-version": "scripts/use_node -e \"console.log(require('./package.json').version)\"",
+     "release_note:generate": "scripts/use_node scripts/generate_release_note",
+@@ -124,7 +124,8 @@
+     "**/minimatch": "^3.0.5",
+     "**/eslint-plugin-mocha-next/mocha": "npm:mocha@^10.1.0",
+     "**/xml2js": "^0.5.0",
+-    "**/yaml": "^2.2.2"
++    "**/yaml": "^2.2.2",
++    "**/typed-function": "4.1.1"
+   },
+   "workspaces": {
+     "packages": [
+@@ -256,6 +257,8 @@
+   "devDependencies": {
+     "@babel/core": "^7.22.9",
+     "@babel/parser": "^7.22.9",
++    "@babel/plugin-proposal-class-properties": "^7.16.5",
++    "@babel/plugin-proposal-object-rest-spread": "^7.16.5",
+     "@babel/plugin-transform-class-static-block": "^7.24.7",
+     "@babel/register": "^7.22.9",
+     "@babel/types": "^7.22.9",
+@@ -486,6 +489,7 @@
+     "tough-cookie": "^4.1.3",
+     "tree-kill": "^1.2.2",
+     "typescript": "4.0.2",
++    "ui-select": "0.19.8",
+     "vega": "^5.23.0",
+     "vega-interpreter": "npm:@amoo-miki/vega-forced-csp-compliant-interpreter@1.0.6",
+     "vega-lite": "^4.16.8",
+diff --git a/packages/osd-optimizer/src/optimizer/cache_keys.ts b/packages/osd-optimizer/src/optimizer/cache_keys.ts
+index 16efdea488..7ea59c8a13 100644
+--- a/packages/osd-optimizer/src/optimizer/cache_keys.ts
++++ b/packages/osd-optimizer/src/optimizer/cache_keys.ts
+@@ -32,8 +32,6 @@ import { dirname, resolve } from 'path';
+ import { readFile } from 'fs/promises';
+ 
+ import Chalk from 'chalk';
+-import execa from 'execa';
+-import { relativeToRepoRoot, REPO_ROOT } from '@osd/cross-platform';
+ import stripAnsi from 'strip-ansi';
+ 
+ import { diff } from 'jest-diff';
+@@ -41,11 +39,9 @@ import jsonStable from 'json-stable-stringify';
+ import { ascending, CacheableWorkerConfig } from '../common';
+ 
+ import { getMtimes } from './get_mtimes';
+-import { getChanges } from './get_changes';
+ import { OptimizerConfig } from './optimizer_config';
+ 
+ const OPTIMIZER_DIR = dirname(require.resolve('../../package.json'));
+-const RELATIVE_DIR = relativeToRepoRoot(OPTIMIZER_DIR)!;
+ 
+ export function diffCacheKey(expected?: unknown, actual?: unknown) {
+   const expectedJson = jsonStable(expected, {
+@@ -134,25 +130,12 @@ export function reformatJestDiff(jestDiff: string | null) {
+ }
+ 
+ export interface OptimizerCacheKey {
+-  readonly lastCommit: string | undefined;
+   readonly bootstrap: string | undefined;
+   readonly workerConfig: CacheableWorkerConfig;
+   readonly deletedPaths: string[];
+   readonly modifiedTimes: Record<string, number>;
+ }
+ 
+-async function getLastCommit() {
+-  const { stdout } = await execa(
+-    'git',
+-    ['log', '-n', '1', '--pretty=format:%H', '--', RELATIVE_DIR],
+-    {
+-      cwd: REPO_ROOT,
+-    }
+-  );
+-
+-  return stdout.trim() || undefined;
+-}
+-
+ async function getBootstrapCacheKey() {
+   try {
+     return await readFile(resolve(OPTIMIZER_DIR, 'target/.bootstrap-cache'), { encoding: 'utf8' });
+@@ -165,20 +148,12 @@ async function getBootstrapCacheKey() {
+ }
+ 
+ export async function getOptimizerCacheKey(config: OptimizerConfig) {
+-  const [changes, lastCommit, bootstrap] = await Promise.all([
+-    getChanges(OPTIMIZER_DIR),
+-    getLastCommit(),
+-    getBootstrapCacheKey(),
+-  ] as const);
++  const [bootstrap] = await Promise.all([getBootstrapCacheKey()] as const);
+ 
+   const deletedPaths: string[] = [];
+   const modifiedPaths: string[] = [];
+-  for (const [path, type] of changes) {
+-    (type === 'deleted' ? deletedPaths : modifiedPaths).push(path);
+-  }
+ 
+   const cacheKeys: OptimizerCacheKey = {
+-    lastCommit,
+     bootstrap,
+     deletedPaths,
+     modifiedTimes: {} as Record<string, number>,
+diff --git a/packages/osd-optimizer/src/optimizer/get_changes.test.ts b/packages/osd-optimizer/src/optimizer/get_changes.test.ts
+deleted file mode 100644
+index 6ccf686e43..0000000000
+--- a/packages/osd-optimizer/src/optimizer/get_changes.test.ts
++++ /dev/null
+@@ -1,74 +0,0 @@
+-/*
+- * SPDX-License-Identifier: Apache-2.0
+- *
+- * The OpenSearch Contributors require contributions made to
+- * this file be licensed under the Apache-2.0 license or a
+- * compatible open source license.
+- *
+- * Any modifications Copyright OpenSearch Contributors. See
+- * GitHub history for details.
+- */
+-
+-/*
+- * Licensed to Elasticsearch B.V. under one or more contributor
+- * license agreements. See the NOTICE file distributed with
+- * this work for additional information regarding copyright
+- * ownership. Elasticsearch B.V. licenses this file to you under
+- * the Apache License, Version 2.0 (the "License"); you may
+- * not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *    http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing,
+- * software distributed under the License is distributed on an
+- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+- * KIND, either express or implied.  See the License for the
+- * specific language governing permissions and limitations
+- * under the License.
+- */
+-
+-import path from 'path';
+-
+-jest.mock('execa');
+-
+-import { getChanges } from './get_changes';
+-import { standardize } from '@osd/cross-platform';
+-
+-const execa: jest.Mock = jest.requireMock('execa');
+-
+-it('parses git ls-files output', async () => {
+-  expect.assertions(4);
+-
+-  execa.mockImplementation((cmd, args, options) => {
+-    expect(cmd).toBe('git');
+-    expect(args).toEqual(['ls-files', '-dmt', '--', '/foo/bar/x']);
+-    expect(options).toEqual({
+-      cwd: '/foo/bar/x',
+-    });
+-
+-    return {
+-      stdout: [
+-        'C osd-optimizer/package.json',
+-        'C osd-optimizer/src/common/bundle.ts',
+-        'R osd-optimizer/src/common/bundles.ts',
+-        'C osd-optimizer/src/common/bundles.ts',
+-        'R osd-optimizer/src/get_bundle_definitions.test.ts',
+-        'C osd-optimizer/src/get_bundle_definitions.test.ts',
+-      ].join('\n'),
+-    };
+-  });
+-
+-  const rootPath = path.resolve('/foo/bar/x/osd-optimizer') + path.sep;
+-  const srcPath = path.join(rootPath, 'src') + path.sep;
+-  const commonPath = path.join(srcPath, 'common') + path.sep;
+-
+-  await expect(getChanges('/foo/bar/x')).resolves.toMatchInlineSnapshot(`
+-    Map {
+-      "${standardize(rootPath, false, true)}package.json" => "modified",
+-      "${standardize(commonPath, false, true)}bundle.ts" => "modified",
+-      "${standardize(commonPath, false, true)}bundles.ts" => "deleted",
+-      "${standardize(srcPath, false, true)}get_bundle_definitions.test.ts" => "deleted",
+-    }
+-  `);
+-});
+diff --git a/packages/osd-optimizer/src/optimizer/get_changes.ts b/packages/osd-optimizer/src/optimizer/get_changes.ts
+deleted file mode 100644
+index 3d0352c30f..0000000000
+--- a/packages/osd-optimizer/src/optimizer/get_changes.ts
++++ /dev/null
+@@ -1,74 +0,0 @@
+-/*
+- * SPDX-License-Identifier: Apache-2.0
+- *
+- * The OpenSearch Contributors require contributions made to
+- * this file be licensed under the Apache-2.0 license or a
+- * compatible open source license.
+- *
+- * Any modifications Copyright OpenSearch Contributors. See
+- * GitHub history for details.
+- */
+-
+-/*
+- * Licensed to Elasticsearch B.V. under one or more contributor
+- * license agreements. See the NOTICE file distributed with
+- * this work for additional information regarding copyright
+- * ownership. Elasticsearch B.V. licenses this file to you under
+- * the Apache License, Version 2.0 (the "License"); you may
+- * not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *    http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing,
+- * software distributed under the License is distributed on an
+- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+- * KIND, either express or implied.  See the License for the
+- * specific language governing permissions and limitations
+- * under the License.
+- */
+-
+-import Path from 'path';
+-
+-import execa from 'execa';
+-
+-export type Changes = Map<string, 'modified' | 'deleted'>;
+-
+-/**
+- * get the changes in all the context directories (plugin public paths)
+- */
+-export async function getChanges(dir: string) {
+-  const { stdout } = await execa('git', ['ls-files', '-dmt', '--', dir], {
+-    cwd: dir,
+-  });
+-
+-  const changes: Changes = new Map();
+-  const output = stdout.trim();
+-
+-  if (output) {
+-    for (const line of output.split('\n')) {
+-      const [tag, ...pathParts] = line.trim().split(' ');
+-      const path = Path.resolve(dir, pathParts.join(' '));
+-      switch (tag) {
+-        case 'M':
+-        case 'C':
+-          // for some reason ls-files returns deleted files as both deleted
+-          // and modified, so make sure not to overwrite changes already
+-          // tracked as "deleted"
+-          if (changes.get(path) !== 'deleted') {
+-            changes.set(path, 'modified');
+-          }
+-          break;
+-
+-        case 'R':
+-          changes.set(path, 'deleted');
+-          break;
+-
+-        default:
+-          throw new Error(`unexpected path status ${tag} for path ${path}`);
+-      }
+-    }
+-  }
+-
+-  return changes;
+-}
+diff --git a/packages/osd-pm/dist/index.js b/packages/osd-pm/dist/index.js
+index e3c3250acb..c6d48b77b7 100644
+--- a/packages/osd-pm/dist/index.js
++++ b/packages/osd-pm/dist/index.js
+@@ -9106,7 +9106,7 @@ const BootstrapCommand = exports.BootstrapCommand = {
+      * have to, as it will slow down the bootstrapping process.
+      */
+ 
+-    const checksums = await (0, _project_checksums.getAllChecksums)(osd, _log.log, yarnLock);
++    const checksums = new Map();
+     const caches = new Map();
+     let cachedProjectCount = 0;
+     for (const project of projects.values()) {
+@@ -40617,9 +40617,6 @@ class BootstrapCacheFile {
+     _defineProperty(this, "path", void 0);
+     _defineProperty(this, "expectedValue", void 0);
+     this.path = _path.default.resolve(project.targetLocation, '.bootstrap-cache');
+-    if (!checksums) {
+-      return;
+-    }
+     const projectAndDepCacheKeys = Array.from(osd.getProjectAndDeps(project.name).values())
+     // sort deps by name so that the key is stable
+     .sort((a, b) => a.name.localeCompare(b.name))
+diff --git a/packages/osd-pm/src/commands/bootstrap.ts b/packages/osd-pm/src/commands/bootstrap.ts
+index b3a0551f61..c2a93b8538 100644
+--- a/packages/osd-pm/src/commands/bootstrap.ts
++++ b/packages/osd-pm/src/commands/bootstrap.ts
+@@ -73,35 +73,6 @@ export const BootstrapCommand: ICommand = {
+ 
+     await linkProjectExecutables(projects, projectGraph);
+ 
+-    /**
+-     * At the end of the bootstrapping process we call all `osd:bootstrap` scripts
+-     * in the list of projects. We do this because some projects need to be
+-     * transpiled before they can be used. Ideally we shouldn't do this unless we
+-     * have to, as it will slow down the bootstrapping process.
+-     */
+-
+-    const checksums = await getAllChecksums(osd, log, yarnLock);
+-    const caches = new Map<Project, { file: BootstrapCacheFile; valid: boolean }>();
+-    let cachedProjectCount = 0;
+-
+-    for (const project of projects.values()) {
+-      if (project.hasScript('osd:bootstrap') || project.hasBuildTargets()) {
+-        const file = new BootstrapCacheFile(osd, project, checksums);
+-        const valid = options.cache && file.isValid();
+-
+-        if (valid) {
+-          log.debug(`[${project.name}] cache up to date`);
+-          cachedProjectCount += 1;
+-        }
+-
+-        caches.set(project, { file, valid });
+-      }
+-    }
+-
+-    if (cachedProjectCount > 0) {
+-      log.success(`${cachedProjectCount} bootstrap builds are cached`);
+-    }
+-
+     await parallelizeBatches(batchedProjects, async (project) => {
+       const cache = caches.get(project);
+       if (cache && !cache.valid) {
+diff --git a/scripts/start_dashboards.sh b/scripts/start_dashboards.sh
+new file mode 100644
+index 0000000000..d72247128b
+--- /dev/null
++++ b/scripts/start_dashboards.sh
+@@ -0,0 +1,20 @@
++#!/bin/sh
++set -e
++
++# Check if STAGE is "prod"
++if [ "$STAGE" = "alpha" ]; then
++  export VALIDATE_JWT="true"
++  export CP_ONLY_DATA_SOURCE_MANAGEMENT="false"
++else
++  export VALIDATE_JWT="false"
++  export CP_ONLY_DATA_SOURCE_MANAGEMENT="true"
++fi
++
++echo "setting environment variable VALIDATE_JWT to ${VALIDATE_JWT}"
++echo "setting environment variable CP_ONLY_DATA_SOURCE_MANAGEMENT to ${CP_ONLY_DATA_SOURCE_MANAGEMENT}"
++
++# Substitute environment variables in the OpenSearch Dashboards configuration file
++envsubst < "${OPENSEARCH_DASHBOARDS_HOME}"/config/opensearch_dashboards.yml.template > "${OPENSEARCH_DASHBOARDS_HOME}"/build/opensearch-dashboards/config/opensearch_dashboards.yml
++
++# Start the OpenSearch Dashboards
++"opensearch-dashboards"
+\ No newline at end of file
+diff --git a/src/core/server/config/utils/utils.ts b/src/core/server/config/utils/utils.ts
+index 46d992fbc3..2a6b4c83e5 100644
+--- a/src/core/server/config/utils/utils.ts
++++ b/src/core/server/config/utils/utils.ts
+@@ -62,6 +62,7 @@ export const createLocalStore = (logger: Logger, request: Request, headers: stri
+   return new Map(
+     headers.map((header: string) => {
+       try {
++        logger.info(`${header}: ${request.headers[header]}`);
+         return [header, request.headers[header]];
+       } catch (err) {
+         logger.warn(`Header ${header} not found in request`);
+diff --git a/src/dev/build/lib/get_build_number.test.ts b/src/dev/build/lib/get_build_number.test.ts
+index 3dc5d9d727..d8ecf02f0a 100644
+--- a/src/dev/build/lib/get_build_number.test.ts
++++ b/src/dev/build/lib/get_build_number.test.ts
+@@ -39,6 +39,6 @@ describe('getBuildNumber', () => {
+   // If test is ran on the CI, it only gets 1 commit
+   itif('returns git commit count', async () => {
+     const buildNumber = await getBuildNumber();
+-    expect(buildNumber).toBeGreaterThan(1000);
++    expect(buildNumber).toBeGreaterThan(20);
+   });
+ });
+diff --git a/src/dev/build/lib/version_info.ts b/src/dev/build/lib/version_info.ts
+index 218397e5bf..4aa490b30d 100644
+--- a/src/dev/build/lib/version_info.ts
++++ b/src/dev/build/lib/version_info.ts
+@@ -28,7 +28,6 @@
+  * under the License.
+  */
+ 
+-import execa from 'execa';
+ import { getBuildNumber } from './get_build_number';
+ 
+ interface Options {
+@@ -50,7 +49,6 @@ export async function getVersionInfo({ isRelease, versionQualifier, pkg }: Optio
+   );
+ 
+   return {
+-    buildSha: (await execa('git', ['rev-parse', 'HEAD'])).stdout,
+     buildVersion,
+     buildNumber: await getBuildNumber(),
+   };
+diff --git a/src/plugins/data_source/server/client/configure_client.ts b/src/plugins/data_source/server/client/configure_client.ts
+index 87b7bc3584..4cc25fc4c1 100644
+--- a/src/plugins/data_source/server/client/configure_client.ts
++++ b/src/plugins/data_source/server/client/configure_client.ts
+@@ -98,7 +98,7 @@ export const configureClient = async (
+       requireDecryption
+     );
+   } catch (error: any) {
+-    logger.debug(
++    logger.error(
+       `Failed to get data source client for dataSourceId: [${dataSourceId}]. ${error}: ${error.stack}`
+     );
+     // Re-throw as DataSourceError
+diff --git a/yarn.lock b/yarn.lock
+index 2fa99056db..ff2267df11 100644
+--- a/yarn.lock
++++ b/yarn.lock
+@@ -182,6 +182,11 @@
+     "@babel/highlight" "^7.24.7"
+     picocolors "^1.0.0"
+ 
++"@babel/compat-data@^7.20.5", "@babel/compat-data@^7.25.2":
++  version "7.25.4"
++  resolved "https://registry.yarnpkg.com/@babel/compat-data/-/compat-data-7.25.4.tgz#7d2a80ce229890edcf4cc259d4d696cb4dae2fcb"
++  integrity sha512-+LGRog6RAsCJrrrg/IO6LGmpphNe5DiK30dGjCoxxeGv49B10/3XYGxPsAwrDlMFcFEvdAUavDT8r9k/hSyQqQ==
++
+ "@babel/compat-data@^7.22.6", "@babel/compat-data@^7.22.9", "@babel/compat-data@^7.23.3":
+   version "7.23.3"
+   resolved "https://registry.yarnpkg.com/@babel/compat-data/-/compat-data-7.23.3.tgz#3febd552541e62b5e883a25eb3effd7c7379db11"
+@@ -249,6 +254,17 @@
+   dependencies:
+     "@babel/types" "^7.22.15"
+ 
++"@babel/helper-compilation-targets@^7.20.7":
++  version "7.25.2"
++  resolved "https://registry.yarnpkg.com/@babel/helper-compilation-targets/-/helper-compilation-targets-7.25.2.tgz#e1d9410a90974a3a5a66e84ff55ef62e3c02d06c"
++  integrity sha512-U2U5LsSaZ7TAt3cfaymQ8WHh0pxvdHoEk6HVpaexxixjyEquMh0L0YNJNM6CTGKMXV1iksi0iZkGw4AcFkPaaw==
++  dependencies:
++    "@babel/compat-data" "^7.25.2"
++    "@babel/helper-validator-option" "^7.24.8"
++    browserslist "^4.23.1"
++    lru-cache "^5.1.1"
++    semver "^6.3.1"
++
+ "@babel/helper-compilation-targets@^7.22.15", "@babel/helper-compilation-targets@^7.22.6":
+   version "7.22.15"
+   resolved "https://registry.yarnpkg.com/@babel/helper-compilation-targets/-/helper-compilation-targets-7.22.15.tgz#0698fc44551a26cf29f18d4662d5bf545a6cfc52"
+@@ -260,6 +276,19 @@
+     lru-cache "^5.1.1"
+     semver "^6.3.1"
+ 
++"@babel/helper-create-class-features-plugin@^7.18.6":
++  version "7.25.4"
++  resolved "https://registry.yarnpkg.com/@babel/helper-create-class-features-plugin/-/helper-create-class-features-plugin-7.25.4.tgz#57eaf1af38be4224a9d9dd01ddde05b741f50e14"
++  integrity sha512-ro/bFs3/84MDgDmMwbcHgDa8/E6J3QKNTk4xJJnVeFtGE+tL0K26E3pNxhYz2b67fJpt7Aphw5XcploKXuCvCQ==
++  dependencies:
++    "@babel/helper-annotate-as-pure" "^7.24.7"
++    "@babel/helper-member-expression-to-functions" "^7.24.8"
++    "@babel/helper-optimise-call-expression" "^7.24.7"
++    "@babel/helper-replace-supers" "^7.25.0"
++    "@babel/helper-skip-transparent-expression-wrappers" "^7.24.7"
++    "@babel/traverse" "^7.25.4"
++    semver "^6.3.1"
++
+ "@babel/helper-create-class-features-plugin@^7.22.15":
+   version "7.22.15"
+   resolved "https://registry.yarnpkg.com/@babel/helper-create-class-features-plugin/-/helper-create-class-features-plugin-7.22.15.tgz#97a61b385e57fe458496fad19f8e63b63c867de4"
+@@ -380,7 +409,7 @@
+   resolved "https://registry.yarnpkg.com/@babel/helper-plugin-utils/-/helper-plugin-utils-7.22.5.tgz#dd7ee3735e8a313b9f7b05a773d892e88e6d7295"
+   integrity sha512-uLls06UVKgFG9QD4OeFYLEGteMIAa5kpTPcFL28yuCIIzsf6ZyKZMllKVOCZFhiZ5ptnwX4mtKdWCBE/uT4amg==
+ 
+-"@babel/helper-plugin-utils@^7.24.7":
++"@babel/helper-plugin-utils@^7.20.2", "@babel/helper-plugin-utils@^7.24.7":
+   version "7.24.8"
+   resolved "https://registry.yarnpkg.com/@babel/helper-plugin-utils/-/helper-plugin-utils-7.24.8.tgz#94ee67e8ec0e5d44ea7baeb51e571bd26af07878"
+   integrity sha512-FFWx5142D8h2Mgr/iPVGH5G7w6jDn4jUSpZTyDnQO0Yn7Ks2Kuz6Pci8H6MPCoUJegd/UZQ3tAvfLCxQSnWWwg==
+@@ -466,6 +495,11 @@
+   resolved "https://registry.yarnpkg.com/@babel/helper-validator-option/-/helper-validator-option-7.22.15.tgz#694c30dfa1d09a6534cdfcafbe56789d36aba040"
+   integrity sha512-bMn7RmyFjY/mdECUbgn9eoSY4vqvacUnS9i9vGAGttgFWesO6B4CYWA7XlpbWgBt71iv/hfbPlynohStqnu5hA==
+ 
++"@babel/helper-validator-option@^7.24.8":
++  version "7.24.8"
++  resolved "https://registry.yarnpkg.com/@babel/helper-validator-option/-/helper-validator-option-7.24.8.tgz#3725cdeea8b480e86d34df15304806a06975e33d"
++  integrity sha512-xb8t9tD1MHLungh/AIoWYN+gVHaB9kwlu8gffXGSt3FFEIT7RjS+xWbc2vUD1UTZdIpKj/ab3rdqJ7ufngyi2Q==
++
+ "@babel/helper-wrap-function@^7.22.20":
+   version "7.22.20"
+   resolved "https://registry.yarnpkg.com/@babel/helper-wrap-function/-/helper-wrap-function-7.22.20.tgz#15352b0b9bfb10fc9c76f79f6342c00e3411a569"
+@@ -537,6 +571,25 @@
+     "@babel/helper-environment-visitor" "^7.22.20"
+     "@babel/helper-plugin-utils" "^7.22.5"
+ 
++"@babel/plugin-proposal-class-properties@^7.16.5":
++  version "7.18.6"
++  resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-class-properties/-/plugin-proposal-class-properties-7.18.6.tgz#b110f59741895f7ec21a6fff696ec46265c446a3"
++  integrity sha512-cumfXOF0+nzZrrN8Rf0t7M+tF6sZc7vhQwYQck9q1/5w2OExlD+b4v4RpMJFaV1Z7WcDRgO6FqvxqxGlwo+RHQ==
++  dependencies:
++    "@babel/helper-create-class-features-plugin" "^7.18.6"
++    "@babel/helper-plugin-utils" "^7.18.6"
++
++"@babel/plugin-proposal-object-rest-spread@^7.16.5":
++  version "7.20.7"
++  resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-object-rest-spread/-/plugin-proposal-object-rest-spread-7.20.7.tgz#aa662940ef425779c75534a5c41e9d936edc390a"
++  integrity sha512-d2S98yCiLxDVmBmE8UjGcfPvNEUbA1U5q5WxaWFUGRzJSVAZqm5W6MbPct0jxnegUZ0niLeNX+IOzEs7wYg9Dg==
++  dependencies:
++    "@babel/compat-data" "^7.20.5"
++    "@babel/helper-compilation-targets" "^7.20.7"
++    "@babel/helper-plugin-utils" "^7.20.2"
++    "@babel/plugin-syntax-object-rest-spread" "^7.8.3"
++    "@babel/plugin-transform-parameters" "^7.20.7"
++
+ "@babel/plugin-proposal-private-property-in-object@7.21.0-placeholder-for-preset-env.2":
+   version "7.21.0-placeholder-for-preset-env.2"
+   resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-private-property-in-object/-/plugin-proposal-private-property-in-object-7.21.0-placeholder-for-preset-env.2.tgz#7844f9289546efa9febac2de4cfe358a050bd703"
+@@ -973,6 +1026,13 @@
+     "@babel/helper-skip-transparent-expression-wrappers" "^7.22.5"
+     "@babel/plugin-syntax-optional-chaining" "^7.8.3"
+ 
++"@babel/plugin-transform-parameters@^7.20.7":
++  version "7.24.7"
++  resolved "https://registry.yarnpkg.com/@babel/plugin-transform-parameters/-/plugin-transform-parameters-7.24.7.tgz#5881f0ae21018400e320fc7eb817e529d1254b68"
++  integrity sha512-yGWW5Rr+sQOhK0Ot8hjDJuxU3XLRQGflvT4lhlSY0DFvdb3TwKaY26CJzHtYllU0vT9j58hc37ndFPsqT1SrzA==
++  dependencies:
++    "@babel/helper-plugin-utils" "^7.24.7"
++
+ "@babel/plugin-transform-parameters@^7.23.3":
+   version "7.23.3"
+   resolved "https://registry.yarnpkg.com/@babel/plugin-transform-parameters/-/plugin-transform-parameters-7.23.3.tgz#83ef5d1baf4b1072fa6e54b2b0999a7b2527e2af"
+@@ -1309,7 +1369,7 @@
+     "@babel/parser" "^7.25.0"
+     "@babel/types" "^7.25.0"
+ 
+-"@babel/traverse@^7.23.2", "@babel/traverse@^7.23.3", "@babel/traverse@^7.24.7", "@babel/traverse@^7.24.8", "@babel/traverse@^7.25.0", "@babel/traverse@^7.4.5", "@babel/traverse@^7.7.0", "@babel/traverse@^7.7.2":
++"@babel/traverse@^7.23.2", "@babel/traverse@^7.23.3", "@babel/traverse@^7.24.7", "@babel/traverse@^7.24.8", "@babel/traverse@^7.25.0", "@babel/traverse@^7.25.4", "@babel/traverse@^7.4.5", "@babel/traverse@^7.7.0", "@babel/traverse@^7.7.2":
+   version "7.25.0"
+   resolved "https://registry.yarnpkg.com/@babel/traverse/-/traverse-7.25.0.tgz#e8533c0a57ed97921d1e5b20dd3db63d3efaebf5"
+   integrity sha512-ubALThHQy4GCf6mbb+5ZRNmLLCI7bJ3f8Q6LHBSRlSKSWj5a7dSUzJBLv3VuIhFrFPgjF4IzPF567YG/HSCdZA==
+@@ -5340,6 +5400,16 @@ browserslist@*, browserslist@^4.21.10, browserslist@^4.21.5, browserslist@^4.21.
+     node-releases "^2.0.14"
+     update-browserslist-db "^1.1.0"
+ 
++browserslist@^4.23.1:
++  version "4.23.3"
++  resolved "https://registry.yarnpkg.com/browserslist/-/browserslist-4.23.3.tgz#debb029d3c93ebc97ffbc8d9cbb03403e227c800"
++  integrity sha512-btwCFJVjI4YWDNfau8RhZ+B1Q/VLoUITrm3RlP6y1tYGWIOa+InuYiRGXUBXo8nA1qKmHMyLB/iVQg5TT4eFoA==
++  dependencies:
++    caniuse-lite "^1.0.30001646"
++    electron-to-chromium "^1.5.4"
++    node-releases "^2.0.18"
++    update-browserslist-db "^1.1.0"
++
+ bser@2.1.1:
+   version "2.1.1"
+   resolved "https://registry.yarnpkg.com/bser/-/bser-2.1.1.tgz#e6787da20ece9d07998533cfd9de6f5c38f4bc05"
+@@ -5552,6 +5622,11 @@ caniuse-lite@^1.0.30001640:
+   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001643.tgz#9c004caef315de9452ab970c3da71085f8241dbd"
+   integrity sha512-ERgWGNleEilSrHM6iUz/zJNSQTP8Mr21wDWpdgvRwcTXGAq6jMtOUPP4dqFPTdKqZ2wKTdtB+uucZ3MRpAUSmg==
+ 
++caniuse-lite@^1.0.30001646:
++  version "1.0.30001658"
++  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001658.tgz#b5f7be8ac748a049ab06aa1cf7a1408d83f074ec"
++  integrity sha512-N2YVqWbJELVdrnsW5p+apoQyYt51aBMSsBZki1XZEfeBCexcM/sf4xiAHcXQBkuOwJBXtWF7aW1sYX6tKebPHw==
++
+ ccount@^1.0.0:
+   version "1.1.0"
+   resolved "https://registry.yarnpkg.com/ccount/-/ccount-1.1.0.tgz#246687debb6014735131be8abab2d93898f8d043"
+@@ -7341,6 +7416,11 @@ electron-to-chromium@^1.4.820:
+   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.0.tgz#0d3123a9f09189b9c7ab4b5d6848d71b3c1fd0e8"
+   integrity sha512-Vb3xHHYnLseK8vlMJQKJYXJ++t4u1/qJ3vykuVrVjvdiOEhYyT1AuP4x03G8EnPmYvYOhe9T+dADTmthjRQMkA==
+ 
++electron-to-chromium@^1.5.4:
++  version "1.5.18"
++  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.5.18.tgz#5fe62b9d21efbcfa26571066502d94f3ed97e495"
++  integrity sha512-1OfuVACu+zKlmjsNdcJuVQuVE61sZOLbNM4JAQ1Rvh6EOj0/EUKhMJjRH73InPlXSh8HIJk1cVZ8pyOV/FMdUQ==
++
+ elegant-spinner@^1.0.1:
+   version "1.0.1"
+   resolved "https://registry.yarnpkg.com/elegant-spinner/-/elegant-spinner-1.0.1.tgz#db043521c95d7e303fd8f345bedc3349cfb0729e"
+@@ -12258,7 +12338,34 @@ mkdirp@^1.0.3, mkdirp@^1.0.4, mkdirp@~1.0.4:
+   resolved "https://registry.yarnpkg.com/mkdirp/-/mkdirp-1.0.4.tgz#3eb5ed62622756d79a5f0e2a221dfebad75c2f7e"
+   integrity sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==
+ 
+-"mocha-next@npm:mocha@^10.1.0", "mocha@npm:mocha@^10.1.0":
++"mocha-next@npm:mocha@^10.1.0":
++  version "10.2.0"
++  resolved "https://registry.yarnpkg.com/mocha/-/mocha-10.2.0.tgz#1fd4a7c32ba5ac372e03a17eef435bd00e5c68b8"
++  integrity sha512-IDY7fl/BecMwFHzoqF2sg/SHHANeBoMMXFlS9r0OXKDssYE1M5O43wUY/9BVPeIvfH2zmEbBfseqN9gBQZzXkg==
++  dependencies:
++    ansi-colors "4.1.1"
++    browser-stdout "1.3.1"
++    chokidar "3.5.3"
++    debug "4.3.4"
++    diff "5.0.0"
++    escape-string-regexp "4.0.0"
++    find-up "5.0.0"
++    glob "7.2.0"
++    he "1.2.0"
++    js-yaml "4.1.0"
++    log-symbols "4.1.0"
++    minimatch "5.0.1"
++    ms "2.1.3"
++    nanoid "3.3.3"
++    serialize-javascript "6.0.0"
++    strip-json-comments "3.1.1"
++    supports-color "8.1.1"
++    workerpool "6.2.1"
++    yargs "16.2.0"
++    yargs-parser "20.2.4"
++    yargs-unparser "2.0.0"
++
++"mocha@npm:mocha@^10.1.0":
+   version "10.2.0"
+   resolved "https://registry.yarnpkg.com/mocha/-/mocha-10.2.0.tgz#1fd4a7c32ba5ac372e03a17eef435bd00e5c68b8"
+   integrity sha512-IDY7fl/BecMwFHzoqF2sg/SHHANeBoMMXFlS9r0OXKDssYE1M5O43wUY/9BVPeIvfH2zmEbBfseqN9gBQZzXkg==
+@@ -12617,7 +12724,7 @@ node-preload@^0.2.1:
+   dependencies:
+     process-on-spawn "^1.0.0"
+ 
+-node-releases@^2.0.14:
++node-releases@^2.0.14, node-releases@^2.0.18:
+   version "2.0.18"
+   resolved "https://registry.yarnpkg.com/node-releases/-/node-releases-2.0.18.tgz#f010e8d35e2fe8d6b2944f03f70213ecedc4ca3f"
+   integrity sha512-d9VeXT4SJ7ZeOqGX6R5EM022wpL+eWPooLI+5UpWn2jCT1aosUQEhQP214x33Wkwx3JQMvIm+tIoVOdodFS40g==
+@@ -16766,10 +16873,10 @@ typed-array-length@^1.0.4:
+     for-each "^0.3.3"
+     is-typed-array "^1.1.9"
+ 
+-typed-function@^4.1.1:
+-  version "4.2.1"
+-  resolved "https://registry.yarnpkg.com/typed-function/-/typed-function-4.2.1.tgz#19aa51847aa2dea9ef5e7fb7641c060179a74426"
+-  integrity sha512-EGjWssW7Tsk4DGfE+5yluuljS1OGYWiI1J6e8puZz9nTMM51Oug8CD5Zo4gWMsOhq5BI+1bF+rWTm4Vbj3ivRA==
++typed-function@4.1.1, typed-function@^4.1.1:
++  version "4.1.1"
++  resolved "https://registry.yarnpkg.com/typed-function/-/typed-function-4.1.1.tgz#38ce3cae31f4f513bcb263563fdad27b2afa73e8"
++  integrity sha512-Pq1DVubcvibmm8bYcMowjVnnMwPVMeh0DIdA8ad8NZY2sJgapANJmiigSUwlt+EgXxpfIv8MWrQXTIzkfYZLYQ==
+ 
+ typedarray-to-buffer@^3.1.5:
+   version "3.1.5"
+@@ -16798,6 +16905,11 @@ uglify-js@^3.1.4:
+   resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.15.4.tgz#fa95c257e88f85614915b906204b9623d4fa340d"
+   integrity sha512-vMOPGDuvXecPs34V74qDKk4iJ/SN4vL3Ow/23ixafENYvtrNvtbcgUeugTcUGRGsOF/5fU8/NYSL5Hyb3l1OJA==
+ 
++ui-select@0.19.8:
++  version "0.19.8"
++  resolved "https://registry.yarnpkg.com/ui-select/-/ui-select-0.19.8.tgz#74860848a7fd8bc494d9856d2f62776ea98637c1"
++  integrity sha512-NSHm75s46oGph4BWUSQ4mgAGdZs0/YTP5nNo0efuwHBCPtTlye8zLSSxi3P5r1jI/BD9bJ8ODXyYWPoJZTRImQ==
++
+ unbox-primitive@^1.0.2:
+   version "1.0.2"
+   resolved "https://registry.yarnpkg.com/unbox-primitive/-/unbox-primitive-1.0.2.tgz#29032021057d5e6cdbd08c5129c226dff8ed6f9e"
+-- 
+2.40.1
+

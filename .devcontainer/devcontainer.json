@@ -1,0 +1,28 @@
+
+{
+    "name": "Neo Dashboards Core Development (Dev)",
+    "build": {
+        "dockerfile": "../configuration/Dockerfile",
+        "context": ".."
+    },
+    "containerEnv": {
+        "REGION": "us-west-2",
+        "STAGE": "beta",
+        "DEV_CONTAINER": "true"
+    },
+    "forwardPorts": [
+        5601,
+        5603,
+        9200
+    ],
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "jest.jestCommandLine": "yarn test:jest",
+                "jest.runMode": "on-demand",
+                "jest.useDashedArgs": true
+            },
+            "extensions": []
+        }
+    }
+}
