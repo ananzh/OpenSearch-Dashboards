@@ -403,6 +403,8 @@ queryEnhancements.queryAssist.summary.enabled: ${DISCOVER_SUMMARY_ENABLED}
 assistant.branding.logo:
   gray: '/ui/logos/amazon_q_gray.svg'
   gradient: '/ui/logos/amazon_q_gradient.svg'
+# Enable Q subscription check
+assistant.subscription.enabled: ${SUBSCRIPTION_ENABLED}
 
 # Setting this value to enable metrics recorder plugin to publish metrics to CloudWatch
 # metricsRecorder.record.enabled: ${METRICS_REPORTING_ENABLED}

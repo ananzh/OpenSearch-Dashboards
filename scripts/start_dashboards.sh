@@ -24,6 +24,7 @@ if [ "$STAGE" = "alpha" ] || [ "$STAGE" = "beta" ] || { [ "$STAGE" = "gamma" ] &
   export ASSISTANT_ENABLED="true"
   export DISCOVER_SUMMARY_ENABLED="true"
   export METRICS_REPORTING_ENABLED="true"
+  export SUBSCRIPTION_ENABLED="true"
 else
   export CHAT_ENABLED="false"
   export TEXT2VIZ_ENABLED="false"
@@ -32,6 +33,7 @@ else
   export ASSISTANT_ENABLED="false"
   export DISCOVER_SUMMARY_ENABLED="false"
   export METRICS_REPORTING_ENABLED="false"
+  export SUBSCRIPTION_ENABLED="false"
 fi
 
 
