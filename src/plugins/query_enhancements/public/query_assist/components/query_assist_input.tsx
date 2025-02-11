@@ -7,6 +7,7 @@ import { EuiFieldText, EuiIcon, EuiOutsideClickDetector, EuiPortal } from '@elas
 import { i18n } from '@osd/i18n';
 import React, { useMemo, useState } from 'react';
 import { PersistedLog, QuerySuggestionTypes } from '../../../../data/public';
+import assistantMark from '../../assets/sparkle_mark.svg';
 import { getData } from '../../services';
 import { AgentError } from '../utils';
 import { WarningBadge } from './warning_badge';
@@ -96,7 +97,7 @@ export const QueryAssistInput: React.FC<QueryAssistInputProps> = (props) => {
                   defaultMessage: 'Select an index to ask a question',
                 })
           }
-          prepend={<EuiIcon type="/ui/logos/amazon_q_gray.svg" />}
+          prepend={<EuiIcon type={assistantMark} />}
           append={<WarningBadge error={props.error} />}
           fullWidth
         />

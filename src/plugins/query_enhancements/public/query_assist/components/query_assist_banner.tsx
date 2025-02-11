@@ -15,6 +15,7 @@ import {
 import { FormattedMessage } from '@osd/i18n/react';
 import React, { useState } from 'react';
 import { QueryEditorExtensionDependencies } from '../../../../data/public';
+import assistantMark from '../../assets/sparkle_mark.svg';
 import { getStorage } from '../../services';
 
 const BANNER_STORAGE_KEY = 'queryAssist:banner:show';
@@ -44,7 +45,7 @@ export const QueryAssistBanner: React.FC<QueryAssistBannerProps> = (props) => {
       title={
         <EuiFlexGroup responsive={false} gutterSize="s" alignItems="center">
           <EuiFlexItem grow={false}>
-            <EuiIcon size="l" type="/ui/logos/amazon_q_gradient.svg" />
+            <EuiIcon size="l" type={assistantMark} />
           </EuiFlexItem>
           <EuiFlexItem grow={false}>
             <EuiBadge>
