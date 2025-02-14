@@ -17,6 +17,7 @@ export SAVED_QUERIES_NEW_UI_ENABLED="true"
 
 # Olly feature flag for re:Invent launch
 if [ "$STAGE" = "alpha" ] || [ "$STAGE" = "beta" ] || { [ "$STAGE" = "gamma" ] && [ "$REGION" = "us-west-2" ]; }; then
+  export CHAT_ENABLED="true"
   export TEXT2VIZ_ENABLED="true"
   export ALERTINSIGHT_ENABLED="true"
   export SMARTANOMALYDETECTOR_ENABLED="true"
@@ -24,6 +25,7 @@ if [ "$STAGE" = "alpha" ] || [ "$STAGE" = "beta" ] || { [ "$STAGE" = "gamma" ] &
   export DISCOVER_SUMMARY_ENABLED="true"
   export METRICS_REPORTING_ENABLED="true"
 else
+  export CHAT_ENABLED="false"
   export TEXT2VIZ_ENABLED="false"
   export ALERTINSIGHT_ENABLED="false"
   export SMARTANOMALYDETECTOR_ENABLED="false"

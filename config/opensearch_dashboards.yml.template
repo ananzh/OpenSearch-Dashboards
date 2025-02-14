@@ -382,7 +382,6 @@ workspace.maximum_workspaces: 100
 data_source_management.dataSourceAdmin.groups: ["${CONTROL_PLANE_SPN}"]
 
 # Set the value of this setting to true to turn on dashboard assistant
-# assistant.chat.enabled: true
 assistant.enabled: ${ASSISTANT_ENABLED}
 
 
@@ -390,6 +389,12 @@ assistant.enabled: ${ASSISTANT_ENABLED}
 # flowFrameworkDashboards.enabled: ${OPENSEARCHFLOW_ENABLED}
 
 # Set the value of the following settings to true to turn features on dashboard assistant
+assistant.chat.enabled: ${CHAT_ENABLED}
+assistant.chat.trace: false
+assistant.chat.allowRenameConversation: false
+assistant.chat.deleteConversation: false
+assistant.chat.regenerateMessage: false
+
 assistant.text2viz.enabled: ${TEXT2VIZ_ENABLED}
 assistant.alertInsight.enabled: ${ALERTINSIGHT_ENABLED}
 assistant.smartAnomalyDetector.enabled: ${SMARTANOMALYDETECTOR_ENABLED}
