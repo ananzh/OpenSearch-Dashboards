@@ -394,6 +394,7 @@ assistant.chat.trace: false
 assistant.chat.allowRenameConversation: false
 assistant.chat.deleteConversation: false
 assistant.chat.regenerateMessage: false
+assistant.chat.showConversationHistory: false
 
 assistant.text2viz.enabled: ${TEXT2VIZ_ENABLED}
 assistant.alertInsight.enabled: ${ALERTINSIGHT_ENABLED}
@@ -403,6 +404,10 @@ queryEnhancements.queryAssist.summary.enabled: ${DISCOVER_SUMMARY_ENABLED}
 assistant.branding.logo:
   gray: '/ui/logos/amazon_q_gray.svg'
   gradient: '/ui/logos/amazon_q_gradient.svg'
+
+assistant.branding.label: "Amazon Q"
+queryEnhancements.queryAssist.summary.branding.label: 'Amazon Q'
+
 # Enable Q subscription check
 assistant.subscription.enabled: ${SUBSCRIPTION_ENABLED}
 
