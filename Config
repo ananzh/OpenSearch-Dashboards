@@ -1,9 +1,9 @@
 package.OpenSearch-Dashboards = {
     interfaces = (neo_3.x);
-    build-system = custom-build;
- 
+    build-system = container-build;
+
     build-environment = {
-        network-access = open;
+        network-access = internal;
     };
  
     libfarm = {
@@ -13,6 +13,7 @@ package.OpenSearch-Dashboards = {
     build-tools = {
         neo_3.x = {
             ContainerBuild = 1.2;
+            AWSOpenSearchNeoContainerBuildCredentialsProvider = 1.0;
         };
     };
  
@@ -22,20 +23,6 @@ package.OpenSearch-Dashboards = {
     # be exported to other packages that build against you.
     dependencies = {
         neo_3.x = {
-            # AWSOpenSearchDashboardsMapsPlugin = neo_2.19.0;
-            # AWSOpenSearchDashboardsSearchRelevancePlugin = neo_2.19.0;
-            # AWSOpenSearchDashboardsMLCommonsPlugin = neo_2.19.0;
-            # AWSOpenSearchNotificationsDashboards = neo_2.19.0;
-            # AWSSearchServices-KibanaADPlugin = neo_2.19.0;
-            # AWSSearchServicesKibanaAlertingPlugin = neo_2.19.0;
-            # AWSSearchServicesKibanaSecurityAnalyticsPlugin = neo_2.19.0;
-            # AWSSearchServicesKibanaStoragePlugin = neo_2.19.0;
-            # AWSSearchServicesSQLWorkbenchUIPlugin = neo_2.19.0;
-            # Opendistro-index-management-kibana-plugin = neo_2.19.0;
-            # Security-dashboards-plugin = neo_2.19.0;
-            # Insights-Observability-Kibana-Plugin = neo_2.19.0;
-            # AWSOpenSearchDashboardsAssistantPlugin = neo_2.19.0;
-            # AWSOpenSearchDashboardsFlowFrameworkPlugin = neo_2.19.0;
         };
     };
  

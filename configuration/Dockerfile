@@ -9,7 +9,7 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 RUN mkdir /usr/local/nvm
 
 # Step 3 -> config working directory for OSD Core
-ENV OPENSEARCH_DASHBOARDS_HOME=/opt/src
+ENV OPENSEARCH_DASHBOARDS_HOME=/home/opensearch-dashboards
 
 # Step 4 -> install required dependencies
 RUN yum update -y && yum install -y git gzip shadow-utils tar && yum clean all && yum install -y gettext
@@ -30,4 +30,9 @@ RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.39.7/install.sh | b
 ENV NODE_PATH ${NVM_DIR}/versions/node/v${NODE_VERSION}/lib/node_modules
 ENV PATH      ${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:$PATH
 
-RUN groupadd -r opensearch-dashboards && useradd -r -g opensearch-dashboards opensearch-dashboards && chown opensearch-dashboards:opensearch-dashboards .
+# Step 8 -> install rsync
+RUN yum install -y rsync && yum clean all
+
+# Step 9 -> create OSD user and working directory
+RUN mkdir ${OPENSEARCH_DASHBOARDS_HOME}
+RUN groupadd -r opensearch-dashboards && useradd -r -g opensearch-dashboards opensearch-dashboards

@@ -2,21 +2,21 @@
 set -o errexit
 set -o pipefail
 
-brazil_build_target=$1
+test_path="/home/opensearch-dashboards"
 
-echo "Cleaning previous artifacts"
-rm -rf build/opensearch-dashboards-core
-
-echo "Copy OSD Core source code to build folder"
+echo "Copy OSD Core source code to bootstrap + test folder"
 mkdir -p build/opensearch-dashboards-core
-rsync -arvL . build/opensearch-dashboards-core --exclude=".git" --exclude="/plugins" --exclude="node_modules" --exclude="/build"
+rsync -arvL /opt/src/ build/opensearch-dashboards-core --exclude=".git" --exclude="/plugins" --exclude="node_modules" --exclude="/build"
 
-# TODO We do not have a auxillary build farm setup so for the time being, only local builds will run container-build
-# See: https://w.amazon.com/bin/view/ContainerBuild/AuxiliaryBuildFarm
-if [ "$brazil_build_target" != "release" ]; then
-    # TODO We do not run unit tests as there are thousands of tests to cover in OSD core
-    exec container-build  \
-        --build-as-current-user=true \
-        --build-command="yarn osd bootstrap --allow-root" \
-        --image-dir="configuration" "$@"
-fi
+rsync -arvL /opt/src/ $test_path --exclude=".git" --exclude="/plugins" --exclude="node_modules" --exclude="/build"
+
+current_path=$(pwd)
+osd_user="opensearch-dashboards"
+echo "Set permissions for user: $osd_user"
+osd_group=$osd_user
+chown -R $osd_user:$osd_group $test_path
+
+echo "Begin bootstrap as: $osd_user"
+node_version="v18.19.0"
+node_path="/usr/local/nvm/versions/node/$node_version/bin"
+su - $osd_user -c "cd $test_path && $node_path/node $node_path/yarn osd bootstrap"
