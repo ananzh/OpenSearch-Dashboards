@@ -15,26 +15,41 @@ fi
 export DQS_ENABLED="true"
 export SAVED_QUERIES_NEW_UI_ENABLED="true"
 
-# Olly feature flag for re:Invent launch
-if [ "$STAGE" = "alpha" ] || [ "$STAGE" = "beta" ] || { [ "$STAGE" = "gamma" ] && [ "$REGION" = "us-west-2" ]; }; then
-  export CHAT_ENABLED="true"
-  export TEXT2VIZ_ENABLED="true"
-  export ALERTINSIGHT_ENABLED="true"
-  export SMARTANOMALYDETECTOR_ENABLED="true"
-  export ASSISTANT_ENABLED="true"
-  export DISCOVER_SUMMARY_ENABLED="true"
-  export METRICS_REPORTING_ENABLED="true"
-  export SUBSCRIPTION_ENABLED="true"
-else
-  export CHAT_ENABLED="false"
-  export TEXT2VIZ_ENABLED="false"
-  export ALERTINSIGHT_ENABLED="false"
-  export SMARTANOMALYDETECTOR_ENABLED="false"
-  export ASSISTANT_ENABLED="false"
-  export DISCOVER_SUMMARY_ENABLED="false"
-  export METRICS_REPORTING_ENABLED="false"
-  export SUBSCRIPTION_ENABLED="false"
-fi
+# Olly feature flag for Olly 2 launch
+# Olly Region availability: https://quip-amazon.com/OAKpAzU4UFlN/Olly-Region-Availability
+case "$REGION" in
+  "us-west-2"| \
+  "eu-west-3"| \
+  "us-east-1"| \
+  "ap-south-1"| \
+  "eu-central-1"| \
+  "sa-east-1"| \
+  "eu-west-2"| \
+  "ap-northeast-1"| \
+  "ap-southeast-1"| \
+  "ap-southeast-2"| \
+  "ca-central-1")
+    export CHAT_ENABLED="true"
+    export TEXT2VIZ_ENABLED="true"
+    export ALERTINSIGHT_ENABLED="true"
+    export SMARTANOMALYDETECTOR_ENABLED="true"
+    export ASSISTANT_ENABLED="true"
+    export DISCOVER_SUMMARY_ENABLED="true"
+    export METRICS_REPORTING_ENABLED="true"
+    export SUBSCRIPTION_ENABLED="true"
+    ;;
+  
+  *)
+    export CHAT_ENABLED="false"
+    export TEXT2VIZ_ENABLED="false"
+    export ALERTINSIGHT_ENABLED="false"
+    export SMARTANOMALYDETECTOR_ENABLED="false"
+    export ASSISTANT_ENABLED="false"
+    export DISCOVER_SUMMARY_ENABLED="false"
+    export METRICS_REPORTING_ENABLED="false"
+    export SUBSCRIPTION_ENABLED="false"
+    ;;
+esac
 
 
 # OpenSearch Flow feature flag
