@@ -29,7 +29,6 @@ case "$REGION" in
   "ap-southeast-1"| \
   "ap-southeast-2"| \
   "ca-central-1")
-    export CHAT_ENABLED="true"
     export TEXT2VIZ_ENABLED="true"
     export ALERTINSIGHT_ENABLED="true"
     export SMARTANOMALYDETECTOR_ENABLED="true"
@@ -40,7 +39,6 @@ case "$REGION" in
     ;;
   
   *)
-    export CHAT_ENABLED="false"
     export TEXT2VIZ_ENABLED="false"
     export ALERTINSIGHT_ENABLED="false"
     export SMARTANOMALYDETECTOR_ENABLED="false"
@@ -60,8 +58,11 @@ else
 fi
 
 if [ "$STAGE" = "prod" ]; then
+  # disable chatbot in prod for Olly 2 initial release
+  export CHAT_ENABLED="false"
   export CONTROL_PLANE_SPN="svc:opensearchservice.amazonaws.com"
 else
+  export CHAT_ENABLED="true"
   export CONTROL_PLANE_SPN="svc:aosd.aws.internal"
 fi
 
