@@ -108,10 +108,10 @@ export const createTileMapVisualization = (dependencies) => {
 
     async _makeOpenSearchDashboardsMap() {
       await super._makeOpenSearchDashboardsMap();
-
+  
       let previousPrecision = this._opensearchDashboardsMap.getGeohashPrecision();
       let precisionChange = false;
-
+  
       const uiState = this.vis.getUiState();
       uiState.on('change', (prop) => {
         if (prop === 'mapZoom' || prop === 'mapCenter') {
@@ -119,9 +119,55 @@ export const createTileMapVisualization = (dependencies) => {
         }
       });
 
+      // Flag to prevent infinite loops during zoom changes
+      let isHandlingZoomChange = false;
+      
       this._opensearchDashboardsMap.on('zoomchange', () => {
+        console.log('[DEBUG] Zoomchange event fired with zoom:', this._opensearchDashboardsMap.getZoomLevel());
+        
+        // Skip if we're already handling a zoom change
+        if (isHandlingZoomChange) {
+          console.log('[DEBUG] Skipping zoomchange handler because we are already handling a zoom change');
+          return;
+        }
+        
         precisionChange = previousPrecision !== this._opensearchDashboardsMap.getGeohashPrecision();
         previousPrecision = this._opensearchDashboardsMap.getGeohashPrecision();
+        
+        // Update the UI state with the current zoom level
+        // This ensures the zoom level is included in the expression when embedded
+        const currentZoom = this._opensearchDashboardsMap.getZoomLevel();
+        const currentUiZoom = this.vis.getUiState().get('mapZoom');
+        
+        // Only update if the zoom level has actually changed
+        if (currentUiZoom === undefined || parseInt(currentUiZoom) !== currentZoom) {
+          console.log('[DEBUG] Updating UI state with new zoom level:', currentZoom);
+          
+          // Set flag to prevent infinite loops
+          isHandlingZoomChange = true;
+          
+          try {
+            this.vis.getUiState().set('mapZoom', currentZoom);
+            
+            // Store the zoom level in the visualization params to ensure it's included in the expression
+            if (this.vis.params) {
+              this.vis.params.mapZoom = currentZoom;
+            }
+            
+            // Force a reload of the visualization to ensure the new zoom level is applied
+            this.vis.updateState();
+          } finally {
+            // Reset flag after a short delay to ensure all updates have completed
+            setTimeout(() => {
+              isHandlingZoomChange = false;
+            }, 0);
+          }
+        }
+        
+        // Update the geohash layer when zoom changes
+        if (this._geohashLayer) {
+          this._geohashLayer.updateExtent();
+        }
       });
       this._opensearchDashboardsMap.on('zoomend', () => {
         const geohashAgg = this._getGeoHashAgg();
@@ -163,19 +209,19 @@ export const createTileMapVisualization = (dependencies) => {
       ) {
         return;
       }
-
+  
       if (this._geohashLayer) {
         this._opensearchDashboardsMap.removeLayer(this._geohashLayer);
         this._geohashLayer = null;
       }
-
+  
       if (!geojsonFeatureCollectionAndMeta) {
         this._geoJsonFeatureCollectionAndMeta = null;
         this._opensearchDashboardsMap.removeLayer(this._geohashLayer);
         this._geohashLayer = null;
         return;
       }
-
+  
       if (
         !this._geoJsonFeatureCollectionAndMeta ||
         !geojsonFeatureCollectionAndMeta.featureCollection.features.length
@@ -183,24 +229,51 @@ export const createTileMapVisualization = (dependencies) => {
         this._geoJsonFeatureCollectionAndMeta = geojsonFeatureCollectionAndMeta;
         this.updateGeohashAgg();
       }
-
+  
       this._geoJsonFeatureCollectionAndMeta = geojsonFeatureCollectionAndMeta;
       this._recreateGeohashLayer();
     }
 
     async _recreateGeohashLayer() {
       const { GeohashLayer } = await import('./geohash_layer');
-
+    
       if (this._geohashLayer) {
         this._opensearchDashboardsMap.removeLayer(this._geohashLayer);
         this._geohashLayer = null;
       }
+      
       const geohashOptions = this._getGeohashOptions();
+      
+      // Get the zoom level from the UI state if available, otherwise use the current map zoom level
+      let zoomLevel = this._opensearchDashboardsMap.getZoomLevel();
+      const uiStateZoom = parseInt(this.vis.getUiState().get('mapZoom'));
+      
+      if (!isNaN(uiStateZoom)) {
+        console.log('[DEBUG] Using zoom level from UI state:', uiStateZoom);
+        zoomLevel = uiStateZoom;
+        
+        // Ensure the map zoom level matches the UI state
+        if (this._opensearchDashboardsMap.getZoomLevel() !== zoomLevel) {
+          this._opensearchDashboardsMap.setZoomLevel(zoomLevel);
+        }
+        
+        // Update the visualization params to ensure it's included in the expression
+        if (this.vis.params) {
+          this.vis.params.mapZoom = zoomLevel;
+        }
+      }
+      
+      // Add the zoom level to the metadata to ensure it's available when creating markers
+      if (this._geoJsonFeatureCollectionAndMeta && this._geoJsonFeatureCollectionAndMeta.meta) {
+        this._geoJsonFeatureCollectionAndMeta.meta.mapZoom = zoomLevel;
+        console.log('[DEBUG] Added mapZoom to metadata:', zoomLevel);
+      }
+      
       this._geohashLayer = new GeohashLayer(
         this._geoJsonFeatureCollectionAndMeta.featureCollection,
         this._geoJsonFeatureCollectionAndMeta.meta,
         geohashOptions,
-        this._opensearchDashboardsMap.getZoomLevel(),
+        zoomLevel,
         this._opensearchDashboardsMap,
         (await lazyLoadMapsLegacyModules()).L
       );
@@ -209,12 +282,13 @@ export const createTileMapVisualization = (dependencies) => {
 
     async _updateParams() {
       await super._updateParams();
-
+  
       this._opensearchDashboardsMap.setDesaturateBaseLayer(this._params.isDesaturated);
-
+  
       //avoid recreating the leaflet layer when there are option-changes that do not effect the representation
       //e.g. tooltip-visibility, legend position, basemap-desaturation, ...
       const geohashOptions = this._getGeohashOptions();
+      
       if (!this._geohashLayer || !this._geohashLayer.isReusable(geohashOptions)) {
         if (this._geoJsonFeatureCollectionAndMeta) {
           this._recreateGeohashLayer();

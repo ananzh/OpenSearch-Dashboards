@@ -289,11 +289,26 @@ export const buildPipelineVisFunction: BuildPipelineVisFunction = {
     };
     return `regionmap ${prepareJson('visConfig', visConfig)}`;
   },
-  tile_map: (params, schemas) => {
+  tile_map: (params, schemas, uiState) => {
+    // Include the zoom level from the UI state in the visualization config
+    const mapZoom = uiState && uiState.get('mapZoom');
     const visConfig = {
       ...params,
       ...buildVisConfig.tile_map(schemas),
     };
+    
+    // Only add the zoom level if it's defined and not null
+    if (mapZoom !== undefined && mapZoom !== null) {
+      visConfig.mapZoom = parseInt(mapZoom);
+      console.log('[DEBUG] Building tile_map expression with zoom:', visConfig.mapZoom);
+    } else {
+      // Ensure mapZoom is not null to avoid rendering issues
+      if (visConfig.mapZoom === null) {
+        delete visConfig.mapZoom;
+      }
+      console.log('[DEBUG] Building tile_map expression without zoom');
+    }
+    
     return `tilemap ${prepareJson('visConfig', visConfig)}`;
   },
   pie: (params, schemas) => {

@@ -36,7 +36,20 @@ export class ShadedCirclesMarkers extends ScaledCirclesMarkers {
     // multiplier to reduce size of all circles
     const scaleFactor = 0.8;
     return (feature, latlng) => {
-      const radius = this._geohashMinDistance(feature) * scaleFactor;
+      // Log the zoom level being used for debugging
+      console.log('[DEBUG] ShadedCirclesMarkers using zoom level:', this._zoom);
+      
+      // Apply zoom scaling to the radius
+      let radius = this._geohashMinDistance(feature) * scaleFactor;
+      
+      // If we have a valid zoom level, scale the radius based on zoom
+      if (this._zoom !== undefined && this._zoom !== null && !isNaN(this._zoom)) {
+        // Scale radius based on zoom level - higher zoom = smaller radius
+        const zoomFactor = Math.pow(0.8, Math.max(0, this._zoom - 5));
+        radius = radius * zoomFactor;
+        console.log('[DEBUG] Adjusted radius with zoom factor:', zoomFactor, 'final radius:', radius);
+      }
+      
       return this._leaflet.circle(latlng, radius);
     };
   }

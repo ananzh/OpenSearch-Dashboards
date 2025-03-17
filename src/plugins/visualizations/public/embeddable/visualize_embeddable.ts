@@ -277,6 +277,16 @@ export class VisualizeEmbeddable
       dirty = true;
     }
 
+    // For tile_map visualizations, check if mapZoom has changed in UI state
+    if (this.vis.type.name === 'tile_map') {
+      const mapZoom = this.vis.uiState.get('mapZoom');
+      if (mapZoom !== undefined && (!this.vis.params.mapZoom || this.vis.params.mapZoom !== parseInt(mapZoom))) {
+        console.log('[DEBUG] mapZoom changed in handleChanges:', mapZoom);
+        this.vis.params.mapZoom = parseInt(mapZoom);
+        dirty = true;
+      }
+    }
+
     if (this.vis.description && this.domNode) {
       this.domNode.setAttribute('data-description', this.vis.description);
     }
@@ -431,6 +441,20 @@ export class VisualizeEmbeddable
       await this.populateVisLayers();
     }
 
+    // For tile_map visualizations, ensure the zoom level from UI state is included in the params
+    if (this.vis.type.name === 'tile_map') {
+      const mapZoom = this.vis.uiState.get('mapZoom');
+      if (mapZoom !== undefined && this.vis.params) {
+        const parsedZoom = parseInt(mapZoom);
+        console.log('[DEBUG] Including mapZoom in visualization params:', parsedZoom);
+        this.vis.params.mapZoom = parsedZoom;
+      } else if (this.vis.params.mapZoom === null) {
+        // If mapZoom is null, delete it to avoid rendering issues
+        console.log('[DEBUG] Removing null mapZoom from visualization params');
+        delete this.vis.params.mapZoom;
+      }
+    }
+
     this.expression = await buildPipeline(this.vis, {
       timefilter: this.timefilter,
       timeRange: this.timeRange,
@@ -440,6 +464,7 @@ export class VisualizeEmbeddable
     });
 
     if (this.handler && !abortController.signal.aborted) {
+      console.log('[DEBUG] Updating handler with expression and params');
       this.handler.update(this.expression, expressionParams);
     }
   }
@@ -448,10 +473,46 @@ export class VisualizeEmbeddable
     this.updateHandler();
   };
 
+  // Flag to prevent infinite loops during zoom updates
+  private isHandlingZoomChange = false;
+  
   private uiStateChangeHandler = () => {
+    // Get the updated UI state
+    const uiStateJson = this.vis.uiState.toJSON();
+    
+    // Update the input with the new UI state
     this.updateInput({
-      ...this.vis.uiState.toJSON(),
+      ...uiStateJson,
     });
+    
+    // Check if mapZoom has changed in the UI state
+    const mapZoom = this.vis.uiState.get('mapZoom');
+    if (mapZoom !== undefined && this.vis.type.name === 'tile_map' && !this.isHandlingZoomChange) {
+      const parsedZoom = parseInt(mapZoom);
+      
+      // Only update if the zoom level has actually changed
+      if (!this.vis.params.mapZoom || this.vis.params.mapZoom !== parsedZoom) {
+        console.log('[DEBUG] UI state mapZoom changed:', mapZoom);
+        
+        // Set flag to prevent infinite loops
+        this.isHandlingZoomChange = true;
+        
+        try {
+          // Update the visualization params with the new zoom level
+          if (this.vis.params) {
+            this.vis.params.mapZoom = parsedZoom;
+          }
+          
+          // Force a complete update of the visualization
+          this.updateHandler();
+        } finally {
+          // Reset flag after update is complete
+          setTimeout(() => {
+            this.isHandlingZoomChange = false;
+          }, 0);
+        }
+      }
+    }
   };
 
   public supportedTriggers(): TriggerId[] {
@@ -541,7 +602,7 @@ export class VisualizeEmbeddable
         this.visAugmenterConfig?.visLayerResourceIds
       );
 
-      if (!isEmpty(augmentVisSavedObjs) && !aborted && isEligibleForVisLayers(this.vis)) {
+      if (!isEmpty(augmentVisSavedObjs) && !aborted && isEligibleForVisLayers(this.vis) && Array.isArray(augmentVisSavedObjs)) {
         const visLayersPipeline = buildPipelineFromAugmentVisSavedObjs(augmentVisSavedObjs);
         // The initial input for the pipeline will just be an empty arr of VisLayers. As plugin
         // expression functions are ran, they will incrementally append their generated VisLayers to it.

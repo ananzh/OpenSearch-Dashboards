@@ -59,6 +59,30 @@ export const createTileMapFn = () => ({
       convertedData.meta.geohash = context.columns[geohash.accessor].meta;
     }
 
+    // Store the current zoom level in the visData metadata
+    // This ensures that when the map is zoomed in a dashboard,
+    // the zoom level is included in the expression output
+    if (visConfig.mapZoom !== undefined && visConfig.mapZoom !== null) {
+      // Ensure mapZoom is a number
+      const zoomLevel = parseInt(visConfig.mapZoom);
+      convertedData.meta.mapZoom = zoomLevel;
+      console.log('[DEBUG] tile_map_fn: Including mapZoom in metadata:', zoomLevel);
+    } else {
+      // If mapZoom is not defined in visConfig, try to get it from the UI state
+      // This is a fallback for embedded visualizations
+      console.log('[DEBUG] tile_map_fn: mapZoom not defined in visConfig');
+    }
+
+    // Create a unique key based on the zoom level and timestamp to force re-rendering
+    // when the zoom level changes
+    const timestamp = Date.now();
+    // Only use zoom in the key if it's actually defined and not null
+    const zoomKey = (visConfig.mapZoom !== undefined && visConfig.mapZoom !== null)
+      ? parseInt(visConfig.mapZoom)
+      : 'default';
+    const renderKey = `tilemap-${timestamp}-zoom-${zoomKey}`;
+    console.log('[DEBUG] tile_map_fn: Created renderKey with zoom:', zoomKey);
+
     return {
       type: 'render',
       as: 'visualization',
@@ -66,6 +90,7 @@ export const createTileMapFn = () => ({
         visData: convertedData,
         visType: 'tile_map',
         visConfig,
+        renderKey, // Add a unique key to force re-rendering
         params: {
           listenOnChange: true,
         },

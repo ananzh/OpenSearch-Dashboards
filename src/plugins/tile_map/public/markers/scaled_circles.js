@@ -48,7 +48,19 @@ export class ScaledCirclesMarkers extends EventEmitter {
     this._featureCollection = featureCollection;
     this._featureCollectionMetaData = featureCollectionMetaData;
 
-    this._zoom = targetZoom;
+    // Check if we have zoom level in the metadata (for embedded visualizations)
+    if (featureCollectionMetaData && featureCollectionMetaData.mapZoom !== undefined) {
+      console.log('[DEBUG] ScaledCirclesMarkers constructor using mapZoom from metadata:', featureCollectionMetaData.mapZoom);
+      this._zoom = featureCollectionMetaData.mapZoom;
+    } else {
+      console.log('[DEBUG] ScaledCirclesMarkers constructor using targetZoom:', targetZoom);
+      this._zoom = targetZoom;
+    }
+
+    // Ensure zoom is a number
+    if (this._zoom !== undefined && this._zoom !== null) {
+      this._zoom = parseInt(this._zoom);
+    }
 
     this._valueFormatter =
       options.valueFormatter ||
@@ -219,12 +231,27 @@ export class ScaledCirclesMarkers extends EventEmitter {
       })
     );
 
+    // Log the zoom level being used for debugging
+    console.log('[DEBUG] ScaledCirclesMarkers using zoom level:', this._zoom);
+
+    // Ensure zoom level is a number and has a reasonable value
+    let zoomLevel = this._zoom;
+    if (zoomLevel === undefined || zoomLevel === null || isNaN(zoomLevel)) {
+      // Default to zoom level 5 if not specified
+      console.log('[DEBUG] Using default zoom level 5 because current zoom is invalid:', zoomLevel);
+      zoomLevel = 5;
+    }
+
     const pct = Math.abs(value) / Math.abs(this._featureCollectionMetaData.max);
-    const zoomRadius = 0.5 * Math.pow(2, this._zoom);
+    const zoomRadius = 0.5 * Math.pow(2, zoomLevel);
     const precisionScale = precisionBiasNumerator / Math.pow(precisionBiasBase, precision);
 
+    // Log the calculated radius for debugging
+    const radius = Math.pow(pct, 0.5) * zoomRadius * precisionScale;
+    console.log('[DEBUG] Calculated radius:', radius, 'for value:', value, 'with zoom:', zoomLevel);
+
     // square root value percentage
-    return Math.pow(pct, 0.5) * zoomRadius * precisionScale;
+    return radius;
   }
 
   getBounds() {

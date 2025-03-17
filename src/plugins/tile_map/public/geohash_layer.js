@@ -52,6 +52,7 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
 
     this._geohashOptions = options;
     this._zoom = zoom;
+    this._lastZoom = zoom; // Initialize _lastZoom to the current zoom level
     this._opensearchDashboardsMap = opensearchDashboardsMap;
     this._leaflet = leaflet;
     const geojson = this._leaflet.geoJson(this._featureCollection);
@@ -61,6 +62,20 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
   }
 
   _createGeohashMarkers() {
+    // Check if we have zoom level in the metadata (for embedded visualizations)
+    if (this._featureCollectionMetaData && this._featureCollectionMetaData.mapZoom !== undefined) {
+      console.log('[DEBUG] GeohashLayer: Using mapZoom from metadata:', this._featureCollectionMetaData.mapZoom);
+      this._zoom = this._featureCollectionMetaData.mapZoom;
+    } else {
+      console.log('[DEBUG] GeohashLayer: Using current zoom level:', this._zoom);
+    }
+    
+    // Ensure zoom is a number
+    if (this._zoom !== undefined && this._zoom !== null) {
+      this._zoom = parseInt(this._zoom);
+      console.log('[DEBUG] GeohashLayer: Parsed zoom to integer:', this._zoom);
+    }
+    
     const markerOptions = {
       isFilteredByCollar: this._geohashOptions.isFilteredByCollar,
       valueFormatter: this._geohashOptions.valueFormatter,
@@ -70,6 +85,7 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
     };
     switch (this._geohashOptions.mapType) {
       case MapTypes.ScaledCircleMarkers:
+        console.log('[DEBUG] Creating ScaledCirclesMarkers');
         this._geohashMarkers = new ScaledCirclesMarkers(
           this._featureCollection,
           this._featureCollectionMetaData,
@@ -80,6 +96,7 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
         );
         break;
       case MapTypes.ShadedCircleMarkers:
+        console.log('[DEBUG] Creating ShadedCirclesMarkers with zoom:', this._zoom);
         this._geohashMarkers = new ShadedCirclesMarkers(
           this._featureCollection,
           this._featureCollectionMetaData,
@@ -90,6 +107,7 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
         );
         break;
       case MapTypes.ShadedGeohashGrid:
+        console.log('[DEBUG] Creating GeohashGridMarkers');
         this._geohashMarkers = new GeohashGridMarkers(
           this._featureCollection,
           this._featureCollectionMetaData,
@@ -100,6 +118,7 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
         );
         break;
       case MapTypes.Heatmap:
+        console.log('[DEBUG] Creating HeatmapMarkers');
         let radius = 15;
         if (this._featureCollectionMetaData.geohashGridDimensionsAtEquator) {
           const minGridLength = min(this._featureCollectionMetaData.geohashGridDimensionsAtEquator);
@@ -135,6 +154,7 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
     this._geohashMarkers.on('showTooltip', (event) => this.emit('showTooltip', event));
     this._geohashMarkers.on('hideTooltip', (event) => this.emit('hideTooltip', event));
     this._leafletLayer = this._geohashMarkers.getLeafletLayer();
+    console.log('[DEBUG] Geohash markers created successfully');
   }
 
   appendLegendContents(jqueryDiv) {
@@ -166,16 +186,56 @@ export class GeohashLayer extends OpenSearchDashboardsMapLayer {
 
   updateExtent() {
     // Client-side filtering is only enabled when server-side filter is not used
-    if (!this._geohashOptions.isFilteredByCollar) {
-      const bounds = this._opensearchDashboardsMap.getLeafletBounds();
-      if (!this._lastBounds || !this._lastBounds.equals(bounds)) {
-        //this removal is required to trigger the bounds filter again
-        this._opensearchDashboardsMap.removeLayer(this);
-        this._createGeohashMarkers();
-        this._opensearchDashboardsMap.addLayer(this);
+    const currentZoom = this._opensearchDashboardsMap.getZoomLevel();
+    const bounds = this._opensearchDashboardsMap.getLeafletBounds();
+    
+    console.log('[DEBUG] GeohashLayer.updateExtent called with zoom:', currentZoom);
+    
+    // Check if zoom level has changed or bounds have changed
+    let zoomChanged = this._lastZoom !== currentZoom;
+    const boundsChanged = !this._lastBounds || !this._lastBounds.equals(bounds);
+    
+    // Force update the zoom level from the metadata if available
+    if (this._featureCollectionMetaData && this._featureCollectionMetaData.mapZoom !== undefined) {
+      const metadataZoom = this._featureCollectionMetaData.mapZoom;
+      if (this._zoom !== metadataZoom) {
+        console.log('[DEBUG] Forcing zoom update from metadata:', metadataZoom);
+        this._zoom = metadataZoom;
+        zoomChanged = true;
       }
-      this._lastBounds = bounds;
     }
+    
+    // Always recreate markers when zoom changes, regardless of isFilteredByCollar
+    if (zoomChanged || (!this._geohashOptions.isFilteredByCollar && boundsChanged)) {
+      console.log('[DEBUG] Recreating markers because:', zoomChanged ? 'zoom changed' : 'bounds changed');
+      //this removal is required to trigger the bounds filter again
+      this._opensearchDashboardsMap.removeLayer(this);
+      this._zoom = currentZoom; // Update the zoom level
+      this._createGeohashMarkers();
+      this._opensearchDashboardsMap.addLayer(this);
+    }
+    
+    this._lastZoom = currentZoom;
+    this._lastBounds = bounds;
+  }
+  
+  // Add a method to manually update markers based on zoom
+  updateMarkersForZoom(zoom) {
+    console.log('[DEBUG] updateMarkersForZoom called', {
+      providedZoom: zoom,
+      currentZoom: this._zoom
+    });
+    
+    if (zoom !== this._zoom) {
+      console.log('[DEBUG] Zoom changed, recreating markers in updateMarkersForZoom');
+      this._zoom = zoom;
+      this._opensearchDashboardsMap.removeLayer(this);
+      this._createGeohashMarkers();
+      this._opensearchDashboardsMap.addLayer(this);
+      return true;
+    }
+    console.log('[DEBUG] Zoom unchanged, not recreating markers in updateMarkersForZoom');
+    return false;
   }
 
   isReusable(options) {
