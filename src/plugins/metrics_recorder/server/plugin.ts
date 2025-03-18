@@ -8,13 +8,17 @@ import {
 } from 'opensearch-dashboards/server';
 import { ConfigType } from './config';
 import { setupRoutes } from './routes';
-import { MetricsRecorderFactory } from './types';
+import { MetricsRecorder, MetricsRecorderFactory } from './types';
 
 export interface MetricsRecorderSetup {
   setMetricsRecorderFactory: (factory: MetricsRecorderFactory) => void,
 };
 
-export class MetricsRecorderPlugin implements Plugin<MetricsRecorderSetup> {
+export interface MetricsRecorderStart {
+  getMetricsRecorder: () => MetricsRecorder;
+}
+
+export class MetricsRecorderPlugin implements Plugin<MetricsRecorderSetup, MetricsRecorderStart> {
   private readonly logger: Logger;
   private metricsRecorderFactory?: MetricsRecorderFactory;
 
@@ -66,6 +70,14 @@ export class MetricsRecorderPlugin implements Plugin<MetricsRecorderSetup> {
   }
 
   public start({ }: CoreStart) {
+    return {
+      getMetricsRecorder: () => {
+        if (!this.metricsRecorderFactory) {
+          throw new Error('Metrics recorder factory not set');
+        }
+        return this.metricsRecorderFactory();
+      },
+    }
   }
 
   public stop() {
