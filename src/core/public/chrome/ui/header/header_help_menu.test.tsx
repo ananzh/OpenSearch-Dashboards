@@ -40,4 +40,26 @@ describe('Header help menu', () => {
 
     expect(component).toMatchSnapshot();
   });
+
+  it('shows version', () => {
+    const props = {
+      ...mockProps(),
+      showVersion: true,
+    };
+    const component = mountWithIntl(<HeaderHelpMenu {...props} />);
+    component.find('button').simulate('click');
+
+    expect(component).toMatchSnapshot();
+  });
+
+  it('hides version', () => {
+    const props = {
+      ...mockProps(),
+      showVersion: false,
+    };
+    const component = mountWithIntl(<HeaderHelpMenu {...props} />);
+    component.find('button').simulate('click');
+
+    expect(component).toMatchSnapshot();
+  });
 });

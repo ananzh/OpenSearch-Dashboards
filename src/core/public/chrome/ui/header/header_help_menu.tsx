@@ -126,6 +126,7 @@ interface Props {
   opensearchDashboardsDocLink: string;
   surveyLink?: string;
   useUpdatedAppearance?: boolean;
+  showVersion?: boolean;
 }
 
 interface State {
@@ -389,13 +390,15 @@ class HeaderHelpMenuUI extends Component<Props, State> {
                 />
               </h2>
             </EuiFlexItem>
-            <EuiFlexItem grow={false} className="chrHeaderHelpMenu__version">
-              <FormattedMessage
-                id="core.ui.chrome.headerGlobalNav.helpMenuVersion"
-                defaultMessage="v {version}"
-                values={{ version: opensearchDashboardsVersion }}
-              />
-            </EuiFlexItem>
+            {this.props.showVersion && (
+              <EuiFlexItem grow={false} className="chrHeaderHelpMenu__version">
+                <FormattedMessage
+                  id="core.ui.chrome.headerGlobalNav.helpMenuVersion"
+                  defaultMessage="v {version}"
+                  values={{ version: opensearchDashboardsVersion }}
+                />
+              </EuiFlexItem>
+            )}
           </EuiFlexGroup>
         </EuiPopoverTitle>
 
@@ -425,4 +428,5 @@ export const HeaderHelpMenu = injectI18n(HeaderHelpMenuUI);
 
 HeaderHelpMenu.defaultProps = {
   useDefaultContent: true,
+  showVersion: false,
 };
