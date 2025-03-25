@@ -27016,15 +27016,17 @@ function escapeArgument(arg, doubleEscapeMetaChars) {
     arg = `${arg}`;
 
     // Algorithm below is based on https://qntm.org/cmd
+    // It's slightly altered to disable JS backtracking to avoid hanging on specially crafted input
+    // Please see https://github.com/moxystudio/node-cross-spawn/pull/160 for more information
 
     // Sequence of backslashes followed by a double quote:
     // double up all the backslashes and escape the double quote
-    arg = arg.replace(/(\\*)"/g, '$1$1\\"');
+    arg = arg.replace(/(?=(\\+?)?)\1"/g, '$1$1\\"');
 
     // Sequence of backslashes followed by the end of the string
     // (which will become a double quote later):
     // double up all the backslashes
-    arg = arg.replace(/(\\*)$/, '$1$1');
+    arg = arg.replace(/(?=(\\+?)?)\1$/, '$1$1');
 
     // All other backslashes occur literally
 
@@ -27142,7 +27144,7 @@ function hookChildProcess(cp, parsed) {
         // the command exists and emit an "error" instead
         // See https://github.com/IndigoUnited/node-cross-spawn/issues/16
         if (name === 'exit') {
-            const err = verifyENOENT(arg1, parsed, 'spawn');
+            const err = verifyENOENT(arg1, parsed);
 
             if (err) {
                 return originalEmit.call(cp, 'error', err);
@@ -40854,7 +40856,7 @@ singleVersionResolution = SingleVersionResolution.STRICT) {
         var _deps;
         if (!cachedManifests.has(project.path)) cachedManifests.set(project.path,
         // If there are errors reading or parsing the lockfiles, don't catch and let them fall through
-        (0, _lockfile.parse)((0, _fs.readFileSync)(_path.default.join(project.path, 'yarn.lock'), 'utf-8')));
+        (0, _lockfile.parse)((0, _fs.readFileSync)(_path.default.join(project.path, 'yarn.lock'), 'utf8')));
         const {
           object: deps
         } = cachedManifests.get(project.path);
@@ -42535,7 +42537,12 @@ const util = __webpack_require__(112);
 const braces = __webpack_require__(367);
 const picomatch = __webpack_require__(377);
 const utils = __webpack_require__(380);
-const isEmptyString = val => val === '' || val === './';
+
+const isEmptyString = v => v === '' || v === './';
+const hasBraces = v => {
+  const index = v.indexOf('{');
+  return index > -1 && v.indexOf('}', index) > -1;
+};
 
 /**
  * Returns an array of strings that match one or more glob patterns.
@@ -42976,7 +42983,7 @@ micromatch.parse = (patterns, options) => {
 
 micromatch.braces = (pattern, options) => {
   if (typeof pattern !== 'string') throw new TypeError('Expected a string');
-  if ((options && options.nobrace === true) || !/\{.*\}/.test(pattern)) {
+  if ((options && options.nobrace === true) || !hasBraces(pattern)) {
     return [pattern];
   }
   return braces(pattern, options);
@@ -42995,6 +43002,8 @@ micromatch.braceExpand = (pattern, options) => {
  * Expose micromatch
  */
 
+// exposed for tests
+micromatch.hasBraces = hasBraces;
 module.exports = micromatch;
 
 
