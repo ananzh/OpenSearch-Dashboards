@@ -17,6 +17,6 @@ osd_group=$osd_user
 chown -R $osd_user:$osd_group $test_path
 
 echo "Begin bootstrap as: $osd_user"
-node_version="v18.19.0"
+node_version="v20.18.3"
 node_path="/usr/local/nvm/versions/node/$node_version/bin"
 su - $osd_user -c "cd $test_path && $node_path/node $node_path/yarn osd bootstrap"

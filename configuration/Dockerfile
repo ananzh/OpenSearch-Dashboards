@@ -16,7 +16,7 @@ RUN yum update -y && yum install -y git gzip shadow-utils tar && yum clean all &
 
 # Step 5 -> setup base env for nvm/node installation
 ENV NVM_DIR /usr/local/nvm
-ENV NODE_VERSION 18.19.0
+ENV NODE_VERSION 20.18.3
 
 # Step 6 -> install nvm/node/npm/yarn
 RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.39.7/install.sh | bash \
