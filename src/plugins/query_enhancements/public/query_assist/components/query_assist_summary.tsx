@@ -68,7 +68,7 @@ export const QueryAssistSummary: React.FC<QueryAssistSummaryProps> = (props) => 
   const [feedback, setFeedback] = useState(FeedbackStatus.NONE);
   const [isEnabledByCapability, setIsEnabledByCapability] = useState(false);
   const selectedDataset = useRef(query.queryString.getQuery()?.dataset);
-  const { queryState, isQuerySummaryCollapsed, isSummaryAgentAvailable } = useQueryAssist();
+  const { queryState, isQuerySummaryCollapsed, isSummaryAgentAvailable, updateQueryState } = useQueryAssist();
 
   const [results, setResults] = useState<any[]>([]);
   // the question and answer used last time to generate summary
@@ -159,6 +159,14 @@ export const QueryAssistSummary: React.FC<QueryAssistSummaryProps> = (props) => 
       subscription.unsubscribe();
     };
   }, [search.df.df$]);
+
+  useEffect(() => {
+    return () => {
+      // reset the state when unmount, so when navigating away and
+      // back to discover, it won't use stale state
+      updateQueryState({ question: '', generatedQuery: '' });
+    };
+  }, [updateQueryState]);
 
   const fetchSummary = useCallback(
     async (queryContext: QueryContext) => {
