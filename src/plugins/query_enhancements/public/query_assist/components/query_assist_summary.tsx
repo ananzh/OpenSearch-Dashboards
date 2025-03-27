@@ -151,7 +151,7 @@ export const QueryAssistSummary: React.FC<QueryAssistSummaryProps> = (props) => 
         filter((value) => !isEmpty(value) && !isEmpty(value?.fields))
       )
       .subscribe((df) => {
-        if (df) {
+        if (df && currentQueryStateRef.current.question) {
           setResults(convertResult(df));
         }
       });
