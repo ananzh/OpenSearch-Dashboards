@@ -150,14 +150,15 @@ export const DatasetTypes = {
   INDEX_PATTERN: {
     name: 'INDEX_PATTERN',
     supportedLanguages: [
-      QueryLanguages.DQL,
-      QueryLanguages.Lucene,
-      QueryLanguages.SQL,
+      // QueryLanguages.DQL,
+      // QueryLanguages.Lucene,
+      // QueryLanguages.SQL,
       QueryLanguages.PPL,
     ],
   },
   INDEXES: {
     name: 'INDEXES',
-    supportedLanguages: [QueryLanguages.SQL, QueryLanguages.PPL],
+    supportedLanguages:[],
+    // supportedLanguages: [QueryLanguages.SQL, QueryLanguages.PPL],
   },
 };

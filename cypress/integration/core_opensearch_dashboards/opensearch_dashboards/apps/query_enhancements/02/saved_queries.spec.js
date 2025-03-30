@@ -67,6 +67,7 @@ const loadSavedQuery = (config) => {
   );
 
   cy.loadSavedQuery(`${workspaceName}-${config.saveName}`);
+  cy.wait(1000);
   // wait for saved queries to load.
   cy.getElementByTestId('docTable').should('be.visible');
   verifyDiscoverPageState(config);
@@ -85,6 +86,7 @@ const modifyAndVerifySavedQuery = (config, saveAsNewQueryName) => {
 
   cy.reload();
   cy.loadSavedQuery(`${workspaceName}-${saveAsNewQueryName}`);
+  cy.wait(1000);
   // wait for saved query to load
   cy.getElementByTestId('docTable').should('be.visible');
   verifyDiscoverPageState(config);
@@ -125,10 +127,10 @@ const runSavedQueriesUITests = () => {
     });
 
     after(() => {
-      cy.osd.cleanupWorkspaceAndDataSourceAndIndices(workspaceName, [
-        INDEX_WITH_TIME_1,
-        INDEX_WITH_TIME_2,
-      ]);
+      // cy.osd.cleanupWorkspaceAndDataSourceAndIndices(workspaceName, [
+      //   INDEX_WITH_TIME_1,
+      //   INDEX_WITH_TIME_2,
+      // ]);
     });
 
     const testConfigurations = generateAllTestConfigurations(generateSavedTestConfiguration);
