@@ -20,3 +20,6 @@ echo "Begin bootstrap as: $osd_user"
 node_version="v20.18.3"
 node_path="/usr/local/nvm/versions/node/$node_version/bin"
 su - $osd_user -c "cd $test_path && $node_path/node $node_path/yarn osd bootstrap"
+
+echo "Remove all files from $test_path..."
+rm -rf $test_path/*
