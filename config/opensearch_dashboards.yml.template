@@ -386,7 +386,7 @@ assistant.enabled: ${ASSISTANT_ENABLED}
 
 
 # Set the value of this settings to true to turn on OpenSearch Flow
-# flowFrameworkDashboards.enabled: ${OPENSEARCHFLOW_ENABLED}
+flowFrameworkDashboards.enabled: true
 
 # Set the value of the following settings to true to turn features on dashboard assistant
 assistant.chat.enabled: ${CHAT_ENABLED}
