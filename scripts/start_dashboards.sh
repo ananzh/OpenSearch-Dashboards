@@ -50,14 +50,6 @@ case "$REGION" in
     ;;
 esac
 
-
-# OpenSearch Flow feature flag
-if [ "$STAGE" = "alpha" ] || [ "$STAGE" = "beta" ]; then
-  export OPENSEARCHFLOW_ENABLED="true"
-else
-  export OPENSEARCHFLOW_ENABLED="false"
-fi
-
 if [ "$STAGE" = "prod" ]; then
   export CONTROL_PLANE_SPN="svc:opensearchservice.amazonaws.com"
 else
