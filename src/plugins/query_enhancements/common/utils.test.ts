@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { throwFacetError } from './utils';
+import { isPPLSearchQuery, throwFacetError } from './utils';
+import { Query } from 'src/plugins/data/common';
 
 describe('throwFacetError', () => {
   it('should throw an error with message from response.data.body.message', () => {
@@ -109,5 +110,48 @@ describe('throwFacetError', () => {
       expect(err.name).toBeUndefined();
       expect(err.status).toBeUndefined();
     }
+  });
+});
+
+describe('isPPLSearchQuery', () => {
+  it('should return false if query language is not PPL', () => {
+    const query: Query = {
+      language: 'lucene',
+      query: 'test',
+    };
+
+    expect(isPPLSearchQuery(query)).toBe(false);
+  });
+
+  it('should return false if query is not string', () => {
+    const query: Query = {
+      language: 'PPL',
+      query: {
+        field: 'something',
+      },
+    };
+
+    expect(isPPLSearchQuery(query)).toBe(false);
+  });
+
+  it('should return false if query is not using search command', () => {
+    const query: Query = {
+      language: 'PPL',
+      query: 'test',
+    };
+
+    expect(isPPLSearchQuery(query)).toBe(false);
+  });
+
+  it('should return true if query is using search command', () => {
+    const query: Query = {
+      language: 'PPL',
+      query: 'source = test | stats count',
+    };
+
+    expect(isPPLSearchQuery(query)).toBe(true);
+
+    query.query = 'search source = test | stats count';
+    expect(isPPLSearchQuery(query)).toBe(true);
   });
 });
