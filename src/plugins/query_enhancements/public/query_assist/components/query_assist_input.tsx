@@ -4,7 +4,6 @@
  */
 
 import { EuiFieldText, EuiIcon, EuiOutsideClickDetector, EuiPortal } from '@elastic/eui';
-import { i18n } from '@osd/i18n';
 import React, { useMemo, useState } from 'react';
 import { PersistedLog, QuerySuggestionTypes } from '../../../../data/public';
 import { getData } from '../../services';
@@ -19,6 +18,7 @@ interface QueryAssistInputProps {
   selectedIndex?: string;
   previousQuestion?: string;
   error?: AgentError;
+  placeholder?: string;
 }
 
 export const QueryAssistInput: React.FC<QueryAssistInputProps> = (props) => {
@@ -85,17 +85,7 @@ export const QueryAssistInput: React.FC<QueryAssistInputProps> = (props) => {
           onClick={() => setIsSuggestionsVisible(true)}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={() => setIsSuggestionsVisible(true)}
-          placeholder={
-            props.selectedIndex
-              ? i18n.translate('queryEnhancements.queryAssist.input.placeholderWithIndex', {
-                  defaultMessage:
-                    'Ask a natural language question about {selectedIndex} to generate a query',
-                  values: { selectedIndex: props.selectedIndex },
-                })
-              : i18n.translate('queryEnhancements.queryAssist.input.placeholderWithoutIndex', {
-                  defaultMessage: 'Select an index to ask a question',
-                })
-          }
+          placeholder={props.placeholder}
           prepend={<EuiIcon type="/ui/logos/amazon_q_gray.svg" />}
           append={<WarningBadge error={props.error} />}
           fullWidth
