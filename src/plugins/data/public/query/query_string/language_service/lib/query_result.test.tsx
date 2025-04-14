@@ -94,11 +94,8 @@ describe('Query Result', () => {
         status: ResultStatus.ERROR,
         body: {
           error: {
-            message: {
-              reason: 'error reason',
-              details: 'error details',
-              status: 400,
-            },
+            reason: 'error reason',
+            details: 'error details',
           },
           statusCode: 400,
         },
@@ -148,7 +145,7 @@ describe('Query Result', () => {
     await fireEvent.click(screen.getByText('Error'));
 
     await waitFor(() => {
-      expect(screen.getByText('error reason')).toBeInTheDocument();
+      expect(screen.getByText('error details')).toBeInTheDocument();
     });
   });
 
@@ -183,14 +180,7 @@ describe('Query Result', () => {
       queryStatus: {
         status: ResultStatus.ERROR,
         body: {
-          error: {
-            error: 'error',
-            statusCode: 400,
-            message: {
-              reason: 'error message',
-              status: 400,
-            },
-          },
+          error: 'error message',
         },
       },
     };
@@ -200,7 +190,7 @@ describe('Query Result', () => {
     await fireEvent.click(screen.getByText('Error'));
 
     await waitFor(() => {
-      expect(screen.getByText('{"reason":"error message","status":400}')).toBeInTheDocument();
+      expect(screen.getByText('error message')).toBeInTheDocument();
     });
   });
 });

@@ -52,8 +52,8 @@ exports[`Query Result show error status with error message 2`] = `
         <strong>
           Message:
         </strong>
-         
-        {"reason":"error reason","details":"error details","status":400}
+
+        {"reason":"error reason","details":"error details"}
       </p>
     </EuiText>
   </div>
