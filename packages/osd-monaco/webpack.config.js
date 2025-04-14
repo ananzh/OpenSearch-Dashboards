@@ -47,12 +47,23 @@ const createLangWorkerConfig = (lang) => ({
     rules: [
       {
         test: /\.(js|ts)$/,
-        exclude: /node_modules/,
+        // Modified to include monaco-editor files for transpilation
+        exclude: /node_modules\/(?!(monaco-editor)\/).*/,
         use: {
           loader: 'babel-loader',
           options: {
             babelrc: false,
-            presets: [require.resolve('@osd/babel-preset/webpack_preset')],
+            presets: [
+              [
+                require.resolve('@osd/babel-preset/webpack_preset'),
+                {
+                  // Enable modern syntax features
+                  modern: true,
+                },
+              ],
+            ],
+            // Add plugin to handle numeric separators in Monaco editor code
+            plugins: [require.resolve('@babel/plugin-transform-numeric-separator')],
           },
         },
       },
@@ -78,4 +89,9 @@ const createLangWorkerConfig = (lang) => ({
   },
 });
 
-module.exports = [createLangWorkerConfig('xjson'), createLangWorkerConfig('json')];
+module.exports = [
+  createLangWorkerConfig('xjson'),
+  createLangWorkerConfig('json'),
+  createLangWorkerConfig('ppl'), // PPL worker
+  createLangWorkerConfig('sql'), // SQL worker
+];

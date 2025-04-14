@@ -52,7 +52,9 @@ export const DefaultInput: React.FC<DefaultInputProps> = ({
         onChange={onChange}
         editorDidMount={handleEditorDidMount}
         options={{
-          minimap: { enabled: false },
+          minimap: {
+            enabled: false,
+          },
           scrollBeyondLastLine: false,
           fontSize: 12,
           lineHeight: 20,
@@ -70,6 +72,8 @@ export const DefaultInput: React.FC<DefaultInputProps> = ({
             showStatusBar: true, // Enable the built-in status bar with default text
             showWords: false, // Disable word-based suggestions
           },
+          // Configure error highlighting
+          renderValidationDecorations: 'on', // Always show validation decorations
           acceptSuggestionOnEnter: 'off',
         }}
         suggestionProvider={{
@@ -77,15 +81,6 @@ export const DefaultInput: React.FC<DefaultInputProps> = ({
           provideCompletionItems: async (model, position, context, token) => {
             return provideCompletionItems(model, position, context, token);
           },
-        }}
-        languageConfiguration={{
-          autoClosingPairs: [
-            { open: '(', close: ')' },
-            { open: '[', close: ']' },
-            { open: '{', close: '}' },
-            { open: '"', close: '"' },
-            { open: "'", close: "'" },
-          ],
         }}
         triggerSuggestOnFocus={true}
       />
