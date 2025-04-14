@@ -404,6 +404,7 @@ queryEnhancements.queryAssist.summary.enabled: ${DISCOVER_SUMMARY_ENABLED}
 assistant.branding.logo:
   gray: '/ui/logos/amazon_q_gray.svg'
   gradient: '/ui/logos/amazon_q_gradient.svg'
+  white: '/ui/logos/amazon_q_white.svg'
 
 assistant.branding.label: "Amazon Q"
 queryEnhancements.queryAssist.summary.branding.label: 'Amazon Q'
