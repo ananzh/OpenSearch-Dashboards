@@ -84,7 +84,7 @@ export const QueryAssistInput: React.FC<QueryAssistInputProps> = (props) => {
           disabled={props.isDisabled}
           onClick={() => setIsSuggestionsVisible(true)}
           onChange={(e) => setValue(e.target.value)}
-          onKeyDown={() => setIsSuggestionsVisible(true)}
+          onKeyDown={(e) => setIsSuggestionsVisible(e.key !== 'Enter')}
           placeholder={props.placeholder}
           prepend={<EuiIcon type="/ui/logos/amazon_q_gray.svg" />}
           append={<WarningBadge error={props.error} />}
