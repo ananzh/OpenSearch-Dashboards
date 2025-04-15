@@ -137,18 +137,76 @@ export class CodeEditor extends React.Component<Props, {}> {
   };
 
   _editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor, __monaco: unknown) => {
+    console.log(`[CodeEditor] Editor did mount for language: ${this.props.languageId}`);
+    
     if (__monaco !== monaco) {
+      console.error('[CodeEditor] react-monaco-editor is using a different version of monaco');
       throw new Error('react-monaco-editor is using a different version of monaco');
     }
 
     this._editor = editor;
+    
+    // Get the model for this editor
+    const model = editor.getModel();
+    console.log(`[CodeEditor] Editor model:`, model ? {
+      id: model.id,
+      uri: model.uri.toString(),
+      languageId: model.getLanguageId(),
+    } : 'No model');
+    
+    // Check for markers on this model
+    if (model) {
+      const markers = monaco.editor.getModelMarkers({ resource: model.uri });
+      console.log(`[CodeEditor] Current markers for model:`, markers);
+      
+      // Set up a listener for marker changes
+      const disposable = monaco.editor.onDidChangeMarkers((uris) => {
+        if (model && uris.some(uri => uri.toString() === model.uri.toString())) {
+          const updatedMarkers = monaco.editor.getModelMarkers({ resource: model.uri });
+          console.log(`[CodeEditor] Markers changed:`, updatedMarkers);
+        }
+      });
+      
+      // Clean up the listener when the editor is disposed
+      editor.onDidDispose(() => {
+        console.log(`[CodeEditor] Editor disposed`);
+        disposable.dispose();
+      });
+      
+      // Add listener for content changes
+      console.log(`[CodeEditor] Setting up content change listener for model: ${model.uri.toString()}`);
+      model.onDidChangeContent((event) => {
+        console.log(`[CodeEditor] Content changed in model: ${model.uri.toString()}`);
+        console.log(`[CodeEditor] Change event:`, {
+          changes: event.changes.map(change => ({
+            range: {
+              startLineNumber: change.range.startLineNumber,
+              startColumn: change.range.startColumn,
+              endLineNumber: change.range.endLineNumber,
+              endColumn: change.range.endColumn
+            },
+            text: change.text
+          })),
+          isUndoing: event.isUndoing,
+          isRedoing: event.isRedoing
+        });
+        console.log(`[CodeEditor] New content:`, model.getValue());
+        
+        // Note: We don't need to manually trigger validation here
+        // The PPL language module in packages/osd-monaco/src/ppl/language.ts
+        // already registers validators that run automatically when content changes
+      });
+    }
 
     if (this.props.editorDidMount) {
+      console.log(`[CodeEditor] Calling editorDidMount callback`);
       this.props.editorDidMount(editor);
     }
 
     if (this.props.triggerSuggestOnFocus) {
+      console.log(`[CodeEditor] Setting up triggerSuggestOnFocus`);
       editor.onDidFocusEditorWidget(() => {
+        console.log(`[CodeEditor] Editor focused, triggering suggestions`);
         editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
       });
     }
@@ -156,22 +214,41 @@ export class CodeEditor extends React.Component<Props, {}> {
 
   render() {
     const { languageId, value, onChange, width, height, options } = this.props;
+    console.log(`[CodeEditor] Setting up language: ${languageId}`);
 
+    // Check if the language is already loaded
+    const languages = monaco.languages.getLanguages();
+    const languageExists = languages.some(lang => lang.id === languageId);
+    console.log(`[CodeEditor] Language ${languageId} exists: ${languageExists}`);
+
+    // Register providers when the language is loaded
     monaco.languages.onLanguage(languageId, () => {
+      console.log(`[CodeEditor] Language ${languageId} loaded, registering providers`);
+      
       if (this.props.suggestionProvider) {
+        console.log(`[CodeEditor] Registering suggestion provider for ${languageId}`);
         monaco.languages.registerCompletionItemProvider(languageId, this.props.suggestionProvider);
       }
 
       if (this.props.signatureProvider) {
+        console.log(`[CodeEditor] Registering signature provider for ${languageId}`);
         monaco.languages.registerSignatureHelpProvider(languageId, this.props.signatureProvider);
       }
 
       if (this.props.hoverProvider) {
+        console.log(`[CodeEditor] Registering hover provider for ${languageId}`);
         monaco.languages.registerHoverProvider(languageId, this.props.hoverProvider);
       }
 
       if (this.props.languageConfiguration) {
+        console.log(`[CodeEditor] Setting language configuration for ${languageId}`);
         monaco.languages.setLanguageConfiguration(languageId, this.props.languageConfiguration);
+      }
+      
+      // Force register the language if it doesn't exist
+      if (!languageExists) {
+        console.log(`[CodeEditor] Forcing language registration for ${languageId}`);
+        monaco.languages.register({ id: languageId });
       }
     });
 

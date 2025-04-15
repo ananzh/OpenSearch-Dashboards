@@ -23,25 +23,37 @@ export class PPLWorker {
    * Validates a PPL query and returns any syntax errors
    */
   async validate(modelUri: string): Promise<PPLSyntaxError[]> {
+    console.log('[PPL Worker] validate called for model:', modelUri);
     const model = this.ctx.getMirrorModels().find((m: any) => m.uri.toString() === modelUri);
     if (!model) {
+      console.log('[PPL Worker] Model not found');
       return [];
     }
 
     const code = model.getValue();
+    console.log('[PPL Worker] Code to validate:', code);
+    
     if (!code.trim()) {
+      console.log('[PPL Worker] Empty code, no errors');
       return []; // Empty query, no errors
     }
 
     try {
+      console.log('[PPL Worker] Starting validation process');
       // Since we can't directly use ANTLR in the worker due to import issues,
       // we'll use a simpler approach to detect basic syntax errors
       const errors: PPLSyntaxError[] = [];
+      
+      console.log('[PPL Worker] Analyzing query structure');
 
       // Check for unbalanced parentheses
+      console.log('[PPL Worker] Checking for unbalanced parentheses');
       const openParens = (code.match(/\(/g) || []).length;
       const closeParens = (code.match(/\)/g) || []).length;
+      console.log(`[PPL Worker] Found ${openParens} opening parentheses and ${closeParens} closing parentheses`);
+      
       if (openParens !== closeParens) {
+        console.log('[PPL Worker] Detected unbalanced parentheses');
         // Find the position of the unbalanced parenthesis
         let line = 1;
         let column = 1;
@@ -50,10 +62,13 @@ export class PPLWorker {
         for (let i = 0; i < code.length; i++) {
           if (code[i] === '(') {
             stack++;
+            console.log(`[PPL Worker] Found opening parenthesis at line ${line}, column ${column}, stack: ${stack}`);
           } else if (code[i] === ')') {
             stack--;
+            console.log(`[PPL Worker] Found closing parenthesis at line ${line}, column ${column}, stack: ${stack}`);
             if (stack < 0) {
               // Extra closing parenthesis
+              console.log(`[PPL Worker] Detected extra closing parenthesis at line ${line}, column ${column}`);
               errors.push({
                 message: 'Unbalanced parenthesis: extra closing parenthesis',
                 line,
@@ -63,6 +78,7 @@ export class PPLWorker {
               break;
             }
           } else if (code[i] === '\n') {
+            console.log(`[PPL Worker] Found newline, incrementing line number from ${line} to ${line + 1}`);
             line++;
             column = 0;
           }
@@ -156,6 +172,7 @@ export class PPLWorker {
         });
       }
 
+      console.log('[PPL Worker] Validation complete, found errors:', errors);
       return errors;
     } catch (e) {
       // Return error without logging to console
