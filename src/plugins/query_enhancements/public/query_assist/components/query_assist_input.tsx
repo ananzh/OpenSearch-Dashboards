@@ -89,6 +89,7 @@ export const QueryAssistInput: React.FC<QueryAssistInputProps> = (props) => {
           prepend={<EuiIcon type="/ui/logos/amazon_q_gray.svg" />}
           append={<WarningBadge error={props.error} />}
           fullWidth
+          compressed
         />
         <EuiPortal>
           <SuggestionsComponent
