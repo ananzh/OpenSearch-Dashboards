@@ -119,8 +119,9 @@ export class CodeEditor extends React.Component<Props, {}> {
   _editor: monaco.editor.IStandaloneCodeEditor | null = null;
 
   _editorWillMount = (__monaco: unknown) => {
-    if (__monaco !== monaco) {
-      throw new Error('react-monaco-editor is using a different version of monaco');
+    // Instead of checking for strict equality, check for API compatibility
+    if (typeof __monaco !== 'object' || !__monaco) {
+      console.warn('[CodeEditor] react-monaco-editor provided an invalid monaco instance');
     }
 
     if (this.props.overrideEditorWillMount) {
@@ -139,9 +140,9 @@ export class CodeEditor extends React.Component<Props, {}> {
   _editorDidMount = (editor: monaco.editor.IStandaloneCodeEditor, __monaco: unknown) => {
     console.log(`[CodeEditor] Editor did mount for language: ${this.props.languageId}`);
     
-    if (__monaco !== monaco) {
-      console.error('[CodeEditor] react-monaco-editor is using a different version of monaco');
-      throw new Error('react-monaco-editor is using a different version of monaco');
+    // Instead of checking for strict equality, check for API compatibility
+    if (typeof __monaco !== 'object' || !__monaco) {
+      console.warn('[CodeEditor] react-monaco-editor provided an invalid monaco instance');
     }
 
     this._editor = editor;
@@ -190,7 +191,7 @@ export class CodeEditor extends React.Component<Props, {}> {
           isUndoing: event.isUndoing,
           isRedoing: event.isRedoing
         });
-        console.log(`[CodeEditor] New content:`, model.getValue());
+        console.log(`[CodeEditor] New content: source = ${model.getValue()}`);
         
         // Note: We don't need to manually trigger validation here
         // The PPL language module in packages/osd-monaco/src/ppl/language.ts

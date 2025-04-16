@@ -36,13 +36,25 @@ const createLangWorkerConfig = (lang) => ({
   output: {
     path: path.resolve(__dirname, 'target/public'),
     filename: `${lang}.editor.worker.js`,
-    hashFunction: 'Xxh64',
+    // Use hashFunction compatible with webpack 4
+    hashFunction: 'md4',
   },
   resolve: {
     modules: ['node_modules'],
     extensions: ['.js', '.ts', '.tsx'],
+    // Add alias for ANTLR runtime and generated files when building the PPL worker
+    ...(lang === 'ppl' ? {
+      alias: {
+        // Ensure antlr4ng is resolved correctly
+        'antlr4ng': path.resolve(__dirname, '../../node_modules/antlr4ng'),
+        // Add alias for generated files
+        '../generated': path.resolve(__dirname, 'src/ppl/generated')
+      }
+    } : {})
   },
   stats: 'errors-only',
+  // No externals - we want to bundle everything the worker needs
+  externals: {},
   module: {
     rules: [
       {

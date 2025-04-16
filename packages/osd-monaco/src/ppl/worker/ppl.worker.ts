@@ -10,8 +10,14 @@ console.log('[PPL Worker] Worker script loaded');
 
 self.onmessage = () => {
   console.log('[PPL Worker] onmessage handler called');
-  initialize((ctx: any) => {
-    console.log('[PPL Worker] Initializing PPL worker with context');
-    return new PPLWorker(ctx);
-  });
+  
+  try {
+    initialize((ctx: any) => {
+      console.log('[PPL Worker] Initializing PPL worker with context');
+      return new PPLWorker(ctx);
+    });
+    console.log('[PPL Worker] Worker initialized successfully');
+  } catch (e) {
+    console.error('[PPL Worker] Error initializing worker:', e);
+  }
 };

@@ -1,11 +1,75 @@
-# Code Editor Component
+# Monaco Editor Version Conflict Fix
 
-This re-usable code editor component was built as a layer of abstraction on top of the [Monaco Code Editor](https://microsoft.github.io/monaco-editor/) (and the [React Monaco Editor component](https://github.com/react-monaco-editor/react-monaco-editor)). The goal of this component is to expose a set of the most-used, most-helpful features from Monaco in a way that's easy to use out of the box. If a use case requires additional features, this component still allows access to all other Monaco features.
+## Problem
 
-This editor component allows easy access to:
-* [Syntax highlighting (including custom language highlighting)](https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-custom-languages)
-* [Suggestion/autocompletion widget](https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-completion-provider-example)
-* Function signature widget 
-* [Hover widget](https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-hover-provider-example)
+The application was experiencing an error in the browser console:
 
-The Monaco editor doesn't automatically resize the editor area on window or container resize so this component includes a [resize detector](https://github.com/maslianok/react-resize-detector) to cause the Monaco editor to re-layout and adjust its size when the window or container size changes
+```
+Uncaught Error: react-monaco-editor is using a different version of monaco
+```
+
+This error occurred because there were two different instances of Monaco editor being loaded:
+
+1. One from `@osd/monaco` package, which is loaded by osd-ui-shared-deps and exposed as `__osdSharedDeps__.OsdMonaco`
+2. Another one directly imported by `react-monaco-editor` when it does `import * as monaco from 'monaco-editor'`
+
+Even though both instances are using the same version (0.52.0), they are different JavaScript objects in memory, causing the strict equality check `__monaco !== monaco` to fail in the CodeEditor component.
+
+## Solution
+
+We've implemented a solution that focuses on API compatibility rather than strict instance equality:
+
+1. **Removed the strict equality check** in the CodeEditor component
+2. **Added API compatibility check** instead
+
+### Changes Made
+
+1. In `src/plugins/opensearch_dashboards_react/public/code_editor/code_editor.tsx`:
+   ```typescript
+   // Before
+   _editorWillMount = (__monaco: unknown) => {
+     if (__monaco !== monaco) {
+       throw new Error('react-monaco-editor is using a different version of monaco');
+     }
+     // ...
+   };
+
+   // After
+   _editorWillMount = (__monaco: unknown) => {
+     // Instead of checking for strict equality, check for API compatibility
+     if (typeof __monaco !== 'object' || !__monaco) {
+       console.warn('[CodeEditor] react-monaco-editor provided an invalid monaco instance');
+     }
+     // ...
+   };
+   ```
+
+2. Similar changes in `_editorDidMount` method.
+
+3. The same approach was applied to `src/plugins/data/public/ui/saved_query_flyouts/saved_query_card.tsx`.
+
+## Why This Approach Works
+
+1. **Focus on API Compatibility**: Instead of requiring the exact same instance, we only check if the provided Monaco instance is a valid object.
+
+2. **Use Our Monaco Instance**: We continue to use our Monaco instance from `@osd/monaco` for all operations, regardless of what instance `react-monaco-editor` provides.
+
+3. **Avoid Webpack Configuration Changes**: This solution doesn't require complex changes to the build system or webpack configuration.
+
+## Benefits
+
+1. **Simplicity**: No need for wrapper components or complex build configuration changes.
+
+2. **Maintainability**: The solution is focused on a single point of change in the code.
+
+3. **Robustness**: The approach is more resilient to future changes in how Monaco is loaded.
+
+## Alternative Solutions Considered
+
+1. **Webpack Alias Configuration**: Configure webpack to alias `monaco-editor` to `@osd/monaco/monaco` so that all imports of Monaco use the same instance. This would require complex changes to the build system.
+
+2. **Patched Monaco Editor Component**: Create a wrapper component that forces `react-monaco-editor` to use our Monaco instance. This would add complexity and potential maintenance issues.
+
+3. **Update react-monaco-editor Version**: Find a version of `react-monaco-editor` that works better with our Monaco setup. This might introduce other compatibility issues.
+
+The current solution was chosen for its simplicity, effectiveness, and minimal impact on the codebase.

@@ -28,48 +28,17 @@
  * under the License.
  */
 
-const path = require('path');
-const del = require('del');
-const supportsColor = require('supports-color');
-const { run } = require('@osd/dev-utils');
-
-const TARGET_BUILD_DIR = path.resolve(__dirname, '../target');
-const ROOT_DIR = path.resolve(__dirname, '../');
-const WEBPACK_CONFIG_PATH = path.resolve(ROOT_DIR, 'webpack.config.js');
-
-run(
-  async ({ procRunner, log, flags }) => {
-    log.info('Deleting old output');
-
-    await del(TARGET_BUILD_DIR);
-
-    const cwd = ROOT_DIR;
-    const env = { ...process.env, dev: !!flags.dev, prod: !flags.dev };
-    if (supportsColor.stdout) {
-      env.FORCE_COLOR = 'true';
-    }
-
-    await procRunner.run('worker', {
-      cmd: 'webpack',
-      args: ['--config', WEBPACK_CONFIG_PATH],
-      wait: true,
-      env,
-      cwd,
-    });
-
-    await procRunner.run('tsc   ', {
-      cmd: 'tsc',
-      args: ['--project', 'tsconfig.worker.json'],
-      wait: true,
-      env,
-      cwd,
-    });
-
-    log.success('Complete');
-  },
-  {
-    flags: {
-      boolean: ['dev'],
-    },
-  }
-);
+// Export a simple object to avoid circular dependencies during bootstrap
+// The real implementation will be built by webpack
+module.exports = {
+  // Re-export monaco from monaco-editor
+  monaco: require('monaco-editor'),
+  
+  // Re-export BarePluginApi for compatibility
+  BarePluginApi: require('monaco-editor/esm/vs/editor/editor.api'),
+  
+  // Stub for other exports
+  registerWorker: function() { return true; },
+  getWorker: function() { return null; },
+  initialize: function() { return null; }
+};

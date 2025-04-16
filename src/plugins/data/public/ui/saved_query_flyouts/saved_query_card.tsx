@@ -70,7 +70,12 @@ export function SavedQueryCard({
     setEditorHeight(height);
   }, [isTruncated, shouldTruncate]);
 
-  function handleHTMLEditorDidMount(editor: monaco.editor.IStandaloneCodeEditor) {
+  function handleHTMLEditorDidMount(editor: monaco.editor.IStandaloneCodeEditor, __monaco: unknown) {
+    // Instead of checking for strict equality, check for API compatibility
+    if (typeof __monaco !== 'object' || !__monaco) {
+      console.warn('[SavedQueryCard] react-monaco-editor provided an invalid monaco instance');
+    }
+    
     const scrollHeight = editor.getScrollHeight();
     setEditorHeight(scrollHeight);
 
