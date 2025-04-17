@@ -355,6 +355,7 @@ uiSettings:
      "home:useNewHomePage": true
      "query:enhancements:enabled": true
      "visualization:enablePluginAugmentation": false
+     "theme:enableUserControl": false
    defaults:
      "theme:version": 'v9'
 
