@@ -446,3 +446,6 @@ storage.ultrawarm_enabled: true
 # Server timeout setting
 server.keepaliveTimeout: 300000
 server.socketTimeout: 300000
+
+# Set the value to true to enable direct data import from a file
+data_importer.enabled: true
