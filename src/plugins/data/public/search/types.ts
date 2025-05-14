@@ -51,7 +51,7 @@ export interface ISearchSetup {
   aggs: AggsSetup;
   usageCollector?: SearchUsageCollector;
   /**
-   * @internal
+   * @experimental (undocumented)
    */
   __enhance: (enhancements: SearchEnhancements) => void;
   getDefaultSearchInterceptor: () => ISearchInterceptor;
