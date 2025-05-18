@@ -9,6 +9,7 @@ import { Sha256 } from '@aws-crypto/sha256-js';
 import { AbortController } from '@aws-sdk/abort-controller';
 import { defaultProvider } from '@aws-sdk/credential-provider-node';
 import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
+
 const HttpConnector = require('elasticsearch/src/lib/connectors/http');
 
 class HttpAmazonESConnector extends HttpConnector {
@@ -91,15 +92,30 @@ class HttpAmazonESConnector extends HttpConnector {
   }
 
   createRequest(params, reqParams) {
+    const [pathname = '/', queryStr = ''] = (reqParams.path || '').split('?', 2);
+
+    const queryParams = {};
+    if (queryStr) {
+      for (const [key, value] of new URLSearchParams(queryStr)) {
+        queryParams[key] = value ?? '';
+      }
+    }
+
     const request = new HttpRequest({
       ...this.endpoint,
       method: reqParams.method,
       headers: reqParams.headers || {},
       hostname: this.endpoint.hostname,
+      query: queryParams,
     });
 
-    // copy across params
-    Object.assign(request, reqParams);
+    Object.assign(request, {
+      ...reqParams,
+      path: pathname.replaceAll(
+        /[!'()*]/g,
+        (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+      ),
+    });
 
     const body = params.body;
     if (body) {
