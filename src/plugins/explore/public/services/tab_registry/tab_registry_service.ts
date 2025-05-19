@@ -1,0 +1,69 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { Query } from '../../../../../data/common';
+
+/**
+ * Props passed to tab components
+ */
+export interface TabComponentProps {
+  query: Query;
+  results: any;
+  isLoading: boolean;
+  error: Error | null;
+}
+
+/**
+ * Definition of a tab in the Explore plugin
+ */
+export interface TabDefinition {
+  id: string;
+  label: string;
+  flavor: string[];
+  order?: number;
+  
+  // Language-aware query handling
+  supportedLanguages: string[];
+  
+  // Transform complete query object instead of just string
+  prepareQuery: (query: Query) => Query;
+  
+  // UI Components
+  component: React.ComponentType<TabComponentProps>;
+  
+  // Optional lifecycle hooks
+  onActive?: () => void;
+  onInactive?: () => void;
+}
+
+/**
+ * Service for registering and retrieving tabs
+ */
+export class TabRegistryService {
+  private tabs: Map<string, TabDefinition> = new Map();
+  
+  /**
+   * Register a new tab
+   */
+  public registerTab(tabDefinition: TabDefinition): void {
+    this.tabs.set(tabDefinition.id, tabDefinition);
+  }
+  
+  /**
+   * Get a tab by ID
+   */
+  public getTab(id: string): TabDefinition | undefined {
+    return this.tabs.get(id);
+  }
+  
+  /**
+   * Get all registered tabs, sorted by order
+   */
+  public getAllTabs(): TabDefinition[] {
+    return Array.from(this.tabs.values()).sort((a, b) => {
+      return (a.order || 100) - (b.order || 100);
+    });
+  }
+}

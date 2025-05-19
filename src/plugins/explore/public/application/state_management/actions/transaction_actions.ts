@@ -1,0 +1,55 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { Dispatch } from 'redux';
+import { startTransaction, commitTransaction, rollbackTransaction } from '../slices/transaction_slice';
+import { COMMIT_STATE_TRANSACTION, RESTORE_STATE } from '../handlers/transaction_handler';
+
+/**
+ * Begins a transaction to batch state updates
+ */
+export const beginTransaction = () => (dispatch: Dispatch, getState: any) => {
+  // Save current state for potential rollback
+  const state = getState();
+  const previousState = {
+    query: { ...state.query },
+    ui: { ...state.ui },
+    tab: { ...state.tab },
+  };
+  
+  dispatch(startTransaction({ previousState }));
+};
+
+/**
+ * Finishes a transaction and triggers query execution
+ */
+export const finishTransaction = () => (dispatch: Dispatch, getState: any) => {
+  const state = getState();
+  
+  // Validate transaction state
+  if (!state.transaction.inProgress) {
+    console.warn('Attempting to commit when no transaction is in progress');
+    return;
+  }
+  
+  // Mark transaction as complete
+  dispatch(commitTransaction());
+  
+  // Trigger the actual state commit that handlers listen for
+  dispatch({ type: COMMIT_STATE_TRANSACTION });
+};
+
+/**
+ * Aborts a transaction and rolls back to previous state
+ */
+export const abortTransaction = (error: Error) => (dispatch: Dispatch, getState: any) => {
+  dispatch(rollbackTransaction(error));
+  
+  // Restore previous state
+  const { previousState } = getState().transaction;
+  if (previousState) {
+    dispatch({ type: RESTORE_STATE, payload: previousState });
+  }
+};
