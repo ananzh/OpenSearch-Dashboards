@@ -3,31 +3,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ViewProps } from '../../../../data_explorer';
-import {
-  addColumn,
-  removeColumn,
-  reorderColumn,
-  setColumns,
-  useDispatch,
-  useSelector,
-} from '../../utils/state_management';
-import { DiscoverSidebar } from '../../components/sidebar';
-import { useDiscoverContext } from '../context';
-import { ResultStatus, SearchData } from '../utils/use_search';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import {
   IndexPatternField,
   UI_SETTINGS,
   opensearchFilters,
 } from '../../../../../../../../data/public';
 import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
+import {
+  addColumn,
+  removeColumn,
+  moveColumn,
+  setColumns,
+} from '../../../../../state_management/slices/legacy_slice';
+import {
+  selectColumns,
+  selectFieldCounts,
+  selectRows,
+  selectIndexPattern,
+} from '../../../../../state_management/selectors';
+import { DiscoverSidebar } from '../../components/sidebar';
 import { DiscoverViewServices } from '../../../build_services';
 import { popularizeField } from '../../helpers/popularize_field';
 import { buildColumns } from '../../utils/columns';
 
-// eslint-disable-next-line import/no-default-export
-export default function DiscoverPanel(props: ViewProps) {
+export function DiscoverPanel() {
   const { services } = useOpenSearchDashboards<DiscoverViewServices>();
   const {
     data: {
@@ -36,20 +37,18 @@ export default function DiscoverPanel(props: ViewProps) {
     capabilities,
     indexPatterns,
     application,
+    uiSettings,
   } = services;
-  const { data$, indexPattern } = useDiscoverContext();
-  const [fetchState, setFetchState] = useState<SearchData>(data$.getValue());
 
-  const { columns } = useSelector((state) => {
-    const stateColumns = state.logs.columns;
-    // check if state columns is not undefined, otherwise use buildColumns
-    return {
-      columns: stateColumns !== undefined ? stateColumns : buildColumns([]),
-    };
-  });
+  // Get data from Redux store
+  const columns = useSelector(selectColumns);
+  const fieldCounts = useSelector(selectFieldCounts);
+  const rows = useSelector(selectRows);
+  const indexPattern = useSelector(selectIndexPattern);
 
   const prevColumns = useRef(columns);
   const dispatch = useDispatch();
+
   useEffect(() => {
     const timeFieldname = indexPattern?.timeFieldName;
 
@@ -62,23 +61,13 @@ export default function DiscoverPanel(props: ViewProps) {
         columns.includes(timeFieldname)
       ) {
         // Remove timeFieldname from columns if previously chosen columns does not include time field
-        updatedColumns = columns.filter((column) => column !== timeFieldname);
+        updatedColumns = columns.filter((column: string) => column !== timeFieldname);
       }
       // Update the ref with the new columns
-      dispatch(setColumns({ columns: updatedColumns }));
+      dispatch(setColumns(updatedColumns));
       prevColumns.current = columns;
     }
   }, [columns, dispatch, indexPattern?.timeFieldName]);
-
-  useEffect(() => {
-    const subscription = data$.subscribe((next) => {
-      if (next.status === ResultStatus.LOADING) return;
-      setFetchState(next);
-    });
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [data$, fetchState]);
 
   const onAddFilter = useCallback(
     (field: string | IndexPatternField, values: string, operation: '+' | '-') => {
@@ -97,33 +86,25 @@ export default function DiscoverPanel(props: ViewProps) {
   );
 
   const onCreateIndexPattern = useCallback(async () => {
-    if (!fetchState.title) return;
-    if (fetchState.title === indexPattern?.title) return;
+    if (!indexPattern?.title) return;
     application?.navigateToApp('management', {
-      path: `opensearch-dashboards/indexPatterns/create?id=${fetchState.title}`,
+      path: `opensearch-dashboards/indexPatterns/create?id=${indexPattern.title}`,
     });
-  }, [application, fetchState.title, indexPattern?.title]);
+  }, [application, indexPattern?.title]);
 
-  const isEnhancementsEnabledOverride = services.uiSettings.get(
-    UI_SETTINGS.QUERY_ENHANCEMENTS_ENABLED
-  );
+  const isEnhancementsEnabledOverride = uiSettings.get(UI_SETTINGS.QUERY_ENHANCEMENTS_ENABLED);
 
   return (
     <DiscoverSidebar
       columns={columns || []}
-      fieldCounts={fetchState.fieldCounts || {}}
-      hits={fetchState.rows || []}
+      fieldCounts={fieldCounts || {}}
+      hits={rows || []}
       onAddField={(fieldName, index) => {
         if (indexPattern && capabilities.discover?.save) {
           popularizeField(indexPattern, fieldName, indexPatterns);
         }
 
-        dispatch(
-          addColumn({
-            column: fieldName,
-            index,
-          })
-        );
+        dispatch(addColumn({ column: fieldName }));
       }}
       onRemoveField={(fieldName) => {
         if (indexPattern && capabilities.discover?.save) {
@@ -133,9 +114,11 @@ export default function DiscoverPanel(props: ViewProps) {
         dispatch(removeColumn(fieldName));
       }}
       onReorderFields={(source, destination) => {
+        // Get the column name at the source index
+        const columnName = columns[source];
         dispatch(
-          reorderColumn({
-            source,
+          moveColumn({
+            columnName,
             destination,
           })
         );

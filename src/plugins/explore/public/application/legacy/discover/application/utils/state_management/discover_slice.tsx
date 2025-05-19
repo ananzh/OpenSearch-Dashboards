@@ -8,7 +8,6 @@ import { matchPath } from 'react-router-dom';
 import { LOGS_VIEW_ID } from '../../../../../../../common';
 import { Filter, Query } from '../../../../../../../../data/public';
 import { DiscoverServices } from '../../../build_services';
-import { DefaultViewState } from '../../../../data_explorer';
 import { buildColumns } from '../columns';
 import * as utils from './common';
 import { SortOrder } from '../../../../../../saved_explore/types';
@@ -69,6 +68,16 @@ const initialState: DiscoverState = {
   isDirty: false,
   saveExploreLoadCount: 0,
 };
+
+export interface DefaultViewState<T> {
+  state: T;
+  root?: {
+    metadata?: {
+      indexPattern?: string;
+      view?: string;
+    };
+  };
+}
 
 export const getPreloadedState = async ({
   getSavedSearchById,

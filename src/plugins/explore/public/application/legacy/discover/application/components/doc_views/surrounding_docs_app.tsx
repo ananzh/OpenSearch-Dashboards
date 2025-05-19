@@ -11,7 +11,7 @@ import { DiscoverServices } from '../../../build_services';
 import { getRootBreadcrumbs } from '../../helpers/breadcrumbs';
 import { SurroundingDocsView } from './surrounding_docs_view';
 import { IndexPattern } from '../../../opensearch_dashboards_services';
-import { PLUGIN_ID } from '../../../../../../../common/legacy/discover';
+import { PLUGIN_ID } from '../../../../../../../common';
 
 export interface SurroundingDocsUrlParams {
   id: string;

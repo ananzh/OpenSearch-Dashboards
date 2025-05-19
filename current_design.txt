@@ -1,0 +1,182 @@
+
+OpenSearch Dashboards Explore Plugin - Design Document
+
+The Explore Plugin (src/plugins/explore) is a next-generation data exploration interface for OpenSearch Dashboards, forked from the Discover plugin with significant architectural improvements. It focuses on PPL (Piped Processing Language) queries with future support for SQL and PromQL, providing a modern tabbed interface for data exploration and visualization.
+
+Key Differences from Discover
+Query Language Focus
+
+Primary: PPL (Piped Processing Language)
+Future: SQL, PromQL support
+Removed: Legacy query builders and filters
+
+Architecture Improvements
+
+Centralized State Management: Redux store replaces distributed state
+No Data Explorer Wrapper: Direct plugin implementation
+Simplified UI: Removed panel/canvas complexity
+Middleware-Driven: Query execution via Redux middleware
+
+Enhanced User Experience
+Tabbed Interface: Logs, Visualizations, and extensible custom tabs
+Moved Controls: Dataset selector to top nav, datepicker to query panel (including run button)
+Unified Query Panel: Multi-line editor with integrated controls
+
+Architecture
+1. UI Layer
+1.UI Layer: Contains the main application components that users interact with.
+
+ExploreApp: The main application component that orchestrates the overall UI
+TopNav: Similar to Discover TopNav, except we move the dataset selector (datasetselectorref) from Side panel to top nav.
+Query Panel (under topNav): Handles query input and editing
+Similar to the multi-line editor used by Discover except we move the datepicker (datepicker ref) into Query Panel
+Run button
+Side Panel (under query panel and on the left side): Contains all the fields
+Same as Discover except no dataset selector
+Histogram (under query panel and on the top right side): Same as discover
+Tab Bar (under Histogram): Allows switching between different tab types (Logs, Visualizations)
+Tab Components (under Tab bar): Purely presentational components that render tab-specific content
+Logs Tab contains Discover Table
+
+2. State Management (Redux)
+
+Four-Slice Architecture
+
+
+typescript
+interface RootState {
+  query: QueryState;     // Query string, language, dataset
+  ui: UIState;          // Loading states, active tab, UI controls
+  results: ResultsState; // Cached query results with composite keys
+  legacy: LegacyState;   // Temporary: sort, columns (to be removed)
+}
+
+// Query State (follows OSD standards)
+interface QueryState {
+  query: string | { [key: string]: any };
+  language: string;  // 'ppl', 'sql', 'promql'
+  dataset?: Dataset;
+}
+
+// UI State
+interface UIState {
+  activeTabId: string;
+  isLoading: boolean;
+  queryPanel: {
+    promptQuery: string;  // Draft query before running
+  };
+  skipInitialFetch: boolean;
+}
+
+// Results State (Composite Cache Keys)
+interface ResultsState {
+  [cacheKey: string]: {  // Key: transformedQuery + timeFilter + dataset
+    results: any;
+    timestamp: number;
+  };
+}
+3. Language-Agnostic Middleware
+
+The middleware handles query execution without assuming specific query languages:
+
+Note: this is just a simplified version. It might not work or not right for the real application.
+
+
+typescript
+const queryMiddleware = ({ getState, dispatch }) => {
+  return next => async action => {
+    const result = next(action);
+    
+    if (shouldExecuteQuery(action)) {
+      const state = getState();
+      const { query, dataset } = state.query;
+      const { activeTabId } = state.ui;
+      
+      // Get tab-specific transformation
+      const tabDefinition = tabRegistry.getTab(activeTabId);
+      const transformedQuery = tabDefinition.transformQuery(query);
+      
+      // Create composite cache key
+      const cacheKey = createCacheKey(transformedQuery, timeRange, dataset);
+      
+      // Execute query if not cached
+      if (!state.results[cacheKey]) {
+        await executeQuery(transformedQuery, cacheKey);
+      }
+    }
+    
+    return result;
+  };
+};
+4. URL State Management
+
+Following OpenSearch Dashboards conventions:
+
+_g (Global): Time range, filters
+_q (Query): Query string, language, dataset (but from redux not sync from filterStringManager like discover/vis_builder)
+_a (Application): UI state, Legacy state (columns, sort)
+
+Query Execution Workflows
+
+Transaction-Based State Updates
+
+To prevent race conditions during complex operations (like loading saved searches):
+
+dispatch(startTransaction()); dispatch(setDataset(savedExplorer.dataset)); dispatch(setQuery(savedExplorer.query));dispatch(setTimeRange(savedExplorer.timeRange)); dispatch(commitTransaction()); // Single query execution
+
+
+
+Execution Triggers
+
+Manual: User clicks Run button → Updates query state → Executes query
+Time Filter Change: Timefilter subscription → Clears cache → Executes query
+Dataset Switch: Updates query state → Clears cache → Executes query
+Tab Switch: Checks cache by composite key → Executes if not cached
+Caching Strategy
+
+Cache Key: ${transformedQuery}_${timeRange}_${dataset}
+Cache Invalidation:
+Clear on dataset/query/time changes
+Preserve on UI-only changes (columns, sort)
+Tab-specific transformations create unique keys
+
+Tab System
+
+Built-in Tabs
+
+Logs Tab: Contains the Discover table component
+Visualizations Tab: Future data visualization displays
+Leave it to blank page
+Tab Registry
+
+Note: I am not very sure about the tab registry implementation. I would like to have you implement the best approach. Below is just a reference.
+```
+interface TabDefinition {
+  id: string;
+  title: string;
+  transformQuery: (query: Query) => string;
+  renderContent: (results: any) => ReactNode;
+}
+
+// Register custom tabs
+tabRegistry.registerTab({
+  id: 'custom-analysis',
+  title: 'Analysis',
+  transformQuery: (query) => enhanceQueryForAnalysis(query),
+  renderContent: (results) => <CustomAnalysisComponent data={results} />
+});
+```
+
+Implementation Phases
+
+Phase 0 (Done): Fork
+
+Forked discover to explore
+Legacy component is in src/plugins/explore/public/application/legacy/discover
+Phase 1 (Current): Foundation
+
+✅ Basic Redux store with four slices
+✅ Query middleware for PPL execution
+✅ Logs tab with Discover table
+✅ Basic UI layout and navigation. Can use the legacy component if there is no change, like histogram.
+✅ Besides query workflow like query then process result and then render tab (table), other functionality should work: embeddable, saved object (need a new type). Since it is copied from discover, we could reference discover /Users/ananzh/Desktop/Screenshot or src/plugins/vis_builder.

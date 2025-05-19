@@ -22,7 +22,6 @@ import { updateIndexPattern, useSelector } from '../../utils/state_management';
  * 4. If there's any error fetching the index pattern details, a warning notification is shown.
  *
  * @param services - The services needed to fetch the index patterns and show notifications.
- * @param store - The redux store in data_explorer to dispatch actions.
  * @returns - The fetched index pattern.
  */
 export const useIndexPattern = (services: DiscoverViewServices) => {

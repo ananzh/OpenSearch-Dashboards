@@ -4,54 +4,82 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
+import { IndexPatternField } from '../../../../../../../../data/public';
+import {
+  addColumn,
+  removeColumn,
+  moveColumn,
+  setSort,
+} from '../../../../../utils/state_management/slices/legacy_slice';
+import {
+  beginTransaction,
+  finishTransaction,
+} from '../../../../../utils/state_management/actions/transaction_actions';
 import {
   DEFAULT_COLUMNS_SETTING,
   MODIFY_COLUMNS_ON_SWITCH,
 } from '../../../../../../../common/legacy/discover';
 import { DiscoverViewServices } from '../../../build_services';
-import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
 import { DataGridTable } from '../../components/data_grid/data_grid_table';
-import { useDiscoverContext } from '../context';
-import {
-  addColumn,
-  moveColumn,
-  removeColumn,
-  setSort,
-  useDispatch,
-  useSelector,
-} from '../../utils/state_management';
-import { IndexPatternField, opensearchFilters } from '../../../../../../../../data/public';
-import { DocViewFilterFn } from '../../doc_views/doc_views_types';
-import { SortOrder } from '../../../../../../saved_explore/types';
-import { OpenSearchSearchHit } from '../../doc_views/doc_views_types';
+import { SortDirection, SortOrder } from '../../../../../../saved_explore/types';
 import { popularizeField } from '../../helpers/popularize_field';
 import { buildColumns } from '../../utils/columns';
 import { filterColumns } from '../utils/filter_columns';
+import { DocViewFilterFn } from '../../doc_views/doc_views_types';
 
 interface Props {
-  rows?: OpenSearchSearchHit[];
   scrollToTop?: () => void;
+  cacheKey?: string;
+  results?: any;
 }
 
-export const DiscoverTable = ({ rows, scrollToTop }: Props) => {
+export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }: Props) => {
   const { services } = useOpenSearchDashboards<DiscoverViewServices>();
-  const {
-    uiSettings,
-    data: {
-      query: { filterManager },
-    },
-    capabilities,
-    indexPatterns,
-  } = services;
+  const { uiSettings, capabilities, indexPatterns } = services;
 
-  const { refetch$, indexPattern, savedSearch } = useDiscoverContext();
-  const { columns } = useSelector((state) => {
-    const stateColumns = state.logs.columns;
-    // check if state columns is not undefined, otherwise use buildColumns
-    return {
-      columns: stateColumns !== undefined ? stateColumns : buildColumns([]),
-    };
+  // Always call useSelector hooks at the top level
+  const reduxRows = useSelector((state: any) => {
+    // Fallback to Redux for backward compatibility
+    const queryState = state.query;
+    const resultsState = state.results;
+    const stateServices = state.services;
+
+    // Get current time range
+    const timeRange = stateServices.data.query.timefilter.timefilter.getTime();
+
+    // Create cache key using raw query (this is the old behavior)
+    const fallbackCacheKey = `${queryState.query.query}_${timeRange.from}_${timeRange.to}`;
+
+    // Get results from cache
+    const results = resultsState[fallbackCacheKey];
+
+    if (results?.hits?.hits) {
+      return results.hits.hits;
+    }
+    return [];
   });
+
+  const isLoading = useSelector((state: any) => state.ui.isLoading);
+  const error = useSelector((state: any) => state.ui.error);
+  const reduxIndexPattern = useSelector((state: any) => {
+    return state.query.query.dataset || state.services.indexPattern;
+  });
+
+  // Get data from props if provided, otherwise from Redux
+  const rows = passedResults?.hits?.hits || reduxRows;
+
+  // Get index pattern from props or Redux
+  const indexPattern = passedResults?.indexPattern || reduxIndexPattern;
+
+  const savedSearch = useSelector((state: any) => state.legacy?.savedSearch);
+
+  // Get columns and sort from Redux
+  const columns = useSelector((state: any) => {
+    return state.legacy?.columns || [];
+  });
+
   const filteredColumns = useMemo(() => {
     return filterColumns(
       columns,
@@ -60,14 +88,13 @@ export const DiscoverTable = ({ rows, scrollToTop }: Props) => {
       uiSettings.get(MODIFY_COLUMNS_ON_SWITCH)
     );
   }, [columns, indexPattern, uiSettings]);
-  const { sort } = useSelector((state) => {
-    const stateSort = state.logs.sort;
-    // check if state sort is not undefined, otherwise assign an empty array
-    return {
-      sort: stateSort !== undefined ? stateSort : [],
-    };
+
+  const sort = useSelector((state: any) => {
+    return state.legacy?.sort || [];
   });
+
   const dispatch = useDispatch();
+
   const onAddColumn = (col: string) => {
     if (indexPattern && capabilities.discover?.save) {
       popularizeField(indexPattern, col, indexPatterns);
@@ -75,6 +102,7 @@ export const DiscoverTable = ({ rows, scrollToTop }: Props) => {
 
     dispatch(addColumn({ column: col }));
   };
+
   const onRemoveColumn = (col: string) => {
     if (indexPattern && capabilities.discover?.save) {
       popularizeField(indexPattern, col, indexPatterns);
@@ -90,34 +118,46 @@ export const DiscoverTable = ({ rows, scrollToTop }: Props) => {
     dispatch(moveColumn({ columnName: col, destination }));
   };
 
-  const onSetSort = (s: SortOrder[]) => {
-    dispatch(setSort(s));
-    refetch$.next();
+  const onSetSort = (sortOrders: SortOrder[]) => {
+    // Convert SortOrder[] to the format expected by the legacy_slice
+    const convertedSort = sortOrders.map(([columnName, direction]) => ({
+      columnName,
+      direction,
+    }));
+
+    // Use transaction to batch state updates
+    dispatch(beginTransaction());
+    dispatch(setSort(convertedSort));
+    dispatch(finishTransaction());
   };
+
+  // Add onFilter function
   const onAddFilter = useCallback(
     (field: string | IndexPatternField, values: string, operation: '+' | '-') => {
       if (!indexPattern) return;
 
-      const newFilters = opensearchFilters.generateFilters(
-        filterManager,
-        field,
-        values,
-        operation,
-        indexPattern.id ?? ''
-      );
-      return filterManager.addFilters(newFilters);
+      // Since we're removing FilterManager, this is a no-op
+      // In a real implementation, we would dispatch an action to update the query
+      // Filter operation not supported in Explore
+      return;
     },
-    [filterManager, indexPattern]
+    [indexPattern]
   );
 
   if (indexPattern === undefined) {
-    // TODO: handle better
     return null;
   }
 
-  if (!rows || rows.length === 0) {
-    // TODO: handle better
+  if (isLoading && (!rows || rows.length === 0)) {
     return <div>{'loading...'}</div>;
+  }
+
+  if (error) {
+    return <div>{'Error loading data: ' + error.message}</div>;
+  }
+
+  if (!rows || rows.length === 0) {
+    return <div>{'No results found'}</div>;
   }
 
   return (
@@ -125,10 +165,10 @@ export const DiscoverTable = ({ rows, scrollToTop }: Props) => {
       columns={filteredColumns}
       indexPattern={indexPattern}
       onAddColumn={onAddColumn}
-      onFilter={onAddFilter as DocViewFilterFn}
       onMoveColumn={onMoveColumn}
       onRemoveColumn={onRemoveColumn}
       onSort={onSetSort}
+      onFilter={onAddFilter as DocViewFilterFn}
       sort={sort}
       rows={rows}
       title={savedSearch?.id ? savedSearch.title : ''}

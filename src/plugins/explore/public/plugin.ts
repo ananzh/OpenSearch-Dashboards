@@ -36,11 +36,6 @@ import {
   ExploreSetupDependencies,
   ExploreStartDependencies,
 } from './types';
-import { ViewService } from './application/legacy/data_explorer/services/view_service';
-import { setUsageCollector } from './application/legacy/data_explorer/services';
-import { DataExplorerServices } from './application/legacy/data_explorer';
-import { getPreloadedStore } from './application/legacy/data_explorer/utils/state_management';
-import { ExploreStart, DiscoverStartPlugins } from './application/legacy/discover/types';
 import { DocViewsRegistry } from './application/legacy/discover/application/doc_views/doc_views_registry';
 import { DocViewsLinksRegistry } from './application/legacy/discover/application/doc_views_links/doc_views_links_registry';
 import { JsonCodeBlock } from './application/legacy/discover/application/components/json_code_block/json_code_block';
@@ -53,15 +48,12 @@ import {
   setUiActions,
 } from './application/legacy/discover/opensearch_dashboards_services';
 import { generateDocViewsUrl } from './application/legacy/discover/application/components/doc_views/generate_doc_views_url';
-import {
-  discoverSlice,
-  DiscoverState,
-  getPreloadedState,
-} from './application/legacy/discover/application/utils/state_management';
-import { buildServices } from './application/legacy/discover/build_services';
-import { createSavedExploreLoader } from '.';
 import { isNavGroupInFeatureConfigs } from '../../../core/public';
-import { ExploreUrlGenerator } from './url_generator';
+import { TabRegistryService } from './services/tab_registry/tab_registry_service';
+import { setUsageCollector } from './services/usage_collector';
+
+// Import our new renderApp function
+import { renderApp } from './application/app';
 
 export class ExplorePlugin
   implements
@@ -73,8 +65,6 @@ export class ExplorePlugin
     > {
   // @ts-ignore
   private config: ConfigSchema;
-  /** data_explorer */
-  private viewService = new ViewService();
   private appStateUpdater = new BehaviorSubject<AppUpdater>(() => ({}));
   private stopUrlTracking?: () => void;
   private currentHistory?: ScopedHistory;
@@ -83,8 +73,11 @@ export class ExplorePlugin
   private docViewsRegistry: DocViewsRegistry | null = null;
   private docViewsLinksRegistry: DocViewsLinksRegistry | null = null;
   private servicesInitialized: boolean = false;
-  private urlGenerator?: ExploreStart['urlGenerator'];
-  private initializeServices?: () => { core: CoreStart; plugins: DiscoverStartPlugins };
+  private urlGenerator?: any;
+  private initializeServices?: () => { core: CoreStart; plugins: ExploreStartDependencies };
+
+  // Add a new property for the tab registry
+  private tabRegistry: TabRegistryService = new TabRegistryService();
 
   constructor(private readonly initializerContext: PluginInitializerContext) {
     this.config = initializerContext.config.get<ConfigSchema>();
@@ -94,20 +87,9 @@ export class ExplorePlugin
     core: CoreSetup<ExploreStartDependencies, ExplorePluginStart>,
     setupDeps: ExploreSetupDependencies
   ): ExplorePluginSetup {
-    const baseUrl = core.http.basePath.prepend('/app/explore');
-
-    if (setupDeps.share) {
-      this.urlGenerator = setupDeps.share.urlGenerators.registerUrlGenerator(
-        new ExploreUrlGenerator({
-          appBasePath: baseUrl,
-          useHash: core.uiSettings.get('state:storeInSessionStorage'),
-        })
-      );
-    }
-
-    const viewService = this.viewService;
-
+    // Set usage collector
     setUsageCollector(setupDeps.usageCollection);
+
     this.docViewsRegistry = new DocViewsRegistry();
     setDocViewsRegistry(this.docViewsRegistry);
     this.docViewsRegistry.addDocView({
@@ -200,11 +182,16 @@ export class ExplorePlugin
           osdUrlKey: '_g',
           stateUpdate$: setupDeps.data.query.state$.pipe(
             filter(
-              ({ changes }) => !!(changes.globalFilters || changes.time || changes.refreshInterval)
+              (value: any) =>
+                !!(
+                  value.changes.globalFilters ||
+                  value.changes.time ||
+                  value.changes.refreshInterval
+                )
             ),
-            map(({ state }) => ({
-              ...state,
-              filters: state.filters?.filter(opensearchFilters.isFilterPinned),
+            map((value: any) => ({
+              ...value.state,
+              filters: value.state.filters?.filter(opensearchFilters.isFilterPinned),
             }))
           ),
         },
@@ -242,36 +229,16 @@ export class ExplorePlugin
           coreStart.application.navigateToApp('discover', { replace: true });
         }
 
-        const { renderApp } = await import('./application/legacy/data_explorer/application');
         this.currentHistory = params.history;
 
         // make sure the index pattern list is up to date
         pluginsStart.data.indexPatterns.clearCache();
 
-        const services: DataExplorerServices = {
-          ...coreStart,
-          scopedHistory: this.currentHistory,
-          data: pluginsStart.data,
-          embeddable: pluginsStart.embeddable,
-          expressions: pluginsStart.expressions,
-          osdUrlStateStorage: createOsdUrlStateStorage({
-            history: this.currentHistory,
-            useHash: coreStart.uiSettings.get('state:storeInSessionStorage'),
-            ...withNotifyOnErrors(coreStart.notifications.toasts),
-          }),
-          viewRegistry: viewService.start(),
-        };
-
-        // Get start services as specified in opensearch_dashboards.json
-        // Render the application
-        const { store, unsubscribe: unsubscribeStore } = await getPreloadedStore(services);
-        services.store = store;
-
-        const unmount = renderApp(coreStart, services, params, store);
+        // Call our new renderApp function
+        const unmount = await renderApp(coreStart, pluginsStart, params);
         appMounted();
 
         return () => {
-          unsubscribeStore();
           appUnMounted();
           unmount();
         };
@@ -315,41 +282,7 @@ export class ExplorePlugin
       registerFeature(setupDeps.home);
     } */
 
-    const viewServiceSetup = this.viewService.setup();
-    viewServiceSetup.registerView<DiscoverState>({
-      id: LOGS_VIEW_ID,
-      title: 'Logs',
-      defaultPath: '#/',
-      appExtentions: {
-        savedObject: {
-          docTypes: ['search'],
-          toListItem: (obj) => ({
-            id: obj.id,
-            label: obj.title,
-          }),
-        },
-      },
-      ui: {
-        defaults: async () => {
-          this.initializeServices?.();
-          const services = getServices();
-          return await getPreloadedState(services);
-        },
-        slice: discoverSlice,
-      },
-      shouldShow: () => true,
-      // ViewComponent
-      Canvas: lazy(
-        () => import('./application/legacy/discover/application/view_components/canvas')
-      ),
-      Panel: lazy(() => import('./application/legacy/discover/application/view_components/panel')),
-      Context: lazy(
-        () => import('./application/legacy/discover/application/view_components/context')
-      ),
-    });
-
     return {
-      ...viewServiceSetup,
       docViews: {
         addDocView: this.docViewsRegistry.addDocView.bind(this.docViewsRegistry),
       },
@@ -366,7 +299,22 @@ export class ExplorePlugin
       if (this.servicesInitialized) {
         return { core, plugins };
       }
-      const services = buildServices(core, plugins, this.initializerContext);
+      const services = {
+        core,
+        plugins,
+        data: plugins.data,
+        uiActions: plugins.uiActions,
+        storage: core.savedObjects,
+        http: core.http,
+        notifications: core.notifications,
+        overlays: core.overlays,
+        chrome: core.chrome,
+        application: core.application,
+        uiSettings: core.uiSettings,
+        savedObjects: core.savedObjects,
+        docLinks: core.docLinks,
+        i18n: core.i18n,
+      };
       setServices(services);
       this.servicesInitialized = true;
 
@@ -392,18 +340,4 @@ export class ExplorePlugin
       this.stopUrlTracking();
     }
   }
-
-  // TODO: Register embeddable factory when ready
-  // private registerEmbeddable(core: CoreSetup<ExploreStartPlugins>, plugins: ExploreSetupPlugins) {
-  //   const getStartServices = async () => {
-  //     const [coreStart, deps] = await core.getStartServices();
-  //     return {
-  //       executeTriggerActions: deps.uiActions.executeTriggerActions,
-  //       isEditable: () => coreStart.application.capabilities.discover?.save as boolean,
-  //     };
-  //   };
-
-  //   const factory = new ExploreEmbeddableFactory(getStartServices);
-  //   plugins.embeddable.registerEmbeddableFactory(factory.type, factory);
-  // }
 }
