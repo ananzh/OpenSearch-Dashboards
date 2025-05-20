@@ -10,10 +10,11 @@ export interface QueryState {
   query: Query;
 }
 
+// Get the default language from the language service
 const initialState: QueryState = {
   query: {
     query: '',
-    language: 'ppl',
+    language: '', // Will be set by the language selector based on app configuration
   },
 };
 
@@ -22,7 +23,10 @@ const querySlice = createSlice({
   initialState,
   reducers: {
     setQuery: (state, action: PayloadAction<Query>) => {
-      state.query = action.payload;
+      // Use the language from the action payload
+      state.query = {
+        ...action.payload,
+      };
     },
     setQueryString: (state, action: PayloadAction<string>) => {
       if (typeof state.query.query === 'string') {
@@ -32,10 +36,12 @@ const querySlice = createSlice({
       }
     },
     setLanguage: (state, action: PayloadAction<string>) => {
+      // Use the language from the action payload
       state.query.language = action.payload;
     },
     setDataset: (state, action: PayloadAction<Dataset>) => {
       state.query.dataset = action.payload;
+      // Language will be managed by the language selector
     },
   },
 });

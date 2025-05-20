@@ -16,7 +16,7 @@ import {
   useSyncQueryStateWithUrl,
 } from '../../../../../../../../data/public';
 import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
-import { PLUGIN_ID } from '../../../../../../../common/legacy/discover';
+import { PLUGIN_ID } from '../../../../../../../common';
 import { DiscoverViewServices } from '../../../build_services';
 import { IndexPattern } from '../../../opensearch_dashboards_services';
 import { getTopNavLinks } from '../../components/top_nav/get_top_nav_links';
