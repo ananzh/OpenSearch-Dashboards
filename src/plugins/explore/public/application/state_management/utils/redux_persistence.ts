@@ -14,7 +14,8 @@ export const loadReduxState = async (services: any) => {
     const serializedState = services.osdUrlStateStorage.get('_a');
     if (serializedState !== null) return serializedState as Partial<RootState>;
   } catch (err) {
-    console.error('Error loading state from URL:', err);
+    // eslint-disable-next-line no-console
+    console.error(err);
   }
 
   // Return default state if nothing in URL
@@ -24,10 +25,7 @@ export const loadReduxState = async (services: any) => {
 /**
  * Persists Redux state to URL parameters
  */
-export const persistReduxState = (
-  { query, ui, tab }: RootState,
-  services: any
-) => {
+export const persistReduxState = ({ query, ui, tab, legacy }: RootState, services: any) => {
   try {
     // Update application state in URL
     services.osdUrlStateStorage.set(
@@ -39,13 +37,14 @@ export const persistReduxState = (
           flavor: ui.flavor,
         },
         tab,
+        legacy,
       },
       { replace: true }
     );
-    
+
     // Update global state in URL if needed
     // This is typically handled by the timefilter service directly
   } catch (err) {
-    console.error('Error persisting state to URL:', err);
+    return;
   }
 };

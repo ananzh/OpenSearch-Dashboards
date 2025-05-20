@@ -10,6 +10,7 @@ import { uiReducer } from './slices/ui_slice';
 import { resultsReducer } from './slices/results_slice';
 import { tabReducer } from './slices/tab_slice';
 import { transactionReducer } from './slices/transaction_slice';
+import { legacyReducer } from './slices/legacy_slice';
 import { persistReduxState } from './utils/redux_persistence';
 import { handleQueryStateChanges } from './handlers/query_handler';
 import { handleTransactionChanges } from './handlers/transaction_handler';
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
   results: resultsReducer,
   tab: tabReducer,
   transaction: transactionReducer,
+  legacy: legacyReducer,
   services: servicesReducer,
 });
 
@@ -50,30 +52,30 @@ export const getExploreStore = async (services: any, preloadedState?: any) => {
   // Set up store subscriber for side effects
   const unsubscribe = store.subscribe(() => {
     const currentState = store.getState();
-    
+
     // Skip if state hasn't changed
     if (isEqual(currentState, previousState)) return;
-    
+
     // Persist state to URL
     persistReduxState(currentState, services);
-    
+
     // Apply side effects based on what changed
-    
+
     // Handle query state changes
     if (!isEqual(currentState.query, previousState.query)) {
       handleQueryStateChanges(store, currentState, previousState);
     }
-    
+
     // Handle transaction state changes
     if (!isEqual(currentState.transaction, previousState.transaction)) {
       handleTransactionChanges(store, currentState, previousState);
     }
-    
+
     // Handle tab state changes
     if (currentState.ui.activeTabId !== previousState.ui.activeTabId) {
       handleTabChanges(store, currentState, previousState);
     }
-    
+
     // Update previous state reference
     previousState = { ...currentState };
   });
