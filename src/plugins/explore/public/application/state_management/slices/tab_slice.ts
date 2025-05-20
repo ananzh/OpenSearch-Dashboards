@@ -8,7 +8,6 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 export interface TabState {
   [tabId: string]: {
     skipInitialFetch?: boolean;
-    [key: string]: any;
   };
 }
 
@@ -18,9 +17,6 @@ const initialState: TabState = {
   },
   visualizations: {
     skipInitialFetch: false,
-    chartOptions: {
-      showLegend: true,
-    },
   },
 };
 
@@ -30,7 +26,7 @@ const tabSlice = createSlice({
   reducers: {
     setTabState: (
       state,
-      action: PayloadAction<{ tabId: string; state: { [key: string]: any } }>
+      action: PayloadAction<{ tabId: string; state: { skipInitialFetch?: boolean } }>
     ) => {
       const { tabId, state: tabState } = action.payload;
       state[tabId] = { ...state[tabId], ...tabState };
