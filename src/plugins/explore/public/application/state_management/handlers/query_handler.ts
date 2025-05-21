@@ -6,10 +6,11 @@
 import { Store } from '@reduxjs/toolkit';
 import { isEqual } from 'lodash';
 import { RootState } from '../store';
-import { executeQuery } from '../actions/query_actions';
+import { executeQueries } from '../actions/query_actions';
 
 /**
  * Handles side effects when query state changes
+ * This is a regular function that dispatches a thunk
  */
 export const handleQueryStateChanges = (
   store: Store,
@@ -28,9 +29,11 @@ export const handleQueryStateChanges = (
     return;
   }
 
-  // If query changed and not in a transaction, execute query
+  // If query changed and not in a transaction, execute queries
   if (!isEqual(currentState.query.query, previousState.query.query)) {
-    store.dispatch(executeQuery() as any);
+    // Execute both tab and histogram queries
+    // This is dispatching a thunk that will execute both queries
+    store.dispatch(executeQueries() as any);
   }
 };
 

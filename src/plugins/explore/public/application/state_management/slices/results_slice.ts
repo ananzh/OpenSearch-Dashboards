@@ -20,9 +20,11 @@ const resultsSlice = createSlice({
       state[cacheKey] = results;
     },
     clearResults: (state) => {
+      // Clear all results
       return {};
     },
     clearResultsByKey: (state, action: PayloadAction<string>) => {
+      // Clear results for a specific cache key
       const cacheKey = action.payload;
       delete state[cacheKey];
     },

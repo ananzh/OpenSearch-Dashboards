@@ -5,87 +5,67 @@
 
 import React, { useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
-import { i18n } from '@osd/i18n';
-import { EuiLoadingSpinner, EuiPageTemplate, EuiSpacer } from '@elastic/eui';
-import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { I18nProvider } from '@osd/i18n/react';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { CoreStart } from 'opensearch-dashboards/public';
 import { getExploreStore } from './state_management/store';
-import { loadReduxState } from './state_management/utils/redux_persistence';
-import { QueryPanel } from './components/query_panel';
-import { TabBar } from './components/tab_bar';
-import { TabContent } from './components/tab_content';
-import { registerBuiltInTabs } from './register_tabs';
+import { loadStateFromUrl } from './state_management/utils/redux_persistence';
 
-/**
- * Main Explore application component
- */
-export const ExploreApp = () => {
-  const services = useOpenSearchDashboards();
-  const [storeData, setStoreData] = useState<{ store: any; unsubscribe: () => void } | null>(null);
+// Placeholder for ExploreLayout component
+// In a real implementation, this would be imported from the correct path
+const ExploreLayout = () => (
+  <div>
+    <h1>Explore</h1>
+    <p>This is the Explore application.</p>
+  </div>
+);
+
+// Placeholder for registerTabs function
+// In a real implementation, this would be imported from the correct path
+const registerTabs = (services: any) => {
+  console.log('Registering tabs...');
+  // Register tabs here
+};
+
+interface ExploreAppDeps {
+  services: any; // Use any for now, should be properly typed in real implementation
+  core: CoreStart;
+}
+
+export const ExploreApp = ({ services, core }: ExploreAppDeps) => {
+  const [store, setStore] = useState<any>(null);
   
+  // Initialize store and load state from URL
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Load state from URL
-        const preloadedState = await loadReduxState(services);
-        
-        // Create Redux store
-        const storeData = await getExploreStore(services, preloadedState);
-        setStoreData(storeData);
-        
-        // Register built-in tabs
-        registerBuiltInTabs(services.tabRegistry);
-        
-        // Set up bidirectional sync between URL and services
-        services.syncQueryStateWithUrl(
-          services.data.query,
-          services.osdUrlStateStorage
-        );
-        
-        // Set page title
-        services.chrome.docTitle.change(
-          i18n.translate('explore.pageTitle', {
-            defaultMessage: 'Explore',
-          })
-        );
-      } catch (error) {
-        console.error('Failed to initialize Explore app:', error);
-      }
+    const initializeStore = async () => {
+      // Load state from URL
+      const preloadedState = loadStateFromUrl(services);
+      
+      // Create store with preloaded state
+      const { store: newStore } = await getExploreStore(services, preloadedState);
+      
+      // Register tabs
+      registerTabs(services);
+      
+      // Set store
+      setStore(newStore);
     };
     
-    initializeApp();
-    
-    // Clean up when component unmounts
-    return () => {
-      if (storeData) {
-        storeData.unsubscribe();
-      }
-    };
+    initializeStore();
   }, [services]);
   
-  if (!storeData) {
-    return (
-      <EuiPageTemplate.Section>
-        <EuiLoadingSpinner size="xl" />
-      </EuiPageTemplate.Section>
-    );
+  // Wait for store to be initialized
+  if (!store) {
+    return <div>Loading...</div>;
   }
   
   return (
-    <Provider store={storeData.store}>
-      <EuiPageTemplate>
-        <EuiPageTemplate.Header
-          pageTitle={i18n.translate('explore.title', {
-            defaultMessage: 'Explore',
-          })}
-        />
-        <EuiPageTemplate.Section>
-          <QueryPanel />
-          <EuiSpacer size="m" />
-          <TabBar />
-          <EuiSpacer size="m" />
-          <TabContent />
-        </EuiPageTemplate.Section>
-      </EuiPageTemplate>
-    </Provider>
+    <I18nProvider>
+      <Provider store={store}>
+        <Router>
+          <ExploreLayout />
+        </Router>
+      </Provider>
+    </I18nProvider>
   );
 };

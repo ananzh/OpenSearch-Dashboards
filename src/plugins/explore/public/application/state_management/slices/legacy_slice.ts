@@ -3,113 +3,107 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * TODO: This slice is temporary and will be removed after the transition period.
- * It contains states and actions that are needed to support legacy components
- * from discover during the refactoring process. Once all components have been
- * properly migrated to the new architecture, this slice should be removed.
- */
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Filter } from '../../../../../data/common';
 
-// Using any for SortOrder since we don't have direct access to the type
-export type SortOrder = [string, string];
-
+/**
+ * Legacy state interface
+ * This contains state that is used by legacy components but not needed in the new architecture
+ */
 export interface LegacyState {
-  /**
-   * Columns displayed in the table
-   */
+  // Saved search information
+  savedSearch: {
+    id?: string;
+    title?: string;
+    description?: string;
+  } | null;
+  
+  // Column configuration
   columns: string[];
-  /**
-   * Array of applied filters
-   */
-  filters?: Filter[];
-  /**
-   * Used interval of the histogram
-   */
-  interval?: string;
-  /**
-   * Array of the used sorting [[field,direction],...]
-   */
-  sort: SortOrder[];
-  /**
-   * id of the used saved search
-   */
-  savedSearch?: string;
-  /**
-   * dirty flag to indicate if the saved search has been modified
-   * since the last save
-   */
-  isDirty?: boolean;
-  /**
-   * Metadata for the view
-   */
-  savedQuery?: string;
-  metadata?: {
-    /**
-     * Number of lines to display per row
-     */
-    lineCount?: number;
-  };
+  
+  // Sort configuration
+  sort: Array<{
+    columnName: string;
+    direction: 'asc' | 'desc';
+  }>;
+  
+  // Filter configuration
+  filters: any[];
+  
+  // Interval configuration
+  interval: string;
+  
+  // Row count configuration
+  rowCount: number;
+  
+  // Saved query ID
+  savedQueryId: string | null;
 }
 
 const initialState: LegacyState = {
-  columns: ['_source'],
+  savedSearch: null,
+  columns: [],
   sort: [],
-  isDirty: false,
+  filters: [],
+  interval: 'auto',
+  rowCount: 50,
+  savedQueryId: null,
 };
 
 const legacySlice = createSlice({
   name: 'legacy',
   initialState,
   reducers: {
+    setSavedSearch: (state, action: PayloadAction<LegacyState['savedSearch']>) => {
+      state.savedSearch = action.payload;
+    },
     setColumns: (state, action: PayloadAction<string[]>) => {
       state.columns = action.payload;
     },
-    setFilters: (state, action: PayloadAction<Filter[]>) => {
+    addColumn: (state, action: PayloadAction<{ column: string }>) => {
+      if (!state.columns.includes(action.payload.column)) {
+        state.columns.push(action.payload.column);
+      }
+    },
+    removeColumn: (state, action: PayloadAction<string>) => {
+      state.columns = state.columns.filter(col => col !== action.payload);
+    },
+    moveColumn: (state, action: PayloadAction<{ columnName: string; destination: number }>) => {
+      const { columnName, destination } = action.payload;
+      const index = state.columns.indexOf(columnName);
+      if (index !== -1 && destination >= 0 && destination < state.columns.length) {
+        state.columns.splice(index, 1);
+        state.columns.splice(destination, 0, columnName);
+      }
+    },
+    setSort: (state, action: PayloadAction<Array<{ columnName: string; direction: 'asc' | 'desc' }>>) => {
+      state.sort = action.payload;
+    },
+    setFilters: (state, action: PayloadAction<any[]>) => {
       state.filters = action.payload;
     },
     setInterval: (state, action: PayloadAction<string>) => {
       state.interval = action.payload;
     },
-    setSort: (state, action: PayloadAction<SortOrder[]>) => {
-      state.sort = action.payload;
+    setRowCount: (state, action: PayloadAction<number>) => {
+      state.rowCount = action.payload;
     },
-    setSavedSearch: (state, action: PayloadAction<string>) => {
-      state.savedSearch = action.payload;
-      state.isDirty = false;
-    },
-    setIsDirty: (state, action: PayloadAction<boolean>) => {
-      state.isDirty = action.payload;
-    },
-    setSavedQuery: (state, action: PayloadAction<string | undefined>) => {
-      state.savedQuery = action.payload;
-    },
-    setMetadata: (state, action: PayloadAction<Partial<LegacyState['metadata']>>) => {
-      state.metadata = {
-        ...state.metadata,
-        ...action.payload,
-      };
-    },
-    updateLegacyState: (state, action: PayloadAction<Partial<LegacyState>>) => {
-      return {
-        ...state,
-        ...action.payload,
-      };
+    setSavedQueryId: (state, action: PayloadAction<string | null>) => {
+      state.savedQueryId = action.payload;
     },
   },
 });
 
 export const {
+  setSavedSearch,
   setColumns,
+  addColumn,
+  removeColumn,
+  moveColumn,
+  setSort,
   setFilters,
   setInterval,
-  setSort,
-  setSavedSearch,
-  setIsDirty,
-  setSavedQuery,
-  setMetadata,
-  updateLegacyState,
+  setRowCount,
+  setSavedQueryId,
 } = legacySlice.actions;
+
 export const legacyReducer = legacySlice.reducer;

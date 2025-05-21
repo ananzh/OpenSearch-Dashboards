@@ -5,11 +5,12 @@
 
 import { Store } from '@reduxjs/toolkit';
 import { RootState } from '../store';
-import { executeQuery } from '../actions/query_actions';
-import { createCacheKey } from './query_handler';
+import { executeTabQuery } from '../actions/query_actions';
+import { createTabCacheKey } from '../actions/query_actions';
 
 /**
  * Handles side effects when active tab changes
+ * This is a regular function that dispatches a thunk
  */
 export const handleTabChanges = (
   store: Store,
@@ -26,7 +27,7 @@ export const handleTabChanges = (
   const services = currentState.services;
   
   // Get tab definition
-  const tabDefinition = services.tabRegistry.getTab(activeTabId);
+  const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
   if (!tabDefinition) return;
   
   // Call onActive hook if defined
@@ -36,24 +37,25 @@ export const handleTabChanges = (
   
   // Call onInactive hook for previous tab if defined
   const previousTabId = previousState.ui.activeTabId;
-  const previousTabDefinition = services.tabRegistry.getTab(previousTabId);
+  const previousTabDefinition = services.tabRegistry?.getTab?.(previousTabId);
   if (previousTabDefinition?.onInactive) {
     previousTabDefinition.onInactive();
   }
   
   // Check if we need to execute a query
   // Prepare query for the new tab
-  const preparedQuery = tabDefinition.prepareQuery(query);
+  const preparedQuery = tabDefinition.prepareQuery ? tabDefinition.prepareQuery(query) : query;
   
   // Get current time range
   const timeRange = services.data.query.timefilter.timefilter.getTime();
   
   // Create cache key
-  const cacheKey = createCacheKey(preparedQuery, timeRange);
+  const cacheKey = createTabCacheKey(preparedQuery, timeRange);
   
   // Check if we have cached results
   if (!currentState.results[cacheKey]) {
-    // No cached results, execute query
-    store.dispatch(executeQuery() as any);
+    // No cached results, execute tab query only (not histogram)
+    // This is dispatching a thunk that will execute only the tab query
+    store.dispatch(executeTabQuery() as any);
   }
 };

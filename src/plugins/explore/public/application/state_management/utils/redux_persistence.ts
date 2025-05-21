@@ -4,113 +4,102 @@
  */
 
 import { RootState } from '../store';
+import { Query } from '../../../../../data/common';
 
 /**
- * Loads application state from URL parameters (_a)
- */
-export const loadAppState = async (services: any) => {
-  try {
-    // Load application state from URL
-    const serializedState = services.osdUrlStateStorage.get('_a');
-    if (serializedState !== null) return serializedState as Partial<RootState>;
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(err);
-  }
-
-  // Return default state if nothing in URL
-  return {};
-};
-
-/**
- * Loads query state from URL parameters (_q)
- */
-export const loadQueryState = async (services: any) => {
-  try {
-    // Load query state from URL
-    const serializedState = services.osdUrlStateStorage.get('_q');
-    if (serializedState !== null && serializedState.query) {
-      return {
-        query: {
-          query: serializedState.query,
-          language: serializedState.language || '', // Use language from URL or let language selector decide
-        },
-      };
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(err);
-  }
-
-  // Return default query state if nothing in URL
-  return {
-    query: {
-      query: '',
-      language: '', // Let language selector decide based on app configuration
-    },
-  };
-};
-
-/**
- * Loads Redux state from URL parameters (combines _a and _q)
- */
-export const loadReduxState = async (services: any) => {
-  const appState = await loadAppState(services);
-  const queryState = await loadQueryState(services);
-
-  return {
-    ...appState,
-    query: queryState.query,
-  };
-};
-
-/**
- * Persists application state to URL parameters (_a)
- */
-export const persistAppState = ({ ui, tab, legacy }: RootState, services: any) => {
-  try {
-    // Update application state in URL
-    services.osdUrlStateStorage.set(
-      '_a',
-      {
-        ui: {
-          activeTabId: ui.activeTabId,
-          flavor: ui.flavor,
-        },
-        tab,
-        legacy,
-      },
-      { replace: true }
-    );
-  } catch (err) {
-    return;
-  }
-};
-
-/**
- * Persists query state to URL parameters (_q)
- */
-export const persistQueryState = ({ query }: RootState, services: any) => {
-  try {
-    // Update query state in URL
-    services.osdUrlStateStorage.set(
-      '_q',
-      {
-        query: query.query.query,
-        language: query.query.language, // Use the language from the query state
-      },
-      { replace: true }
-    );
-  } catch (err) {
-    return;
-  }
-};
-
-/**
- * Persists Redux state to URL parameters (both _a and _q)
- * Note: _g is handled by the timefilter service directly
+ * Persists Redux state to URL
+ * This function is called after each state change
  */
 export const persistReduxState = (state: RootState, services: any) => {
-  persistAppState(state, services);
-  persistQueryState(state, services);
+  // Skip if in a transaction
+  if (state.transaction.inProgress) {
+    return;
+  }
+
+  // Get the state we want to persist
+  const { query, ui, legacy } = state;
+  
+  // Create state object for URL
+  const urlState = {
+    query: query.query,
+    tab: ui.activeTabId,
+    columns: legacy.columns,
+    sort: legacy.sort,
+    filters: legacy.filters,
+    interval: legacy.interval,
+    rowCount: legacy.rowCount,
+  };
+  
+  // Get current time range
+  const timeRange = services.data.query.timefilter.timefilter.getTime();
+  
+  // Update URL state
+  services.data.query.state.update({
+    query: urlState.query,
+    filters: urlState.filters,
+    time: timeRange,
+  });
+  
+  // Update URL hash
+  updateUrlHash(urlState);
+};
+
+/**
+ * Updates URL hash with state
+ */
+const updateUrlHash = (state: any) => {
+  // Encode state as JSON and base64
+  const encodedState = btoa(JSON.stringify(state));
+  
+  // Update URL hash
+  const url = new URL(window.location.href);
+  url.hash = `#/view/${encodedState}`;
+  
+  // Replace URL without reloading page
+  window.history.replaceState({}, '', url.toString());
+};
+
+/**
+ * Loads state from URL
+ * This function is called during initialization
+ */
+export const loadStateFromUrl = (services: any): any => {
+  try {
+    // Get URL hash
+    const hash = window.location.hash;
+    
+    // Check if hash contains state
+    if (!hash || !hash.startsWith('#/view/')) {
+      return null;
+    }
+    
+    // Extract encoded state
+    const encodedState = hash.substring('#/view/'.length);
+    
+    // Decode state
+    const state = JSON.parse(atob(encodedState));
+    
+    // Get query state from URL
+    const queryState = services.data.query.state.get();
+    
+    // Merge URL state with query state
+    return {
+      query: {
+        query: queryState.query || state.query,
+      },
+      ui: {
+        activeTabId: state.tab || 'logs',
+      },
+      legacy: {
+        columns: state.columns || [],
+        sort: state.sort || [],
+        filters: queryState.filters || state.filters || [],
+        interval: state.interval || 'auto',
+        rowCount: state.rowCount || 50,
+      },
+    };
+  } catch (error) {
+    console.error('Error loading state from URL:', error);
+    return null;
+  }
 };
