@@ -19,13 +19,21 @@ import { VisualizationsSetup, VisualizationsStart } from 'src/plugins/visualizat
 import { UsageCollectionSetup } from 'src/plugins/usage_collection/public';
 import { ExpressionsStart } from 'src/plugins/expressions/public';
 import { NavigationPublicPluginStart as NavigationStart } from '../../navigation/public';
-import { DataExplorerPluginSetup } from './application/legacy/data_explorer';
+import { SavedSearchLoader } from './application/legacy/discover';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ExplorePluginSetup {}
+export interface ExplorePluginSetup {
+  docViews: {
+    addDocView: (docViewSpec: any) => void;
+  };
+  docViewsLinks: {
+    addDocViewLink: (docViewLinkSpec: any) => void;
+  };
+}
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ExplorePluginStart {}
+export interface ExplorePluginStart {
+  urlGenerator?: any;
+  savedSearchLoader: SavedSearchLoader;
+}
 
 /**
  * @internal
@@ -40,7 +48,6 @@ export interface ExploreSetupDependencies {
   home?: HomePublicPluginSetup;
   visualizations: VisualizationsSetup;
   data: DataPublicPluginSetup;
-  dataExplorer: DataExplorerPluginSetup;
   usageCollection: UsageCollectionSetup;
 }
 

@@ -112,11 +112,6 @@ export const selectColumns = createSelector(
 
 export const selectSort = createSelector([selectLegacyState], (legacyState) => legacyState.sort);
 
-export const selectFilters = createSelector(
-  [selectLegacyState],
-  (legacyState) => legacyState.filters
-);
-
 export const selectSavedSearch = createSelector(
   [selectLegacyState],
   (legacyState) => legacyState.savedSearch

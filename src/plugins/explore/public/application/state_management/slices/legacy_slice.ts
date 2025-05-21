@@ -16,25 +16,22 @@ export interface LegacyState {
     title?: string;
     description?: string;
   } | null;
-  
+
   // Column configuration
   columns: string[];
-  
+
   // Sort configuration
   sort: Array<{
     columnName: string;
     direction: 'asc' | 'desc';
   }>;
-  
-  // Filter configuration
-  filters: any[];
-  
+
   // Interval configuration
   interval: string;
-  
+
   // Row count configuration
   rowCount: number;
-  
+
   // Saved query ID
   savedQueryId: string | null;
 }
@@ -43,7 +40,6 @@ const initialState: LegacyState = {
   savedSearch: null,
   columns: [],
   sort: [],
-  filters: [],
   interval: 'auto',
   rowCount: 50,
   savedQueryId: null,
@@ -65,7 +61,7 @@ const legacySlice = createSlice({
       }
     },
     removeColumn: (state, action: PayloadAction<string>) => {
-      state.columns = state.columns.filter(col => col !== action.payload);
+      state.columns = state.columns.filter((col) => col !== action.payload);
     },
     moveColumn: (state, action: PayloadAction<{ columnName: string; destination: number }>) => {
       const { columnName, destination } = action.payload;
@@ -75,11 +71,11 @@ const legacySlice = createSlice({
         state.columns.splice(destination, 0, columnName);
       }
     },
-    setSort: (state, action: PayloadAction<Array<{ columnName: string; direction: 'asc' | 'desc' }>>) => {
+    setSort: (
+      state,
+      action: PayloadAction<Array<{ columnName: string; direction: 'asc' | 'desc' }>>
+    ) => {
       state.sort = action.payload;
-    },
-    setFilters: (state, action: PayloadAction<any[]>) => {
-      state.filters = action.payload;
     },
     setInterval: (state, action: PayloadAction<string>) => {
       state.interval = action.payload;
@@ -100,7 +96,6 @@ export const {
   removeColumn,
   moveColumn,
   setSort,
-  setFilters,
   setInterval,
   setRowCount,
   setSavedQueryId,
