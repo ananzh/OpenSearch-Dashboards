@@ -36,12 +36,10 @@ export const handleQueryStateChanges = (
 
 /**
  * Creates a cache key for storing query results
+ * Simplified to only include query and time range to avoid key size issues
  */
 export const createCacheKey = (query: any, timeRange: any): string => {
-  return JSON.stringify({
-    query: query.query,
-    language: query.language,
-    dataset: query.dataset,
-    timeRange,
-  });
+  // Just use the query string and time range for the cache key
+  // The query string should already include dataset info
+  return `${query.query}_${timeRange.from}_${timeRange.to}`;
 };

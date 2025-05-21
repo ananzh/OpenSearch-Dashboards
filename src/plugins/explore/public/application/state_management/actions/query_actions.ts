@@ -14,23 +14,27 @@ import { createCacheKey } from '../handlers/query_handler';
 export const executeQuery = () => async (dispatch: Dispatch, getState: any) => {
   const state = getState();
   const { query } = state.query;
-  const { activeTabId } = state.ui;
   const services = state.services;
 
-  // Get tab definition
-  const tabDefinition = services.tabRegistry.getTab(activeTabId);
-  if (!tabDefinition) return;
+  // Note: We don't have tabs registered at this stage
+  // const tabDefinition = services.tabRegistry.getTab(activeTabId);
+  // if (!tabDefinition) return;
 
-  // Prepare query based on active tab
-  const preparedQuery = tabDefinition.prepareQuery(query);
-
-  // Language is determined by the query language selector based on app configuration
+  // The prepared query is the same as the query at this stage
+  // const preparedQuery = tabDefinition.prepareQuery(query);
+  const preparedQuery = query;
 
   // Get current time range
   const timeRange = services.data.query.timefilter.timefilter.getTime();
 
   // Create cache key
   const cacheKey = createCacheKey(preparedQuery, timeRange);
+
+  // Check cache first - if we have results, use them
+  if (state.results[cacheKey]) {
+    // console.log('Using cached results for', cacheKey);
+    return state.results[cacheKey];
+  }
 
   // Set loading state
   dispatch(setLoading(true));
