@@ -20,24 +20,33 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
     label: 'Logs',
     flavor: ['log'],
     order: 10,
-    supportedLanguages: ['ppl', 'sql'],
-    
+    supportedLanguages: ['ppl', 'sql', 'lucene'],
+
     prepareQuery: (query) => {
       if (query.language === 'ppl') {
         // Remove stats pipe for logs view
         return {
           ...query,
-          query: typeof query.query === 'string' 
-            ? query.query.replace(/\s*\|\s*stats.*$/i, '')
-            : query.query,
+          query:
+            typeof query.query === 'string'
+              ? query.query.replace(/\s*\|\s*stats.*$/i, '')
+              : query.query,
         };
       }
       return query;
     },
-    
+
     component: LogsTabComponent,
+
+    // Add lifecycle hooks
+    onActive: () => {
+      // Tab activated
+    },
+    onInactive: () => {
+      // Tab deactivated
+    },
   });
-  
+
   // Register Visualizations Tab
   tabRegistry.registerTab({
     id: 'visualizations',
@@ -45,12 +54,49 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
     flavor: ['line', 'bar', 'pie'],
     order: 20,
     supportedLanguages: ['ppl', 'sql', 'promql'],
-    
+
     prepareQuery: (query) => {
-      // No transformation needed for visualizations
+      if (query.language === 'ppl' && typeof query.query === 'string') {
+        // Ensure query has stats pipe for visualizations
+        if (!query.query.match(/\|\s*stats/i)) {
+          // Add a simple stats pipe if none exists
+          return {
+            ...query,
+            query: `${query.query} | stats count() by span(timestamp, 1h)`,
+          };
+        }
+      }
       return query;
     },
-    
+
     component: VisualizationsTabComponent,
+
+    // Add lifecycle hooks
+    onActive: () => {
+      // Tab activated
+    },
+    onInactive: () => {
+      // Tab deactivated
+    },
   });
+};
+
+/**
+ * Register tabs in the application
+ * This is the main entry point for tab registration
+ */
+export const registerTabs = (services: any) => {
+  // Register built-in tabs
+  registerBuiltInTabs(services.tabRegistry);
+
+  // Register plugin-provided tabs
+  // This would be called by plugins that want to add tabs
+  const pluginTabs = services.plugins?.explore?.getTabs?.() || [];
+
+  pluginTabs.forEach((tabDefinition: any) => {
+    services.tabRegistry.registerTab(tabDefinition);
+  });
+
+  // Get the number of registered tabs
+  const tabCount = services.tabRegistry.getAllTabs().length;
 };

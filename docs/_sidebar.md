@@ -210,3 +210,6 @@
   - [TRIAGING](../TRIAGING.md)
   - [TYPESCRIPT](../TYPESCRIPT.md)
   - [Explore_middleware_implementation](../explore_middleware_implementation.md)
+  - [Implementation_summary](../implementation_summary.md)
+  - [Redux_thunk_explanation](../redux_thunk_explanation.md)
+  - [Testing_strategy](../testing_strategy.md)
