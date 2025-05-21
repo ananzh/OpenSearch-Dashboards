@@ -97,6 +97,6 @@ export const VisualizationsTab: React.FC<TabComponentProps> = ({
   );
 };
 
-// Default export for React.lazy
-// This allows us to use both named exports and default exports
-export default VisualizationsTab;
+// For React.lazy compatibility
+// eslint-disable-next-line import/no-default-export
+export { VisualizationsTab as default };
