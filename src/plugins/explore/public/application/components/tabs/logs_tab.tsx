@@ -4,59 +4,53 @@
  */
 
 import React from 'react';
-import { EuiBasicTable, EuiText } from '@elastic/eui';
+import { useSelector } from 'react-redux';
+import { EuiText } from '@elastic/eui';
 import { TabComponentProps } from '../../../services/tab_registry/tab_registry_service';
+import { DiscoverResultsActionBar } from '../../legacy/discover/application/components/results_action_bar/results_action_bar';
+import { DiscoverTable } from '../../legacy/discover/application/view_components/canvas/discover_table';
+import { selectColumns, selectSort, selectSavedSearch } from '../../state_management/selectors';
 
 /**
  * Logs tab component for displaying log entries
+ * Uses legacy components from discover
  */
-const LogsTab: React.FC<TabComponentProps> = ({ query, results }) => {
+const LogsTab: React.FC<TabComponentProps> = ({ query, results, isLoading, error }) => {
+  // Get data from Redux store
+  const columns = useSelector(selectColumns);
+  const sort = useSelector(selectSort);
+  const savedSearch = useSelector(selectSavedSearch);
+  const services = useSelector((state: any) => state.services);
+
+  // Create reset query function
+  const resetQuery = () => {
+    if (savedSearch?.id && services?.core?.application) {
+      services.core.application.navigateToApp('explore', {
+        path: `#/view/${savedSearch.id}`,
+      });
+    }
+  };
+
   if (!results || !results.hits || !results.hits.hits) {
     return <EuiText>No logs found.</EuiText>;
   }
 
-  const items = results.hits.hits.map((hit: any) => ({
-    id: hit._id,
-    ...hit._source,
-  }));
-
-  const columns = [
-    {
-      field: '_id',
-      name: 'ID',
-      width: '50px',
-    },
-  ];
-
-  // Dynamically create columns based on the first item's fields
-  if (items.length > 0) {
-    const firstItem = items[0];
-    Object.keys(firstItem)
-      .filter((key) => key !== 'id' && key !== '_id')
-      .forEach((key) => {
-        columns.push({
-          field: key,
-          name: key.charAt(0).toUpperCase() + key.slice(1),
-          render: (value: any) => {
-            if (typeof value === 'object') {
-              return JSON.stringify(value);
-            }
-            return value;
-          },
-        });
-      });
-  }
+  const rows = results.hits.hits;
+  const indexPattern = query.dataset || services.indexPattern;
 
   return (
-    <div>
-      <EuiText size="s">
-        <p>Showing {items.length} logs</p>
-      </EuiText>
-      <EuiBasicTable
-        items={items}
-        columns={columns}
-        tableCaption="Logs"
-        data-test-subj="logsTabTable"
+    <div className="dscPage">
+      <DiscoverResultsActionBar
+        hits={rows.length}
+        showResetButton={!!savedSearch?.id}
+        resetQuery={resetQuery}
+        rows={rows}
+        indexPattern={indexPattern}
+      />
+      <DiscoverTable
+        scrollToTop={() => {
+          window.scrollTo(0, 0);
+        }}
       />
     </div>
   );

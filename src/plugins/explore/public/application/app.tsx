@@ -6,20 +6,24 @@
 import React, { useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
 import { I18nProvider } from '@osd/i18n/react';
-import { EuiErrorBoundary, EuiLoadingSpinner, EuiPage, EuiPageBody } from '@elastic/eui';
+import {
+  EuiErrorBoundary,
+  EuiLoadingSpinner,
+  EuiPage,
+  EuiPageBody,
+  EuiPageSideBar,
+} from '@elastic/eui';
 import { AppMountParameters, CoreStart } from 'src/core/public';
 import { ExploreStartDependencies } from '../types';
 import { getExploreStore } from './state_management/store';
 import { registerTabs } from './register_tabs';
-import { TabBar } from './components/tab_bar';
-import { TabContent } from './components/tab_content';
-import { QueryPanel } from './components/query_panel';
 import { syncQueryStateWithUrl } from '../../../data/public';
 import {
   createOsdUrlStateStorage,
   withNotifyOnErrors,
 } from '../../../opensearch_dashboards_utils/public';
-import { TopNav } from './legacy/discover/application/view_components/canvas/top_nav';
+import { ExploreCanvas } from './components/explore_canvas';
+import DiscoverPanel from './legacy/discover/application/view_components/panel';
 
 /**
  * Services interface for the Explore plugin
@@ -49,17 +53,12 @@ const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
   }, [osdUrlStateStorage, plugins.data]);
 
   return (
-    <EuiPage className="exploreApp">
-      <EuiPageBody>
-        <div className="exploreApp__queryPanel">
-          <QueryPanel />
-        </div>
-        <div className="exploreApp__tabBar">
-          <TabBar />
-        </div>
-        <div className="exploreApp__tabContent">
-          <TabContent />
-        </div>
+    <EuiPage className="dscPage">
+      <EuiPageSideBar className="dscPageSidebar">
+        <DiscoverPanel />
+      </EuiPageSideBar>
+      <EuiPageBody className="dscPageContent">
+        <ExploreCanvas />
       </EuiPageBody>
     </EuiPage>
   );
@@ -127,26 +126,10 @@ export const renderApp = async (
       return <LoadingComponent />;
     }
 
-    // Create TopNav props
-    const topNavProps = {
-      opts: {
-        setHeaderActionMenu,
-        onQuerySubmit: ({ dateRange, query }: any) => {
-          // Update time range
-          if (dateRange) {
-            services.plugins.data.query.timefilter.timefilter.setTime(dateRange);
-          }
-        },
-      },
-      showSaveQuery: true,
-      isEnhancementsEnabled: false,
-    };
-
     return (
       <Provider store={store}>
         <I18nProvider>
           <EuiErrorBoundary>
-            <TopNav {...topNavProps} />
             <ExploreApp services={services} />
           </EuiErrorBoundary>
         </I18nProvider>

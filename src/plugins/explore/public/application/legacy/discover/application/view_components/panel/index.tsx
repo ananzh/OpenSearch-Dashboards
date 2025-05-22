@@ -3,25 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { IndexPatternField, UI_SETTINGS, opensearchFilters } from 'src/plugins/data/public';
+import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import {
   addColumn,
   removeColumn,
   moveColumn,
   setColumns,
 } from 'src/plugins/explore/public/application/state_management/slices/legacy_slice';
-import { IndexPatternField, UI_SETTINGS, opensearchFilters } from 'src/plugins/data/public';
-import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
+import {
+  selectColumns,
+  selectFieldCounts,
+  selectRows,
+  selectIndexPattern,
+} from 'src/plugins/explore/public/application/state_management/selectors';
 import { DiscoverSidebar } from '../../components/sidebar';
-import { useDiscoverContext } from '../context';
-import { ResultStatus, SearchData } from '../utils/use_search';
 import { DiscoverViewServices } from '../../../build_services';
 import { popularizeField } from '../../helpers/popularize_field';
 import { buildColumns } from '../../utils/columns';
 
-// eslint-disable-next-line import/no-default-export
-export default function DiscoverPanel(props: any) {
+export default function DiscoverPanel() {
   const { services } = useOpenSearchDashboards<DiscoverViewServices>();
   const {
     data: {
@@ -30,17 +33,18 @@ export default function DiscoverPanel(props: any) {
     capabilities,
     indexPatterns,
     application,
+    uiSettings,
   } = services;
-  const { data$, indexPattern } = useDiscoverContext();
-  const [fetchState, setFetchState] = useState<SearchData>(data$.getValue());
 
-  // Update to use the new Redux store
-  const columns = useSelector((state: any) => {
-    return state.legacy?.columns || [];
-  });
+  // Get data from Redux store
+  const columns = useSelector(selectColumns);
+  const fieldCounts = useSelector(selectFieldCounts);
+  const rows = useSelector(selectRows);
+  const indexPattern = useSelector(selectIndexPattern);
 
   const prevColumns = useRef(columns);
   const dispatch = useDispatch();
+
   useEffect(() => {
     const timeFieldname = indexPattern?.timeFieldName;
 
@@ -61,16 +65,6 @@ export default function DiscoverPanel(props: any) {
     }
   }, [columns, dispatch, indexPattern?.timeFieldName]);
 
-  useEffect(() => {
-    const subscription = data$.subscribe((next: SearchData) => {
-      if (next.status === ResultStatus.LOADING) return;
-      setFetchState(next);
-    });
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [data$, fetchState]);
-
   const onAddFilter = useCallback(
     (field: string | IndexPatternField, values: string, operation: '+' | '-') => {
       if (!indexPattern) return;
@@ -88,22 +82,19 @@ export default function DiscoverPanel(props: any) {
   );
 
   const onCreateIndexPattern = useCallback(async () => {
-    if (!fetchState.title) return;
-    if (fetchState.title === indexPattern?.title) return;
+    if (!indexPattern?.title) return;
     application?.navigateToApp('management', {
-      path: `opensearch-dashboards/indexPatterns/create?id=${fetchState.title}`,
+      path: `opensearch-dashboards/indexPatterns/create?id=${indexPattern.title}`,
     });
-  }, [application, fetchState.title, indexPattern?.title]);
+  }, [application, indexPattern?.title]);
 
-  const isEnhancementsEnabledOverride = services.uiSettings.get(
-    UI_SETTINGS.QUERY_ENHANCEMENTS_ENABLED
-  );
+  const isEnhancementsEnabledOverride = uiSettings.get(UI_SETTINGS.QUERY_ENHANCEMENTS_ENABLED);
 
   return (
     <DiscoverSidebar
       columns={columns || []}
-      fieldCounts={fetchState.fieldCounts || {}}
-      hits={fetchState.rows || []}
+      fieldCounts={fieldCounts || {}}
+      hits={rows || []}
       onAddField={(fieldName, index) => {
         if (indexPattern && capabilities.discover?.save) {
           popularizeField(indexPattern, fieldName, indexPatterns);

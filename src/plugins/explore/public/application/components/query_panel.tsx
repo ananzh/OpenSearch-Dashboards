@@ -22,7 +22,7 @@ import {
   selectIsLoading,
   selectError,
 } from '../state_management/selectors';
-import { ResultStatus } from '../legacy/discover/application/view_components/utils/use_search';
+import { ResultStatus, QueryStatus } from '../state_management/types';
 
 /**
  * Custom query panel component for the Explore plugin
@@ -120,7 +120,7 @@ export const QueryPanel: React.FC = () => {
   );
 
   // Create query status object for progress indicator
-  const queryStatus = {
+  const queryStatus: QueryStatus = {
     status: isLoading ? ResultStatus.LOADING : error ? ResultStatus.ERROR : ResultStatus.READY,
     elapsedMs: 0,
     startTime: Date.now(),
