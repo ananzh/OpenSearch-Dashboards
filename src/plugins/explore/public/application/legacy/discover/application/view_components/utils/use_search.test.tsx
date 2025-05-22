@@ -85,7 +85,7 @@ jest.mock('./update_search_source', () => ({
 // Create a mock for the services
 const createMockServices = (): DiscoverViewServices => {
   const discoverServicesMock = discoverPluginMock.createDiscoverServicesMock();
-  
+
   // Add additional mocks for data explorer services
   const services: DiscoverViewServices = {
     ...discoverServicesMock,

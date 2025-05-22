@@ -33,7 +33,7 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
 
     // Get tab definition
     const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
-    
+
     // Prepare query for the tab (transform if needed)
     const preparedQuery = tabDefinition?.prepareQuery ? tabDefinition.prepareQuery(query) : query;
 
@@ -68,17 +68,17 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
 
     try {
       console.log('Executing tab query for', preparedQuery.query);
-      
+
       // Create inspector adapter if not already in services
       if (!services.inspectorAdapters) {
         services.inspectorAdapters = {
           requests: new RequestAdapter(),
         };
       }
-      
+
       // Reset inspector adapter
       services.inspectorAdapters.requests.reset();
-      
+
       // Create inspector request
       const title = i18n.translate('explore.discover.inspectorRequestDataTitle', {
         defaultMessage: 'data',
@@ -87,7 +87,7 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
         defaultMessage: 'This request queries OpenSearch to fetch the data for the search.',
       });
       const inspectorRequest = services.inspectorAdapters.requests.start(title, { description });
-      
+
       // Create new SearchSource for this query
       const searchSource = await services.data.search.searchSource.create();
 
@@ -107,7 +107,7 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
       if (services.getRequestInspectorStats) {
         inspectorRequest.stats(services.getRequestInspectorStats(searchSource));
       }
-      
+
       // Get search request body for inspector
       searchSource.getSearchRequestBody().then((body: object) => {
         inspectorRequest.json(body);
@@ -121,12 +121,13 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
 
       // Add response stats to inspector
       if (services.getResponseInspectorStats) {
-        inspectorRequest.stats(services.getResponseInspectorStats(results, searchSource))
+        inspectorRequest
+          .stats(services.getResponseInspectorStats(results, searchSource))
           .ok({ json: results });
       } else {
         inspectorRequest.ok({ json: results });
       }
-      
+
       // Process results
       const fieldCounts: Record<string, number> = {};
       if (results.hits && results.hits.hits) {
@@ -153,7 +154,7 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      
+
       dispatch(setError(error as Error));
       throw error;
     } finally {
@@ -173,25 +174,25 @@ export const executeHistogramQuery = () => {
     const state = getState();
     const { query } = state.query;
     const services = state.services;
-    
+
     // Skip if no time field
     const indexPattern = query.dataset || services.indexPattern;
     if (!indexPattern.timeFieldName) {
       return null;
     }
-    
+
     try {
       console.log('Executing histogram query for', query.query);
-      
+
       // Create new SearchSource for histogram query
       const searchSource = await services.data.search.searchSource.create();
-      
+
       // Get current time range
       const timeRange = services.data.query.timefilter.timefilter.getTime();
-      
+
       // Configure SearchSource
       const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
-      
+
       // Add aggregation for histogram
       const aggConfig = {
         aggs: {
@@ -202,14 +203,14 @@ export const executeHistogramQuery = () => {
               min_doc_count: 0,
               extended_bounds: {
                 min: timeRange.from,
-                max: timeRange.to
-              }
-            }
-          }
+                max: timeRange.to,
+              },
+            },
+          },
         },
-        size: 0
+        size: 0,
       };
-      
+
       searchSource
         .setField('index', indexPattern)
         .setField('query', {
@@ -218,22 +219,22 @@ export const executeHistogramQuery = () => {
         })
         .setField('filter', timeRangeFilter ? [timeRangeFilter] : [])
         .setField('aggs', aggConfig.aggs);
-      
+
       // Execute query
       const results = await searchSource.fetch();
-      
+
       // Process results to create chart data
       const bucketInterval = {
         interval: aggConfig.aggs.histogram.date_histogram.interval,
-        scale: 1
+        scale: 1,
       };
-      
+
       // Transform aggregation results into chart data
       const chartData = transformAggregationToChartData(results, indexPattern);
-      
+
       return {
         chartData,
-        bucketInterval
+        bucketInterval,
       };
     } catch (error) {
       console.error('Error executing histogram query:', error);
@@ -251,7 +252,7 @@ export const executeQueries = (options: { clearCache?: boolean } = {}) => {
   return async (dispatch: Dispatch) => {
     // Execute tab query first - note how we're dispatching another thunk
     await dispatch(executeTabQuery(options) as any);
-    
+
     // Then execute histogram query - again dispatching another thunk
     return dispatch(executeHistogramQuery() as any);
   };
@@ -265,20 +266,22 @@ function transformAggregationToChartData(results: any, indexPattern: any) {
   if (!results.aggregations || !results.aggregations.histogram) {
     return null;
   }
-  
+
   const buckets = results.aggregations.histogram.buckets;
-  
+
   return {
     xAxisOrderedValues: buckets.map((bucket: any) => bucket.key),
     xAxisFormat: { id: 'date' },
     xAxisLabel: indexPattern.timeFieldName,
     yAxisLabel: 'Count',
-    series: [{
-      label: 'Documents',
-      values: buckets.map((bucket: any) => ({
-        x: bucket.key,
-        y: bucket.doc_count
-      }))
-    }]
+    series: [
+      {
+        label: 'Documents',
+        values: buckets.map((bucket: any) => ({
+          x: bucket.key,
+          y: bucket.doc_count,
+        })),
+      },
+    ],
   };
 }

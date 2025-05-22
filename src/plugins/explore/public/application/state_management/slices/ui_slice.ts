@@ -52,12 +52,12 @@ const uiSlice = createSlice({
   },
 });
 
-export const { 
-  setActiveTab, 
-  setFlavor, 
-  setLoading, 
-  setError, 
+export const {
+  setActiveTab,
+  setFlavor,
+  setLoading,
+  setError,
   setPromptQuery,
-  setAbortController 
+  setAbortController,
 } = uiSlice.actions;
 export const uiReducer = uiSlice.reducer;

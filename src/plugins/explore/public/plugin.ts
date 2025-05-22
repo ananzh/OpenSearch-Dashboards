@@ -75,7 +75,7 @@ export class ExplorePlugin
   private servicesInitialized: boolean = false;
   private urlGenerator?: any;
   private initializeServices?: () => { core: CoreStart; plugins: ExploreStartDependencies };
-  
+
   // Add a new property for the tab registry
   private tabRegistry: TabRegistryService = new TabRegistryService();
 
@@ -89,7 +89,7 @@ export class ExplorePlugin
   ): ExplorePluginSetup {
     // Set usage collector
     setUsageCollector(setupDeps.usageCollection);
-    
+
     this.docViewsRegistry = new DocViewsRegistry();
     setDocViewsRegistry(this.docViewsRegistry);
     this.docViewsRegistry.addDocView({
@@ -182,7 +182,12 @@ export class ExplorePlugin
           osdUrlKey: '_g',
           stateUpdate$: setupDeps.data.query.state$.pipe(
             filter(
-              (value: any) => !!(value.changes.globalFilters || value.changes.time || value.changes.refreshInterval)
+              (value: any) =>
+                !!(
+                  value.changes.globalFilters ||
+                  value.changes.time ||
+                  value.changes.refreshInterval
+                )
             ),
             map((value: any) => ({
               ...value.state,

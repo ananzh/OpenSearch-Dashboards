@@ -4,7 +4,11 @@
  */
 
 import { Dispatch } from 'redux';
-import { startTransaction, commitTransaction, rollbackTransaction } from '../slices/transaction_slice';
+import {
+  startTransaction,
+  commitTransaction,
+  rollbackTransaction,
+} from '../slices/transaction_slice';
 import { executeTabQuery } from './query_actions';
 import { COMMIT_STATE_TRANSACTION, RESTORE_STATE } from '../handlers/transaction_handler';
 
@@ -19,7 +23,7 @@ export const beginTransaction = () => (dispatch: Dispatch, getState: any) => {
     ui: { ...state.ui },
     tab: { ...state.tab },
   };
-  
+
   dispatch(startTransaction({ previousState }));
 };
 
@@ -28,19 +32,19 @@ export const beginTransaction = () => (dispatch: Dispatch, getState: any) => {
  */
 export const finishTransaction = () => (dispatch: Dispatch, getState: any) => {
   const state = getState();
-  
+
   // Validate transaction state
   if (!state.transaction.inProgress) {
     console.warn('Attempting to commit when no transaction is in progress');
     return;
   }
-  
+
   // Mark transaction as complete
   dispatch(commitTransaction());
-  
+
   // Trigger the actual state commit that handlers listen for
   dispatch({ type: COMMIT_STATE_TRANSACTION });
-  
+
   // Execute query with clear cache option
   // This will be handled by the transaction handler
   // We don't need to dispatch it here because the handler will do it
@@ -51,7 +55,7 @@ export const finishTransaction = () => (dispatch: Dispatch, getState: any) => {
  */
 export const abortTransaction = (error: Error) => (dispatch: Dispatch, getState: any) => {
   dispatch(rollbackTransaction(error));
-  
+
   // Restore previous state
   const { previousState } = getState().transaction;
   if (previousState) {

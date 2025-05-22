@@ -7,6 +7,12 @@ import React, { useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { EuiPanel, EuiSpacer } from '@elastic/eui';
 import { AppMountParameters, MountPoint } from 'opensearch-dashboards/public';
+import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
+import {
+  beginTransaction,
+  finishTransaction,
+} from 'src/plugins/explore/public/application/state_management/actions/transaction_actions';
+import { clearResults } from 'src/plugins/explore/public/application/state_management/slices/results_slice';
 import { LOGS_VIEW_ID } from '../../../../../../../common';
 import { TopNav } from './top_nav';
 import { DiscoverTable } from './discover_table';
@@ -18,13 +24,7 @@ import { DiscoverUninitialized } from '../../components/uninitialized/uninitiali
 import { LoadingSpinner } from '../../components/loading_spinner/loading_spinner';
 import { DiscoverResultsActionBar } from '../../components/results_action_bar/results_action_bar';
 import { DiscoverViewServices } from '../../../build_services';
-import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import { QUERY_ENHANCEMENT_ENABLED_SETTING } from '../../../../../../../common/legacy/discover';
-import { 
-  beginTransaction, 
-  finishTransaction 
-} from 'src/plugins/explore/public/application/state_management/actions/transaction_actions';
-import { clearResults } from 'src/plugins/explore/public/application/state_management/slices/results_slice';
 import './discover_canvas.scss';
 
 // Define interface for component props
@@ -37,7 +37,7 @@ interface CanvasProps {
 export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: CanvasProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const dispatch = useDispatch();
-  
+
   // Get services from context
   const {
     services: {
@@ -48,7 +48,7 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Can
       core,
     },
   } = useOpenSearchDashboards<DiscoverViewServices>();
-  
+
   // Get data from Redux
   const isLoading = useSelector((state: any) => state.ui.isLoading);
   const error = useSelector((state: any) => state.ui.error);
@@ -60,22 +60,22 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Can
     const queryState = state.query;
     const resultsState = state.results;
     const services = state.services;
-    
+
     // Get current time range
     const timeRange = services.data.query.timefilter.timefilter.getTime();
-    
+
     // Create cache key
     const cacheKey = `${queryState.query.query}_${timeRange.from}_${timeRange.to}`;
-    
+
     // Get results from cache
     const results = resultsState[cacheKey];
-    
+
     if (results?.hits?.hits) {
       return results.hits.hits;
     }
     return [];
   });
-  
+
   // Determine status based on Redux state
   let status: ResultStatus;
   if (isLoading) {
@@ -87,17 +87,17 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Can
   } else {
     status = ResultStatus.NO_RESULTS;
   }
-  
+
   const isEnhancementsEnabled = uiSettings.get(QUERY_ENHANCEMENT_ENABLED_SETTING);
 
   // Create refetch function using transaction pattern
   const refetch = useCallback(() => {
     // Start transaction
     dispatch(beginTransaction());
-    
+
     // Clear results
     dispatch(clearResults());
-    
+
     // Finish transaction
     dispatch(finishTransaction());
   }, [dispatch]);
@@ -112,13 +112,13 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Can
     },
     [refetch]
   );
-  
+
   const scrollToTop = () => {
     if (panelRef.current) {
       panelRef.current.scrollTop = 0;
     }
   };
-  
+
   const showSaveQuery = !!capabilities.discover?.saveQuery;
 
   const discoverResultsActionBar = (
@@ -166,9 +166,7 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Can
             />
           )}
           {/* We don't use UNINITIALIZED status, so this will never render */}
-          {false && (
-            <DiscoverUninitialized onRefresh={() => refetch()} />
-          )}
+          {false && <DiscoverUninitialized onRefresh={() => refetch()} />}
           {status === ResultStatus.LOADING && !rows?.length && <LoadingSpinner />}
           {status === ResultStatus.ERROR && !rows?.length && (
             <DiscoverUninitialized onRefresh={() => refetch()} />

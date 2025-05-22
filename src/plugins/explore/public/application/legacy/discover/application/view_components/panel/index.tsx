@@ -5,21 +5,17 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  addColumn, 
-  removeColumn, 
-  moveColumn, 
-  setColumns 
+import {
+  addColumn,
+  removeColumn,
+  moveColumn,
+  setColumns,
 } from 'src/plugins/explore/public/application/state_management/slices/legacy_slice';
+import { IndexPatternField, UI_SETTINGS, opensearchFilters } from 'src/plugins/data/public';
+import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import { DiscoverSidebar } from '../../components/sidebar';
 import { useDiscoverContext } from '../context';
 import { ResultStatus, SearchData } from '../utils/use_search';
-import {
-  IndexPatternField,
-  UI_SETTINGS,
-  opensearchFilters,
-} from 'src/plugins/data/public';
-import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import { DiscoverViewServices } from '../../../build_services';
 import { popularizeField } from '../../helpers/popularize_field';
 import { buildColumns } from '../../utils/columns';
@@ -113,9 +109,7 @@ export default function DiscoverPanel(props: any) {
           popularizeField(indexPattern, fieldName, indexPatterns);
         }
 
-        dispatch(
-          addColumn({ column: fieldName })
-        );
+        dispatch(addColumn({ column: fieldName }));
       }}
       onRemoveField={(fieldName) => {
         if (indexPattern && capabilities.discover?.save) {

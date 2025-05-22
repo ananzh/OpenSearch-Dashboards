@@ -12,8 +12,10 @@ import { cloneDeep } from 'lodash';
 import { useLocation } from 'react-router-dom';
 import { useEffectOnce } from 'react-use';
 import { RequestAdapter } from 'src/plugins/inspector/public';
-import { DiscoverViewServices } from '../../../build_services';
 import { search, syncQueryStateWithUrl, UI_SETTINGS } from 'src/plugins/data/public';
+import { useSelector } from 'react-redux';
+import { ABORT_DATA_QUERY_TRIGGER } from 'src/plugins/ui_actions/public';
+import { DiscoverViewServices } from '../../../build_services';
 import { validateTimeRange } from '../../helpers/validate_time_range';
 import { updateSearchSource } from './update_search_source';
 import { useIndexPattern } from './use_index_pattern';
@@ -31,11 +33,9 @@ import {
   getDimensions,
 } from '../../components/chart/utils';
 import { SavedSearch } from '../../../saved_searches';
-import { useSelector } from 'react-redux';
 import { SEARCH_ON_PAGE_LOAD_SETTING } from '../../../../../../../common/legacy/discover';
 import { trackQueryMetric } from '../../../ui_metric';
 
-import { ABORT_DATA_QUERY_TRIGGER } from 'src/plugins/ui_actions/public';
 import {
   ACTION_ABORT_DATA_QUERY,
   AbortDataQueryContext,
@@ -119,14 +119,14 @@ export const useSearch = (services: DiscoverViewServices) => {
   const { pathname } = useLocation();
   const initalSearchComplete = useRef(false);
   const [savedSearch, setSavedSearch] = useState<SavedSearch | undefined>(undefined);
-  
+
   // Update to use the new Redux store
   const legacyState = useSelector((state: any) => state.legacy || {});
   const savedSearchId = legacyState.savedSearch?.id;
   const sort = legacyState.sort || [];
   const interval = legacyState.interval || 'auto';
   const savedQuery = legacyState.savedQueryId;
-  
+
   const indexPattern = useIndexPattern(services);
   const skipInitialFetch = useRef(false);
   const {
