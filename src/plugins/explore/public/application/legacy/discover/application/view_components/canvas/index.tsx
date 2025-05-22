@@ -6,10 +6,9 @@
 import React, { useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { EuiPanel, EuiSpacer } from '@elastic/eui';
-import { HeaderVariant } from 'opensearch-dashboards/public';
+import { AppMountParameters, MountPoint } from 'opensearch-dashboards/public';
 import { LOGS_VIEW_ID } from '../../../../../../../common';
 import { TopNav } from './top_nav';
-import { ViewProps } from '../../../../data_explorer';
 import { DiscoverTable } from './discover_table';
 import { DiscoverChartContainer } from './discover_chart_container';
 import { ResultStatus } from '../utils/use_search';
@@ -19,12 +18,23 @@ import { DiscoverUninitialized } from '../../components/uninitialized/uninitiali
 import { LoadingSpinner } from '../../components/loading_spinner/loading_spinner';
 import { DiscoverResultsActionBar } from '../../components/results_action_bar/results_action_bar';
 import { DiscoverViewServices } from '../../../build_services';
-import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
+import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import { QUERY_ENHANCEMENT_ENABLED_SETTING } from '../../../../../../../common/legacy/discover';
+import { 
+  beginTransaction, 
+  finishTransaction 
+} from 'src/plugins/explore/public/application/state_management/actions/transaction_actions';
+import { clearResults } from 'src/plugins/explore/public/application/state_management/slices/results_slice';
 import './discover_canvas.scss';
 
+// Define interface for component props
+interface CanvasProps {
+  setHeaderActionMenu?: AppMountParameters['setHeaderActionMenu'];
+  optionalRef?: Record<string, React.RefObject<HTMLDivElement>>;
+}
+
 // eslint-disable-next-line import/no-default-export
-export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: ViewProps) {
+export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: CanvasProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const dispatch = useDispatch();
   
@@ -82,24 +92,14 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Vie
 
   // Create refetch function using transaction pattern
   const refetch = useCallback(() => {
-    // Dispatch actions directly
-    dispatch({ 
-      type: 'transaction/startTransaction', 
-      payload: { 
-        previousState: {
-          query: {},
-          ui: {},
-          tab: {},
-        } 
-      } 
-    });
+    // Start transaction
+    dispatch(beginTransaction());
     
     // Clear results
-    dispatch({ type: 'results/clearResults' });
+    dispatch(clearResults());
     
-    // Commit transaction
-    dispatch({ type: 'transaction/commitTransaction' });
-    dispatch({ type: 'transaction/commitState' });
+    // Finish transaction
+    dispatch(finishTransaction());
   }, [dispatch]);
 
   // Create a wrapper for onQuerySubmit that matches the expected type
@@ -148,9 +148,9 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Vie
       <TopNav
         isEnhancementsEnabled={isEnhancementsEnabled}
         opts={{
-          setHeaderActionMenu,
+          setHeaderActionMenu: setHeaderActionMenu || ((menuMount: MountPoint | undefined) => {}),
           onQuerySubmit: handleQuerySubmit,
-          optionalRef,
+          optionalRef: optionalRef || {},
         }}
         showSaveQuery={showSaveQuery}
       />

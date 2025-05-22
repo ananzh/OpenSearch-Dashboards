@@ -5,6 +5,7 @@
 
 import { Dispatch } from 'redux';
 import { startTransaction, commitTransaction, rollbackTransaction } from '../slices/transaction_slice';
+import { executeTabQuery } from './query_actions';
 import { COMMIT_STATE_TRANSACTION, RESTORE_STATE } from '../handlers/transaction_handler';
 
 /**
@@ -39,6 +40,10 @@ export const finishTransaction = () => (dispatch: Dispatch, getState: any) => {
   
   // Trigger the actual state commit that handlers listen for
   dispatch({ type: COMMIT_STATE_TRANSACTION });
+  
+  // Execute query with clear cache option
+  // This will be handled by the transaction handler
+  // We don't need to dispatch it here because the handler will do it
 };
 
 /**

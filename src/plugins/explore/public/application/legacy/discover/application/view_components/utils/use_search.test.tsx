@@ -9,12 +9,11 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { Router } from 'react-router-dom';
 import { Subject } from 'rxjs';
-import { createDataExplorerServicesMock } from '../../../../data_explorer/utils/mocks';
 import { DiscoverViewServices } from '../../../build_services';
 import { discoverPluginMock } from '../../../mocks';
 import { ResultStatus, safeJSONParse, useSearch } from './use_search';
-import { Filter, ISearchSource, UI_SETTINGS } from '../../../../../../../../data/common';
-import { opensearchFilters } from '../../../../../../../../data/public';
+import { Filter, ISearchSource, UI_SETTINGS } from 'src/plugins/data/common';
+import { opensearchFilters } from 'src/plugins/data/public';
 
 jest.mock('./use_index_pattern', () => ({
   useIndexPattern: jest.fn().mockReturnValue(true),
@@ -83,20 +82,50 @@ jest.mock('./update_search_source', () => ({
   updateSearchSource: ({ searchSource }: { searchSource?: ISearchSource }) => searchSource,
 }));
 
+// Create a mock for the services
 const createMockServices = (): DiscoverViewServices => {
-  const dataExplorerServicesMock = createDataExplorerServicesMock();
   const discoverServicesMock = discoverPluginMock.createDiscoverServicesMock();
+  
+  // Add additional mocks for data explorer services
   const services: DiscoverViewServices = {
-    ...dataExplorerServicesMock,
     ...discoverServicesMock,
+    data: {
+      ...discoverServicesMock.data,
+      query: {
+        ...discoverServicesMock.data.query,
+        timefilter: {
+          ...discoverServicesMock.data.query.timefilter,
+          timefilter: {
+            ...discoverServicesMock.data.query.timefilter.timefilter,
+            getRefreshInterval: jest.fn().mockReturnValue({
+              pause: false,
+              value: 10,
+            }),
+            getTime: jest.fn().mockReturnValue({
+              from: 'now-15m',
+              to: 'now',
+            }),
+          },
+        },
+        queryString: {
+          ...discoverServicesMock.data.query.queryString,
+          getDatasetService: jest.fn().mockReturnValue({
+            getType: jest.fn().mockReturnValue({}),
+          }),
+          getUpdates$: jest.fn().mockReturnValue(new Subject()),
+          getLanguageService: jest.fn().mockReturnValue({
+            getLanguage: jest.fn().mockReturnValue({}),
+          }),
+        },
+      },
+    },
+    filterManager: {
+      ...discoverServicesMock.filterManager,
+      getAppFilters: jest.fn().mockReturnValue([mockFilterA]),
+    },
+    getSavedSearchById: jest.fn().mockResolvedValue(mockSavedSearch),
   };
 
-  (services.data.query.timefilter.timefilter.getRefreshInterval as jest.Mock).mockReturnValue({
-    pause: false,
-    value: 10,
-  });
-  (services.filterManager.getAppFilters as jest.Mock).mockReturnValue([mockFilterA]);
-  services.getSavedSearchById = jest.fn().mockResolvedValue(mockSavedSearch);
   return services;
 };
 

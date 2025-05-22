@@ -3,13 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { TypedUseSelectorHook } from 'react-redux';
-import {
-  RootState,
-  setIndexPattern as updateIndexPattern,
-  useTypedDispatch,
-  useTypedSelector,
-} from '../../../../data_explorer';
+import { TypedUseSelectorHook, useDispatch as useReduxDispatch, useSelector as useReduxSelector } from 'react-redux';
+import { RootState } from 'src/plugins/explore/public/application/state_management/store';
+import { setDataset } from 'src/plugins/explore/public/application/state_management/slices/query_slice';
 import { DiscoverState } from './discover_slice';
 
 export * from './discover_slice';
@@ -18,6 +14,6 @@ export interface DiscoverRootState extends RootState {
   logs: DiscoverState;
 }
 
-export const useSelector: TypedUseSelectorHook<DiscoverRootState> = useTypedSelector;
-export const useDispatch = useTypedDispatch;
-export { updateIndexPattern };
+export const useSelector: TypedUseSelectorHook<DiscoverRootState> = useReduxSelector;
+export const useDispatch = useReduxDispatch;
+export const updateIndexPattern = setDataset;

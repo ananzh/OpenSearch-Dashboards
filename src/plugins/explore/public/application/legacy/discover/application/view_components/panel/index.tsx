@@ -4,15 +4,13 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ViewProps } from '../../../../data_explorer';
-import {
-  addColumn,
-  removeColumn,
-  reorderColumn,
-  setColumns,
-  useDispatch,
-  useSelector,
-} from '../../utils/state_management';
+import { useDispatch, useSelector } from 'react-redux';
+import { 
+  addColumn, 
+  removeColumn, 
+  moveColumn, 
+  setColumns 
+} from 'src/plugins/explore/public/application/state_management/slices/legacy_slice';
 import { DiscoverSidebar } from '../../components/sidebar';
 import { useDiscoverContext } from '../context';
 import { ResultStatus, SearchData } from '../utils/use_search';
@@ -20,14 +18,14 @@ import {
   IndexPatternField,
   UI_SETTINGS,
   opensearchFilters,
-} from '../../../../../../../../data/public';
-import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
+} from 'src/plugins/data/public';
+import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import { DiscoverViewServices } from '../../../build_services';
 import { popularizeField } from '../../helpers/popularize_field';
 import { buildColumns } from '../../utils/columns';
 
 // eslint-disable-next-line import/no-default-export
-export default function DiscoverPanel(props: ViewProps) {
+export default function DiscoverPanel(props: any) {
   const { services } = useOpenSearchDashboards<DiscoverViewServices>();
   const {
     data: {
@@ -40,12 +38,9 @@ export default function DiscoverPanel(props: ViewProps) {
   const { data$, indexPattern } = useDiscoverContext();
   const [fetchState, setFetchState] = useState<SearchData>(data$.getValue());
 
-  const { columns } = useSelector((state) => {
-    const stateColumns = state.logs.columns;
-    // check if state columns is not undefined, otherwise use buildColumns
-    return {
-      columns: stateColumns !== undefined ? stateColumns : buildColumns([]),
-    };
+  // Update to use the new Redux store
+  const columns = useSelector((state: any) => {
+    return state.legacy?.columns || [];
   });
 
   const prevColumns = useRef(columns);
@@ -62,16 +57,16 @@ export default function DiscoverPanel(props: ViewProps) {
         columns.includes(timeFieldname)
       ) {
         // Remove timeFieldname from columns if previously chosen columns does not include time field
-        updatedColumns = columns.filter((column) => column !== timeFieldname);
+        updatedColumns = columns.filter((column: string) => column !== timeFieldname);
       }
       // Update the ref with the new columns
-      dispatch(setColumns({ columns: updatedColumns }));
+      dispatch(setColumns(updatedColumns));
       prevColumns.current = columns;
     }
   }, [columns, dispatch, indexPattern?.timeFieldName]);
 
   useEffect(() => {
-    const subscription = data$.subscribe((next) => {
+    const subscription = data$.subscribe((next: SearchData) => {
       if (next.status === ResultStatus.LOADING) return;
       setFetchState(next);
     });
@@ -119,10 +114,7 @@ export default function DiscoverPanel(props: ViewProps) {
         }
 
         dispatch(
-          addColumn({
-            column: fieldName,
-            index,
-          })
+          addColumn({ column: fieldName })
         );
       }}
       onRemoveField={(fieldName) => {
@@ -133,9 +125,11 @@ export default function DiscoverPanel(props: ViewProps) {
         dispatch(removeColumn(fieldName));
       }}
       onReorderFields={(source, destination) => {
+        // Get the column name at the source index
+        const columnName = columns[source];
         dispatch(
-          reorderColumn({
-            source,
+          moveColumn({
+            columnName,
             destination,
           })
         );

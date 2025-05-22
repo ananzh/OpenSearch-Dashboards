@@ -51,14 +51,15 @@ import { ChartsPluginStart } from '../../../../../charts/public';
 import { UiActionsStart } from '../../../../../ui_actions/public';
 import { VisualizationsStart } from '../../../../../visualizations/public';
 import { SavedObjectOpenSearchDashboardsServices } from '../../../../../saved_objects/public';
+import { ExpressionsStart } from '../../../../../expressions/public';
+import { EmbeddableStart } from '../../../../../embeddable/public';
+import { IOsdUrlStateStorage, Storage } from '../../../../../opensearch_dashboards_utils/public';
 
 import { createSavedSearchesLoader, SavedSearch } from './saved_searches';
 import { getHistory } from './opensearch_dashboards_services';
 import { OpenSearchDashboardsLegacyStart } from '../../../../../opensearch_dashboards_legacy/public';
 import { UrlForwardingStart } from '../../../../../url_forwarding/public';
 import { NavigationPublicPluginStart } from '../../../../../navigation/public';
-import { DataExplorerServices } from '../data_explorer';
-import { Storage } from '../../../../../opensearch_dashboards_utils/public';
 import { DiscoverStartPlugins } from './types';
 
 export interface DiscoverServices {
@@ -86,6 +87,15 @@ export interface DiscoverServices {
   visualizations: VisualizationsStart;
   storage: Storage;
   uiActions: UiActionsStart;
+}
+
+export interface ExploreServices extends DiscoverServices {
+  store?: any;
+  expressions: ExpressionsStart;
+  embeddable: EmbeddableStart;
+  scopedHistory: History;
+  osdUrlStateStorage: IOsdUrlStateStorage;
+  tabRegistry?: any;
 }
 
 export function buildServices(
@@ -133,5 +143,5 @@ export function buildServices(
   };
 }
 
-// Any component inside the panel and canvas views has access to both these services.
-export type DiscoverViewServices = DiscoverServices & DataExplorerServices;
+// Any component inside the panel and canvas views has access to these services.
+export type DiscoverViewServices = ExploreServices;

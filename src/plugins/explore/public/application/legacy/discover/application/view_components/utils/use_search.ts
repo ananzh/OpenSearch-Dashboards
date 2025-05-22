@@ -11,9 +11,9 @@ import { i18n } from '@osd/i18n';
 import { cloneDeep } from 'lodash';
 import { useLocation } from 'react-router-dom';
 import { useEffectOnce } from 'react-use';
-import { RequestAdapter } from '../../../../../../../../inspector/public';
+import { RequestAdapter } from 'src/plugins/inspector/public';
 import { DiscoverViewServices } from '../../../build_services';
-import { search, syncQueryStateWithUrl, UI_SETTINGS } from '../../../../../../../../data/public';
+import { search, syncQueryStateWithUrl, UI_SETTINGS } from 'src/plugins/data/public';
 import { validateTimeRange } from '../../helpers/validate_time_range';
 import { updateSearchSource } from './update_search_source';
 import { useIndexPattern } from './use_index_pattern';
@@ -31,18 +31,18 @@ import {
   getDimensions,
 } from '../../components/chart/utils';
 import { SavedSearch } from '../../../saved_searches';
-import { useSelector } from '../../utils/state_management';
+import { useSelector } from 'react-redux';
 import { SEARCH_ON_PAGE_LOAD_SETTING } from '../../../../../../../common/legacy/discover';
 import { trackQueryMetric } from '../../../ui_metric';
 
-import { ABORT_DATA_QUERY_TRIGGER } from '../../../../../../../../ui_actions/public';
+import { ABORT_DATA_QUERY_TRIGGER } from 'src/plugins/ui_actions/public';
 import {
   ACTION_ABORT_DATA_QUERY,
   AbortDataQueryContext,
   createAbortDataQueryAction,
 } from '../../../actions/abort_data_query_action';
 
-declare module '../../../../../../../../ui_actions/public' {
+declare module 'src/plugins/ui_actions/public' {
   export interface TriggerContextMapping {
     [ABORT_DATA_QUERY_TRIGGER]: AbortDataQueryContext;
   }
@@ -119,9 +119,14 @@ export const useSearch = (services: DiscoverViewServices) => {
   const { pathname } = useLocation();
   const initalSearchComplete = useRef(false);
   const [savedSearch, setSavedSearch] = useState<SavedSearch | undefined>(undefined);
-  const { savedSearch: savedSearchId, sort, interval, savedQuery } = useSelector(
-    (state) => state.logs
-  );
+  
+  // Update to use the new Redux store
+  const legacyState = useSelector((state: any) => state.legacy || {});
+  const savedSearchId = legacyState.savedSearch?.id;
+  const sort = legacyState.sort || [];
+  const interval = legacyState.interval || 'auto';
+  const savedQuery = legacyState.savedQueryId;
+  
   const indexPattern = useIndexPattern(services);
   const skipInitialFetch = useRef(false);
   const {
@@ -498,129 +503,61 @@ export const useSearch = (services: DiscoverViewServices) => {
     const fetch$ = merge(
       refetch$,
       filterManager.getFetches$(),
-      timefilter.getFetch$(),
       timefilter.getTimeUpdate$(),
-      timefilter.getAutoRefreshFetch$(),
-      data.query.queryString.getUpdates$()
+      timefilter.getRefreshIntervalUpdate$().pipe(
+        filter(() => {
+          return timefilter.getRefreshInterval().pause === false;
+        })
+      )
     ).pipe(debounceTime(100));
 
     const subscription = fetch$.subscribe(() => {
-      if (skipInitialFetch.current) {
-        skipInitialFetch.current = false; // Reset so future fetches will proceed normally
-        return; // Skip the first fetch
-      }
-
-      (async () => {
-        try {
+      if (initalSearchComplete.current) {
+        (async () => {
           await fetch();
-        } catch (error) {
-          core.fatalErrors.add(error as Error);
-        }
-      })();
+        })();
+      }
     });
-
-    // kick off initial refetch on page load
-    if (shouldSearchOnPageLoad() || initalSearchComplete.current === true) {
-      refetch$.next();
-    }
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [
-    data$,
-    data.query.queryString,
-    filterManager,
-    refetch$,
-    timefilter,
-    fetch,
-    core.fatalErrors,
-    shouldSearchOnPageLoad,
-  ]);
+  }, [fetch, filterManager, refetch$, timefilter]);
 
-  // Get savedSearch if it exists
   useEffect(() => {
     const loadSavedSearch = async () => {
-      const savedSearchInstance = await getSavedSearchById(savedSearchId);
-      const dataQuery = data.query.queryString.getQuery();
-      const defaultQuery = data.query.queryString.getDefaultQuery();
-      const isDataQueryDefault = dataQuery.query === defaultQuery.query;
-      const savedSearchQuery = savedSearchInstance.searchSource.getField('query');
-
-      // Use eixisting query, if eixisting query match default, use query from saved search
-      const query = isDataQueryDefault ? savedSearchQuery ?? dataQuery : dataQuery;
-
-      const isEnhancementsEnabled = await uiSettings.get('query:enhancements:enabled');
-      if (isEnhancementsEnabled && query.dataset) {
-        let pattern = await data.indexPatterns.get(
-          query.dataset.id,
-          query.dataset.type !== 'INDEX_PATTERN'
-        );
-        if (!pattern) {
-          await data.query.queryString.getDatasetService().cacheDataset(query.dataset, {
-            uiSettings: services.uiSettings,
-            savedObjects: services.savedObjects,
-            notifications: services.notifications,
-            http: services.http,
-            data: services.data,
-          });
-          pattern = await data.indexPatterns.get(
-            query.dataset.id,
-            query.dataset.type !== 'INDEX_PATTERN'
-          );
-          savedSearchInstance.searchSource.setField('index', pattern);
-        }
-      }
-
-      // sync initial app filters from savedObject to filterManager
-      const filters = cloneDeep(savedSearchInstance.searchSource.getOwnField('filter'));
-
-      // merge filters in saved search with exisiting filters in filterManager
-      const actualFilters = cloneDeep(filterManager.getAppFilters());
-
-      if (savedQuery) {
-        actualFilters.push.apply(actualFilters, data.query.filterManager.getFilters());
-      } else if (filters !== undefined) {
-        const result = typeof filters === 'function' ? filters() : filters;
-        if (result !== undefined) {
-          actualFilters.push(...(Array.isArray(result) ? result : [result]));
-        }
-      }
-
-      filterManager.setAppFilters(actualFilters);
-      data.query.queryString.setQuery(query);
-      // Update local storage after loading saved search
-      data.query.queryString.getLanguageService().setUserQueryLanguage(query.language);
-      data.query.queryString.getInitialQueryByLanguage(query.language);
-      setSavedSearch(savedSearchInstance);
-
-      if (savedSearchInstance?.id) {
-        chrome.recentlyAccessed.add(
-          savedSearchInstance.getFullPath(),
-          savedSearchInstance.title,
-          savedSearchInstance.id,
-          {
-            type: savedSearchInstance.getOpenSearchType(),
+      if (savedSearchId) {
+        try {
+          const savedSearchInstance = await getSavedSearchById(savedSearchId);
+          if (savedSearchInstance) {
+            setSavedSearch(savedSearchInstance);
           }
-        );
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Error loading saved search', error);
+          toastNotifications.addDanger({
+            title: i18n.translate('explore.discover.failedToLoadSavedSearchTitle', {
+              defaultMessage: 'Search failed',
+            }),
+            text: i18n.translate('explore.discover.failedToLoadSavedSearchMessage', {
+              defaultMessage:
+                'The search you are trying to open does not exist. The query will not be loaded.',
+            }),
+          });
+        }
+      } else {
+        setSavedSearch(undefined);
       }
     };
 
     loadSavedSearch();
-    // This effect will only run when getSavedSearchById is called, which is
-    // only called when the component is first mounted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getSavedSearchById, savedSearchId]);
+  }, [getSavedSearchById, savedSearchId, toastNotifications]);
 
   useEffect(() => {
-    // syncs `_g` portion of url with query services
-    const { stop } = syncQueryStateWithUrl(data.query, osdUrlStateStorage, uiSettings);
-
-    return () => stop();
-
-    // this effect should re-run when pathname is changed to preserve querystring part,
-    // so the global state is always preserved
-  }, [data.query, osdUrlStateStorage, pathname, uiSettings]);
+    if (initalSearchComplete.current === false) {
+      fetch();
+    }
+  }, [fetch, savedSearch]);
 
   return {
     data$,
@@ -629,8 +566,5 @@ export const useSearch = (services: DiscoverViewServices) => {
     savedSearch,
     inspectorAdapters,
     fetchForMaxCsvOption,
-    fetchForMaxCsvStateRef,
   };
 };
-
-export type SearchContextValue = ReturnType<typeof useSearch>;

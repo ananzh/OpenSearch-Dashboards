@@ -23,7 +23,6 @@ import { TopNav } from './legacy/discover/application/view_components/canvas/top
 
 /**
  * Services interface for the Explore plugin
- * This replaces the DataExplorerServices interface
  */
 export interface ExploreServices {
   core: CoreStart;
@@ -68,7 +67,6 @@ const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
 
 /**
  * Renders the Explore application
- * This replaces the renderApp function from data_explorer
  */
 export const renderApp = async (
   coreStart: CoreStart,

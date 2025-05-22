@@ -5,7 +5,7 @@
 
 import { Store } from '@reduxjs/toolkit';
 import { RootState } from '../store';
-import { executeQueries } from '../actions/query_actions';
+import { executeTabQuery } from '../actions/query_actions';
 
 /**
  * Action type for committing a transaction
@@ -30,9 +30,9 @@ export const handleTransactionChanges = (
   if (previousState.transaction.inProgress && !currentState.transaction.inProgress) {
     // Only execute queries if we're not in an error state
     if (!currentState.transaction.error) {
-      // Execute both tab and histogram queries with clearCache option
-      // This is dispatching a thunk that will execute both queries
-      store.dispatch(executeQueries({ clearCache: true }) as any);
+      // Execute tab query with clearCache option
+      // This is dispatching a thunk that will execute the query
+      store.dispatch(executeTabQuery({ clearCache: true }) as any);
     }
   }
 };

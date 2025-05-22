@@ -10,6 +10,7 @@ export interface UIState {
   flavor: string;
   isLoading: boolean;
   error: Error | null;
+  abortController: AbortController | null;
   queryPanel: {
     promptQuery: string;
   };
@@ -20,6 +21,7 @@ const initialState: UIState = {
   flavor: 'log',
   isLoading: false,
   error: null,
+  abortController: null,
   queryPanel: {
     promptQuery: '',
   },
@@ -44,8 +46,18 @@ const uiSlice = createSlice({
     setPromptQuery: (state, action: PayloadAction<string>) => {
       state.queryPanel.promptQuery = action.payload;
     },
+    setAbortController: (state, action: PayloadAction<AbortController | null>) => {
+      state.abortController = action.payload;
+    },
   },
 });
 
-export const { setActiveTab, setFlavor, setLoading, setError, setPromptQuery } = uiSlice.actions;
+export const { 
+  setActiveTab, 
+  setFlavor, 
+  setLoading, 
+  setError, 
+  setPromptQuery,
+  setAbortController 
+} = uiSlice.actions;
 export const uiReducer = uiSlice.reducer;

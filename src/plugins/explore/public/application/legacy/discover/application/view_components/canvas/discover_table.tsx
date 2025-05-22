@@ -9,22 +9,25 @@ import {
   MODIFY_COLUMNS_ON_SWITCH,
 } from '../../../../../../../common/legacy/discover';
 import { DiscoverViewServices } from '../../../build_services';
-import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
+import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import { DataGridTable } from '../../components/data_grid/data_grid_table';
-import {
-  addColumn,
-  moveColumn,
-  removeColumn,
-  setSort,
-  useDispatch,
-  useSelector,
-} from '../../utils/state_management';
-import { IndexPatternField, opensearchFilters } from '../../../../../../../../data/public';
-import { SortOrder } from '../../../saved_searches/types';
+import { useDispatch, useSelector } from 'react-redux';
+import { IndexPatternField } from 'src/plugins/data/public';
+import { SortDirection, SortOrder } from '../../../saved_searches/types';
 import { popularizeField } from '../../helpers/popularize_field';
 import { buildColumns } from '../../utils/columns';
 import { filterColumns } from '../utils/filter_columns';
 import { DocViewFilterFn } from '../../doc_views/doc_views_types';
+import { 
+  addColumn, 
+  removeColumn, 
+  moveColumn, 
+  setSort 
+} from 'src/plugins/explore/public/application/state_management/slices/legacy_slice';
+import { 
+  beginTransaction, 
+  finishTransaction 
+} from 'src/plugins/explore/public/application/state_management/actions/transaction_actions';
 
 interface Props {
   scrollToTop?: () => void;
@@ -70,11 +73,8 @@ export const DiscoverTable = ({ scrollToTop }: Props) => {
   const savedSearch = useSelector((state: any) => state.legacy?.savedSearch);
   
   // Get columns and sort from Redux
-  const { columns } = useSelector((state: any) => {
-    const stateColumns = state.logs?.columns;
-    return {
-      columns: stateColumns !== undefined ? stateColumns : buildColumns([]),
-    };
+  const columns = useSelector((state: any) => {
+    return state.legacy?.columns || [];
   });
   
   const filteredColumns = useMemo(() => {
@@ -86,31 +86,11 @@ export const DiscoverTable = ({ scrollToTop }: Props) => {
     );
   }, [columns, indexPattern, uiSettings]);
   
-  const { sort } = useSelector((state: any) => {
-    const stateSort = state.logs?.sort;
-    return {
-      sort: stateSort !== undefined ? stateSort : [],
-    };
+  const sort = useSelector((state: any) => {
+    return state.legacy?.sort || [];
   });
   
   const dispatch = useDispatch();
-  
-  // Use transaction pattern directly
-  const startTransaction = useCallback(() => {
-    const state = dispatch((_, getState) => getState());
-    const previousState = {
-      query: { ...state.query },
-      ui: { ...state.ui },
-      tab: { ...state.tab },
-    };
-    
-    dispatch({ type: 'transaction/startTransaction', payload: { previousState } });
-  }, [dispatch]);
-  
-  const completeTransaction = useCallback(() => {
-    dispatch({ type: 'transaction/commitTransaction' });
-    dispatch({ type: 'transaction/commitState' });
-  }, [dispatch]);
   
   const onAddColumn = (col: string) => {
     if (indexPattern && capabilities.discover?.save) {
@@ -135,11 +115,17 @@ export const DiscoverTable = ({ scrollToTop }: Props) => {
     dispatch(moveColumn({ columnName: col, destination }));
   };
 
-  const onSetSort = (s: SortOrder[]) => {
+  const onSetSort = (sortOrders: SortOrder[]) => {
+    // Convert SortOrder[] to the format expected by the legacy_slice
+    const convertedSort = sortOrders.map(([columnName, direction]) => ({
+      columnName,
+      direction,
+    }));
+    
     // Use transaction to batch state updates
-    startTransaction();
-    dispatch(setSort(s));
-    completeTransaction();
+    dispatch(beginTransaction());
+    dispatch(setSort(convertedSort));
+    dispatch(finishTransaction());
   };
   
   // Add onFilter function

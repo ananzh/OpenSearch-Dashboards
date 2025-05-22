@@ -4,7 +4,9 @@
  */
 
 import { Dispatch } from 'redux';
-import { setLoading, setError } from '../slices/ui_slice';
+import { i18n } from '@osd/i18n';
+import { RequestAdapter } from 'src/plugins/inspector/public';
+import { setLoading, setError, setAbortController } from '../slices/ui_slice';
 import { setResults, clearResults } from '../slices/results_slice';
 import { createCacheKey } from '../handlers/query_handler';
 
@@ -52,11 +54,39 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
       return state.results[cacheKey];
     }
 
+    // Abort any in-progress requests
+    if (state.ui.abortController) {
+      state.ui.abortController.abort();
+    }
+
+    // Create new abort controller
+    const abortController = new AbortController();
+    dispatch(setAbortController(abortController));
+
     // Set loading state
     dispatch(setLoading(true));
 
     try {
       console.log('Executing tab query for', preparedQuery.query);
+      
+      // Create inspector adapter if not already in services
+      if (!services.inspectorAdapters) {
+        services.inspectorAdapters = {
+          requests: new RequestAdapter(),
+        };
+      }
+      
+      // Reset inspector adapter
+      services.inspectorAdapters.requests.reset();
+      
+      // Create inspector request
+      const title = i18n.translate('explore.discover.inspectorRequestDataTitle', {
+        defaultMessage: 'data',
+      });
+      const description = i18n.translate('explore.discover.inspectorRequestDescription', {
+        defaultMessage: 'This request queries OpenSearch to fetch the data for the search.',
+      });
+      const inspectorRequest = services.inspectorAdapters.requests.start(title, { description });
       
       // Create new SearchSource for this query
       const searchSource = await services.data.search.searchSource.create();
@@ -73,9 +103,30 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
         })
         .setField('filter', timeRangeFilter ? [timeRangeFilter] : []);
 
-      // Execute query
-      const results = await searchSource.fetch();
+      // Add inspector stats
+      if (services.getRequestInspectorStats) {
+        inspectorRequest.stats(services.getRequestInspectorStats(searchSource));
+      }
+      
+      // Get search request body for inspector
+      searchSource.getSearchRequestBody().then((body: object) => {
+        inspectorRequest.json(body);
+      });
 
+      // Execute query
+      const results = await searchSource.fetch({
+        abortSignal: abortController.signal,
+        withLongNumeralsSupport: await services.uiSettings.get('data:withLongNumerals'),
+      });
+
+      // Add response stats to inspector
+      if (services.getResponseInspectorStats) {
+        inspectorRequest.stats(services.getResponseInspectorStats(results, searchSource))
+          .ok({ json: results });
+      } else {
+        inspectorRequest.ok({ json: results });
+      }
+      
       // Process results
       const fieldCounts: Record<string, number> = {};
       if (results.hits && results.hits.hits) {
@@ -89,18 +140,25 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
 
       const tabData = {
         hits: results.hits,
-        fieldCounts
+        fieldCounts,
+        elapsedMs: inspectorRequest.getTime(),
       };
 
       // Store results in cache
       dispatch(setResults({ cacheKey, results: tabData }));
 
       return tabData;
-    } catch (error) {
+    } catch (error: any) {
+      // Handle abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      
       dispatch(setError(error as Error));
       throw error;
     } finally {
       dispatch(setLoading(false));
+      dispatch(setAbortController(null));
     }
   };
 };

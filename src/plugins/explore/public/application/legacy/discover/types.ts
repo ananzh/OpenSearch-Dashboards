@@ -24,7 +24,6 @@ import { DataPublicPluginSetup, DataPublicPluginStart } from '../../../../../dat
 import { SavedObjectLoader } from '../../../../../saved_objects/public';
 import { DocViewInput, DocViewInputFn } from './application/doc_views/doc_views_types';
 import { DocViewLink } from './application/doc_views_links/doc_views_links_types';
-import { DataExplorerPluginSetup } from '../data_explorer';
 import { UsageCollectionSetup } from '../../../../../usage_collection/public';
 
 /**
@@ -78,7 +77,6 @@ export interface DiscoverSetupPlugins {
   home?: HomePublicPluginSetup;
   visualizations: VisualizationsSetup;
   data: DataPublicPluginSetup;
-  dataExplorer: DataExplorerPluginSetup;
   usageCollection: UsageCollectionSetup;
 }
 
