@@ -22,8 +22,12 @@ import {
   createOsdUrlStateStorage,
   withNotifyOnErrors,
 } from '../../../opensearch_dashboards_utils/public';
-import { ExploreCanvas } from './components/explore_canvas';
-import DiscoverPanel from './legacy/discover/application/view_components/panel';
+import { TopNav } from './legacy/discover/application/view_components/canvas/top_nav';
+import { QueryPanel } from './components/query_panel';
+import { TabBar } from './components/tab_bar';
+import { TabContent } from './components/tab_content';
+import { DiscoverChartContainer } from './legacy/discover/application/view_components/canvas/discover_chart_container';
+import { SidebarWrapper } from './components/sidebar_wrapper';
 
 /**
  * Services interface for the Explore plugin
@@ -43,6 +47,10 @@ export interface ExploreServices {
 const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
   const { core, plugins, osdUrlStateStorage } = services;
 
+  // Create refs for dataset selector and date picker
+  const datasetSelectorRef = React.useRef<HTMLDivElement>(null);
+  const datePickerRef = React.useRef<HTMLDivElement>(null);
+
   // Sync query state with URL
   useEffect(() => {
     if (osdUrlStateStorage && plugins.data) {
@@ -52,15 +60,58 @@ const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
     }
   }, [osdUrlStateStorage, plugins.data]);
 
+  // Create TopNav props structure
+  const topNavProps = {
+    opts: {
+      setHeaderActionMenu: () => {}, // placeholder
+      onQuerySubmit: ({ dateRange, query }: any) => {
+        // Handle query submission
+        console.log('Query submitted:', { dateRange, query });
+      },
+      optionalRef: {
+        datasetSelectorRef,
+        datePickerRef,
+      },
+    },
+    showSaveQuery: true,
+    isEnhancementsEnabled: true,
+  };
+
   return (
-    <EuiPage className="dscPage">
-      <EuiPageSideBar className="dscPageSidebar">
-        <DiscoverPanel />
-      </EuiPageSideBar>
-      <EuiPageBody className="dscPageContent">
-        <ExploreCanvas />
-      </EuiPageBody>
-    </EuiPage>
+    <div className="exploreApp">
+      {/* Top Navigation with Dataset Selector */}
+      <TopNav {...topNavProps} />
+
+      {/* Query Panel with Date Picker */}
+      <div className="exploreQueryPanel">
+        <QueryPanel datePickerRef={datePickerRef} />
+      </div>
+
+      <div className="exploreContent">
+        {/* Histogram (using legacy component directly) */}
+        <div className="exploreChartContainer">
+          <DiscoverChartContainer />
+        </div>
+
+        <div className="exploreMainContent">
+          {/* Left Side Panel */}
+          <div className="exploreSidebar">
+            <SidebarWrapper />
+          </div>
+
+          {/* Right Content Area */}
+          <div className="exploreRightContent">
+            {/* Tab Bar */}
+            <TabBar />
+
+            {/* Tab Content */}
+            <div className="exploreTabContent">
+              <TabContent />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

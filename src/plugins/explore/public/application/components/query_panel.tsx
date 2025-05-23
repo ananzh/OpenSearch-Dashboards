@@ -7,8 +7,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiButton, EuiSpacer, EuiText } from '@elastic/eui';
 import { monaco } from '@osd/monaco';
-// Import from core plugins using the proper import paths
-import { useOpenSearchDashboards } from 'src/plugins/opensearch_dashboards_react/public';
 import { DefaultInput } from 'src/plugins/data/public';
 import { setQueryString, setLanguage } from '../state_management/slices/query_slice';
 import {
@@ -24,15 +22,19 @@ import {
 } from '../state_management/selectors';
 import { ResultStatus, QueryStatus } from '../state_management/types';
 
+export interface QueryPanelProps {
+  datePickerRef?: React.RefObject<HTMLDivElement>;
+}
+
 /**
  * Custom query panel component for the Explore plugin
- * Uses Redux for state management instead of queryStringManager
+ * Uses Redux for state management and supports datePickerRef for external date picker
  */
-export const QueryPanel: React.FC = () => {
+export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
   const dispatch = useDispatch();
 
-  // Get services from context
-  const { services } = useOpenSearchDashboards();
+  // Get services from Redux store
+  const services = useSelector((state: any) => state.services);
 
   // Use selectors to get state from Redux
   const queryString = useSelector(selectQueryString);
@@ -94,7 +96,6 @@ export const QueryPanel: React.FC = () => {
       editorRef.current = editor;
 
       // Add command to execute query on Ctrl+Enter
-      // Use addition instead of bitwise OR to avoid lint error
       const modifierKey = monaco.KeyMod.CtrlCmd;
       const enterKey = monaco.KeyCode.Enter;
       const keyCombo = modifierKey + enterKey;
@@ -106,7 +107,7 @@ export const QueryPanel: React.FC = () => {
     [handleRunQuery]
   );
 
-  // Dummy completion provider - in a real implementation, this would use the autocomplete service
+  // Real autocomplete implementation using the data plugin's autocomplete service
   const provideCompletionItems = useCallback(
     async (
       model: monaco.editor.ITextModel,
@@ -114,9 +115,59 @@ export const QueryPanel: React.FC = () => {
       context: monaco.languages.CompletionContext,
       token: monaco.CancellationToken
     ): Promise<monaco.languages.CompletionList> => {
-      return { suggestions: [], incomplete: false };
+      if (token.isCancellationRequested) {
+        return { suggestions: [], incomplete: false };
+      }
+
+      try {
+        // Get current dataset/index pattern
+        const dataset = services?.data?.query?.queryString?.getQuery()?.dataset;
+        const indexPattern = dataset ? await services.indexPatterns?.get(dataset.id) : undefined;
+
+        // Use the autocomplete service
+        const suggestions = await services?.data?.autocomplete?.getQuerySuggestions({
+          query: editorRef.current?.getValue() ?? '',
+          selectionStart: model.getOffsetAt(position),
+          selectionEnd: model.getOffsetAt(position),
+          language: queryLanguage,
+          indexPattern,
+          datasetType: dataset?.type,
+          position,
+          services,
+        });
+
+        // Transform suggestions to Monaco format
+        const wordUntil = model.getWordUntilPosition(position);
+        const defaultRange = new monaco.Range(
+          position.lineNumber,
+          wordUntil.startColumn,
+          position.lineNumber,
+          wordUntil.endColumn
+        );
+
+        return {
+          suggestions: suggestions
+            ? suggestions
+                .filter((s: any) => 'detail' in s)
+                .map((s: any) => ({
+                  label: s.text,
+                  kind: s.type as monaco.languages.CompletionItemKind,
+                  insertText: s.insertText ?? s.text,
+                  insertTextRules: s.insertTextRules ?? undefined,
+                  range: s.replacePosition ?? defaultRange,
+                  detail: s.detail,
+                  command: { id: 'editor.action.triggerSuggest', title: 'Trigger Next Suggestion' },
+                  sortText: s.sortText ?? s.text,
+                }))
+            : [],
+          incomplete: false,
+        };
+      } catch (error) {
+        console.error('Error getting autocomplete suggestions:', error);
+        return { suggestions: [], incomplete: false };
+      }
     },
-    []
+    [services, queryLanguage]
   );
 
   // Create query status object for progress indicator
@@ -126,14 +177,12 @@ export const QueryPanel: React.FC = () => {
     startTime: Date.now(),
   };
 
-  // For now, we'll use a placeholder for the language selector
-  // In a real implementation, we would get this from the data plugin
+  // Language selector
   const renderLanguageSelector = () => (
     <EuiButton
       size="s"
       onClick={() => {
-        // In a real implementation, this would show a dropdown
-        // For now, we'll just toggle between ppl and lucene
+        // Toggle between ppl and lucene for demo
         const newLanguage = queryLanguage === 'ppl' ? 'lucene' : 'ppl';
         handleLanguageChange(newLanguage);
       }}
@@ -161,7 +210,10 @@ export const QueryPanel: React.FC = () => {
                   {queryLanguage.toUpperCase()}
                 </EuiText>,
               ],
-              end: [],
+              end: [
+                // Date picker will be rendered here via datePickerRef
+                datePickerRef && <div ref={datePickerRef} key="datePicker" />,
+              ].filter(Boolean),
             }}
           />
         </EuiFlexItem>

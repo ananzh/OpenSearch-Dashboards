@@ -14,7 +14,8 @@ export interface QueryState {
 const initialState: QueryState = {
   query: {
     query: '',
-    language: '', // Will be set by the language selector based on app configuration
+    language: 'ppl', // Default to PPL as mentioned in requirements
+    dataset: undefined, // Store dataset here
   },
 };
 
@@ -39,7 +40,7 @@ const querySlice = createSlice({
       // Use the language from the action payload
       state.query.language = action.payload;
     },
-    setDataset: (state, action: PayloadAction<Dataset>) => {
+    setDataset: (state, action: PayloadAction<Dataset | undefined>) => {
       state.query.dataset = action.payload;
       // Language will be managed by the language selector
     },

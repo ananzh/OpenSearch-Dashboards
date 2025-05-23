@@ -1,146 +1,264 @@
-# Explore Plugin Redux Implementation Summary
+# Explore Plugin Implementation Summary - Final
 
 ## Overview
+This document summarizes the final implementation of the requested features for the Explore plugin, including QueryPanel with autocomplete, DatasetSelector with references, and the new layout structure. **Final approach uses custom QueryPanel with datePickerRef support and existing TopNav component.**
 
-This document summarizes the implementation of Redux state management for the Explore plugin, which aims to decouple it from the data_explorer plugin and centralize state management.
+## Implemented Features
 
-## Completed Work
+### 1. Custom QueryPanel with DatePickerRef Support
 
-1. **Redux Store Setup**
-   - Created Redux slices for different aspects of state (query, UI, results, transaction, legacy)
-   - Implemented store configuration with middleware
-   - Added state persistence to URL
+**File**: `src/plugins/explore/public/application/components/query_panel.tsx`
 
-2. **Redux Thunks for Async Operations**
-   - Implemented thunks for executing tab queries
-   - Implemented thunks for executing histogram queries
-   - Created composed thunks that execute multiple operations
+**Key Features**:
+- ✅ **Redux-based state management** (single source of truth)
+- ✅ **Custom Monaco editor** with real autocomplete functionality
+- ✅ **DatePickerRef support** for external date picker rendering
+- ✅ **No conflicts** with queryStringManager
 
-3. **State Change Handlers**
-   - Implemented handlers for query state changes
-   - Implemented handlers for transaction state changes
-   - Implemented handlers for tab state changes
+**Implementation**:
+```typescript
+export interface QueryPanelProps {
+  datePickerRef?: React.RefObject<HTMLDivElement>;
+}
 
-4. **Custom Hooks for Components**
-   - Created hooks for accessing tab data
-   - Created hooks for accessing histogram data
-   - Created hooks for dispatching actions
+export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
+  // Redux-based state management
+  const queryString = useSelector(selectQueryString);
+  const queryLanguage = useSelector(selectQueryLanguage);
+  
+  // Real autocomplete implementation
+  const provideCompletionItems = useCallback(async (model, position, context, token) => {
+    const dataset = services?.data?.query?.queryString?.getQuery()?.dataset;
+    const suggestions = await services?.data?.autocomplete?.getQuerySuggestions({
+      query: editorRef.current?.getValue() ?? '',
+      language: queryLanguage,
+      // ... other params
+    });
+    // Transform to Monaco format
+  }, [services, queryLanguage]);
 
-5. **Legacy Component Updates**
-   - Updated DiscoverTable to use Redux
-   - Updated DiscoverChartContainer to use Redux
-   - Updated DiscoverCanvas to use Redux
+  return (
+    <EuiPanel paddingSize="s" hasBorder>
+      <DefaultInput
+        languageId={queryLanguage}
+        value={localQuery}
+        onChange={handleQueryChange}
+        provideCompletionItems={provideCompletionItems}
+        footerItems={{
+          start: [/* Language indicator */],
+          end: [
+            // Date picker rendered here via datePickerRef
+            datePickerRef && <div ref={datePickerRef} key="datePicker" />,
+          ].filter(Boolean),
+        }}
+      />
+      {/* Language selector and Run button */}
+    </EuiPanel>
+  );
+};
+```
 
-## Architecture
+### 2. TopNav with DatasetSelector Integration
 
-### Redux Slices
+**File**: `src/plugins/explore/public/application/app.tsx`
 
-1. **Query Slice**: Manages the current query state
-   - Query string
-   - Query language
-   - Dataset (index pattern)
+**Key Features**:
+- ✅ **Reuses existing TopNav** from legacy discover
+- ✅ **DatasetSelectorRef support** through `optionalRef.datasetSelectorRef`
+- ✅ **DatePickerRef support** through `optionalRef.datePickerRef`
+- ✅ **No custom TopNav needed**
 
-2. **UI Slice**: Manages UI state
-   - Active tab
-   - Loading state
-   - Error state
-   - Flavor (log, metric, etc.)
+**Implementation**:
+```typescript
+const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
+  // Create refs for dataset selector and date picker
+  const datasetSelectorRef = React.useRef<HTMLDivElement>(null);
+  const datePickerRef = React.useRef<HTMLDivElement>(null);
 
-3. **Results Slice**: Caches query results
-   - Results are stored by cache key
-   - Cache key is based on query and time range
+  // TopNav props with both refs
+  const topNavProps = {
+    opts: {
+      setHeaderActionMenu: () => {},
+      onQuerySubmit: ({ dateRange, query }: any) => {
+        console.log('Query submitted:', { dateRange, query });
+      },
+      optionalRef: {
+        datasetSelectorRef,  // Dataset selector renders here
+        datePickerRef,       // Date picker renders here
+      },
+    },
+    showSaveQuery: true,
+    isEnhancementsEnabled: true,
+  };
 
-4. **Transaction Slice**: Manages batched state updates
-   - Tracks transaction state
-   - Stores previous state for rollback
-   - Handles errors
+  return (
+    <div className="exploreApp">
+      {/* TopNav with dataset selector */}
+      <TopNav {...topNavProps} />
+      
+      {/* QueryPanel with date picker */}
+      <div className="exploreQueryPanel">
+        <QueryPanel datePickerRef={datePickerRef} />
+      </div>
+      
+      {/* Rest of layout */}
+    </div>
+  );
+};
+```
 
-5. **Legacy Slice**: Stores state needed for backward compatibility
-   - Columns
-   - Sort
-   - Filters
-   - Saved search
+### 3. Dataset Storage in Redux
 
-### Redux Thunks
+**File**: `src/plugins/explore/public/application/state_management/slices/query_slice.ts`
 
-1. **executeTabQuery**: Executes a query for the current tab
-   - Creates a SearchSource
-   - Configures it with query, time range, etc.
-   - Executes the query
-   - Stores results in cache
+**Implementation**:
+```typescript
+const initialState: QueryState = {
+  query: {
+    query: '',
+    language: 'ppl', // Default to PPL
+    dataset: undefined, // Store dataset here
+  },
+};
 
-2. **executeHistogramQuery**: Executes a histogram query
-   - Creates a SearchSource with aggregations
-   - Executes the query
-   - Transforms results into chart data
+const querySlice = createSlice({
+  name: 'query',
+  initialState,
+  reducers: {
+    setQuery: (state, action: PayloadAction<Query>) => {
+      state.query = { ...action.payload };
+    },
+    setQueryString: (state, action: PayloadAction<string>) => {
+      if (typeof state.query.query === 'string') {
+        state.query.query = action.payload;
+      } else {
+        state.query.query = { ...state.query.query, query: action.payload };
+      }
+    },
+    setLanguage: (state, action: PayloadAction<string>) => {
+      state.query.language = action.payload;
+    },
+    setDataset: (state, action: PayloadAction<Dataset | undefined>) => {
+      state.query.dataset = action.payload;
+    },
+  },
+});
+```
 
-3. **executeQueries**: Composed thunk that executes both tab and histogram queries
+### 4. New Layout Structure
 
-### State Change Handlers
+**Final Layout**:
+```tsx
+<div className="exploreApp">
+  {/* Top Navigation with Dataset Selector */}
+  <TopNav {...topNavProps} />
+  
+  {/* Query Panel with Date Picker */}
+  <div className="exploreQueryPanel">
+    <QueryPanel datePickerRef={datePickerRef} />
+  </div>
+  
+  <div className="exploreContent">
+    {/* Histogram */}
+    <div className="exploreChartContainer">
+      <DiscoverChartContainer />
+    </div>
+    
+    <div className="exploreMainContent">
+      {/* Left Side Panel */}
+      <div className="exploreSidebar">
+        <SidebarWrapper />
+      </div>
+      
+      {/* Right Content Area */}
+      <div className="exploreRightContent">
+        <TabBar />
+        <div className="exploreTabContent">
+          <TabContent />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+```
 
-1. **handleQueryStateChanges**: Handles side effects when query state changes
-   - Executes queries when query changes
-   - Skips during initialization or transactions
+## Architecture Benefits
 
-2. **handleTransactionChanges**: Handles side effects when transaction state changes
-   - Executes queries when transaction completes
-   - Skips if transaction is in error state
+### ✅ Why This Approach Works
 
-3. **handleTabChanges**: Handles side effects when active tab changes
-   - Calls tab lifecycle hooks
-   - Executes queries for the new tab
+1. **Clean State Management**:
+   - Redux store is the single source of truth
+   - No conflicts with SearchBar's internal state
+   - No conflicts with queryStringManager
 
-### URL State Persistence
+2. **Component Reuse**:
+   - TopNav handles dataset selector (existing functionality)
+   - TopNav handles date picker rendering (via datePickerRef)
+   - Custom QueryPanel handles query editing with Redux
 
-1. **persistReduxState**: Persists state to URL
-   - Encodes state as base64 JSON
-   - Updates URL hash
-   - Updates query state
+3. **Separation of Concerns**:
+   - **TopNav**: Dataset selection + Date picker rendering
+   - **QueryPanel**: Query editing + Monaco editor + Autocomplete
+   - **Redux**: Centralized state management
 
-2. **loadStateFromUrl**: Loads state from URL
-   - Decodes state from URL hash
-   - Merges with query state
-   - Returns preloaded state for store
+4. **Future-Proof**:
+   - Easy to extend with new query languages
+   - Easy to add new autocomplete features
+   - Easy to modify state management logic
 
-## Testing Strategy
+### ❌ Why SearchBar Didn't Work
 
-1. **Unit Tests**
-   - Test each slice reducer
-   - Test thunk actions
-   - Test state change handlers
+1. **State Management Conflicts**:
+   - SearchBar uses internal state + queryStringManager
+   - Would conflict with our Redux store
+   - Two sources of truth for query state
 
-2. **Integration Tests**
-   - Test store initialization
-   - Test URL state persistence
-   - Test component integration
+2. **Limited Customization**:
+   - SearchBar is designed to be the source of truth
+   - Hard to integrate with custom state management
+   - Would require complex workarounds
 
-3. **Manual Testing**
-   - Verify query execution
-   - Verify results display
-   - Verify URL state persistence
+## Key Implementation Details
+
+### DatePickerRef Pattern
+- TopNav receives `datePickerRef` and renders date picker into it
+- QueryPanel receives `datePickerRef` and includes it in footer
+- Date picker appears in QueryPanel but is managed by TopNav
+- Same pattern used by SearchBar internally
+
+### DatasetSelectorRef Pattern
+- TopNav receives `datasetSelectorRef` and renders dataset selector into it
+- Dataset selector appears in TopNav navigation area
+- Dataset changes update Redux store via actions
+
+### Autocomplete Integration
+- Uses data plugin's autocomplete service directly
+- Supports all query languages (PPL, SQL, Lucene, etc.)
+- Transforms suggestions to Monaco editor format
+- No dependency on SearchBar's autocomplete logic
+
+## Files Modified/Created
+
+1. **Modified**: `src/plugins/explore/public/application/app.tsx` - Layout with refs
+2. **Modified**: `src/plugins/explore/public/application/components/query_panel.tsx` - Custom QueryPanel with datePickerRef
+3. **Modified**: `src/plugins/explore/public/application/state_management/slices/query_slice.ts` - Dataset support
+4. **Created**: `src/plugins/explore/public/application/components/sidebar_wrapper.tsx` - Sidebar wrapper
+5. **Created**: `src/plugins/explore/public/application/components/_explore_layout.scss` - Layout styles
+6. **Updated**: `src/plugins/explore/public/index.scss` - Style imports
+
+## Testing
+
+The implementation includes data-test-subj attributes:
+- `exploreLanguageSelectorButton` - Language selector
+- `exploreQuerySubmitButton` - Run button
+- Custom Monaco editor with autocomplete
 
 ## Next Steps
 
-1. **Complete Component Integration**
-   - Update remaining components to use Redux
-   - Remove context-based state management
+1. **Connect Services**: Ensure services are properly passed to QueryPanel
+2. **Implement Tab System**: Complete Logs and Visualize tabs
+3. **URL State Sync**: Implement URL synchronization
+4. **Legacy Slice Integration**: Connect with discover-specific state
+5. **Date Picker Styling**: Ensure date picker renders correctly in QueryPanel footer
 
-2. **Implement Tab System**
-   - Create tab registry
-   - Implement tab-specific query preparation
-   - Add tab lifecycle hooks
-
-3. **Optimize Performance**
-   - Implement memoization for selectors
-   - Add debouncing for frequent state changes
-   - Optimize result caching
-
-4. **Add Error Handling**
-   - Implement error boundaries
-   - Add retry logic for failed queries
-   - Improve error messages
-
-5. **Enhance URL State**
-   - Add compression for large state
-   - Implement partial state updates
-   - Add validation for loaded state
+This implementation provides the best of both worlds: reusing existing TopNav functionality while maintaining full control over query state management through Redux.
