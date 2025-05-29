@@ -6,17 +6,17 @@
 import React, { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { EuiTabs, EuiTab } from '@elastic/eui';
-import { setActiveTab } from '../state_management/slices/ui_slice';
+import { setActiveTab } from '../utils/state_management/slices/ui_slice';
 import {
   beginTransaction,
   finishTransaction,
-} from '../state_management/actions/transaction_actions';
+} from '../utils/state_management/actions/transaction_actions';
 import {
   selectActiveTabId,
   selectAllTabs,
   selectTabsForLanguage,
   selectQueryLanguage,
-} from '../state_management/selectors';
+} from '../utils/state_management/selectors';
 import { TabDefinition } from '../../services/tab_registry/tab_registry_service';
 
 /**

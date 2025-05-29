@@ -44,16 +44,16 @@ import {
   getServices,
   setDocViewsLinksRegistry,
   setDocViewsRegistry,
-  setServices,
+  setServices as setLegacyServices,
   setUiActions,
 } from './application/legacy/discover/opensearch_dashboards_services';
 import { generateDocViewsUrl } from './application/legacy/discover/application/components/doc_views/generate_doc_views_url';
 import { isNavGroupInFeatureConfigs } from '../../../core/public';
 import { TabRegistryService } from './services/tab_registry/tab_registry_service';
 import { setUsageCollector } from './services/usage_collector';
-
-// Import our new renderApp function
-import { renderApp } from './application/app';
+import { createSavedExploreLoader } from './saved_explore';
+import { getPreloadedStore } from './application/utils/state_management/store';
+import { buildServices } from './build_services';
 
 export class ExplorePlugin
   implements
@@ -115,21 +115,19 @@ export class ExplorePlugin
         defaultMessage: 'View surrounding documents',
       }),
       generateCb: (renderProps: any) => {
-        const globalFilters: any = getServices().filterManager.getGlobalFilters();
-        const appFilters: any = getServices().filterManager.getAppFilters();
         const queryString = getServices().data.query.queryString;
         const showDocLinks =
           queryString.getLanguageService().getLanguage(queryString.getQuery().language)
             ?.showDocLinks ?? undefined;
 
+        // Note: Explore uses Redux for filter management, not filterManager
+        // So we don't include filter state in URLs for context links
         const hash = stringify(
           url.encodeQuery({
-            _g: rison.encode({
-              filters: globalFilters || [],
-            }),
+            _g: rison.encode({}), // No global filters (explore uses Redux)
             _a: rison.encode({
               columns: renderProps.columns,
-              filters: (appFilters || []).map(opensearchFilters.disableFilter),
+              // No filters since explore uses Redux store instead of filterManager
             }),
           }),
           { encode: false, sort: false }
@@ -181,17 +179,10 @@ export class ExplorePlugin
         {
           osdUrlKey: '_g',
           stateUpdate$: setupDeps.data.query.state$.pipe(
-            filter(
-              (value: any) =>
-                !!(
-                  value.changes.globalFilters ||
-                  value.changes.time ||
-                  value.changes.refreshInterval
-                )
-            ),
+            filter((value: any) => !!(value.changes.time || value.changes.refreshInterval)),
             map((value: any) => ({
               ...value.state,
-              filters: value.state.filters?.filter(opensearchFilters.isFilterPinned),
+              // Note: We don't use data plugin's filterManager, filters are managed in Redux
             }))
           ),
         },
@@ -211,10 +202,16 @@ export class ExplorePlugin
       order: 1000,
       workspaceAvailability: WorkspaceAvailability.insideWorkspace,
       euiIconType: 'inputOutput',
-      defaultPath: `${LOGS_VIEW_ID}#/`,
+      defaultPath: '#/',
       category: DEFAULT_APP_CATEGORIES.opensearchDashboards,
       mount: async (params: AppMountParameters) => {
-        const [coreStart, pluginsStart] = await core.getStartServices();
+        if (!this.initializeServices) {
+          throw Error('Explore plugin method initializeServices is undefined');
+        }
+
+        // Get start services
+        const { core: coreStart, plugins: pluginsStart } = await this.initializeServices();
+
         const features = await core.workspaces.currentWorkspace$
           .pipe(take(1))
           .toPromise()
@@ -234,13 +231,41 @@ export class ExplorePlugin
         // make sure the index pattern list is up to date
         pluginsStart.data.indexPatterns.clearCache();
 
-        // Call our new renderApp function
-        const unmount = await renderApp(coreStart, pluginsStart, params);
+        // Check if this is a context or doc route (following discover pattern)
+        const path = window.location.hash;
+        if (path.startsWith('#/context') || path.startsWith('#/doc')) {
+          const { renderDocView } = await import(
+            './application/legacy/discover/application/components/doc_views'
+          );
+          const unmount = renderDocView(params.element);
+          return () => {
+            unmount();
+          };
+        }
+
+        // For main explore routes, load the full application
+        const { renderApp } = await import('./application');
+
+        // Build services using the buildServices function
+        const services = buildServices(
+          coreStart,
+          pluginsStart,
+          this.initializerContext,
+          this.tabRegistry
+        );
+
+        // Instantiate the store
+        const { store, unsubscribe: unsubscribeStore } = await getPreloadedStore(services);
+
         appMounted();
+
+        // Call renderApp with params, services, and store
+        const unmount = renderApp(params, services, store);
 
         return () => {
           appUnMounted();
           unmount();
+          unsubscribeStore();
         };
       },
     });
@@ -299,23 +324,8 @@ export class ExplorePlugin
       if (this.servicesInitialized) {
         return { core, plugins };
       }
-      const services = {
-        core,
-        plugins,
-        data: plugins.data,
-        uiActions: plugins.uiActions,
-        storage: core.savedObjects,
-        http: core.http,
-        notifications: core.notifications,
-        overlays: core.overlays,
-        chrome: core.chrome,
-        application: core.application,
-        uiSettings: core.uiSettings,
-        savedObjects: core.savedObjects,
-        docLinks: core.docLinks,
-        i18n: core.i18n,
-      };
-      setServices(services);
+      const services = buildServices(core, plugins, this.initializerContext, this.tabRegistry);
+      setLegacyServices(services);
       this.servicesInitialized = true;
 
       return { core, plugins };
@@ -323,15 +333,18 @@ export class ExplorePlugin
 
     this.initializeServices();
 
+    const savedExploreLoader = createSavedExploreLoader({
+      savedObjectsClient: core.savedObjects.client,
+      indexPatterns: plugins.data.indexPatterns,
+      search: plugins.data.search,
+      chrome: core.chrome,
+      overlays: core.overlays,
+    });
+
     return {
       urlGenerator: this.urlGenerator,
-      savedExploreLoader: createSavedExploreLoader({
-        savedObjectsClient: core.savedObjects.client,
-        indexPatterns: plugins.data.indexPatterns,
-        search: plugins.data.search,
-        chrome: core.chrome,
-        overlays: core.overlays,
-      }),
+      savedSearchLoader: savedExploreLoader, // For backward compatibility
+      savedExploreLoader,
     };
   }
 

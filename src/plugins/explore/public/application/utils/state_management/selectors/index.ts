@@ -6,7 +6,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../store';
 import { createCacheKey } from '../handlers/query_handler';
-import { TabDefinition } from '../../../services/tab_registry/tab_registry_service';
+import { TabDefinition } from '../../../../services/tab_registry/tab_registry_service';
 
 /**
  * Basic selectors
@@ -16,7 +16,7 @@ const selectUIState = (state: RootState) => state.ui;
 const selectResultsState = (state: RootState) => state.results;
 const selectServicesState = (state: RootState) => state.services;
 const selectLegacyState = (state: RootState) => state.legacy;
-const selectTransactionState = (state: RootState) => state.transaction;
+const selectTransactionState = (state: RootState) => state.ui.transaction;
 
 /**
  * Query selectors
@@ -125,10 +125,8 @@ export const selectIsTransactionInProgress = createSelector(
   (transactionState) => transactionState.inProgress
 );
 
-export const selectTransactionError = createSelector(
-  [selectTransactionState],
-  (transactionState) => transactionState.error
-);
+// Transaction error is now handled in UI state
+export const selectTransactionError = createSelector([selectUIState], (uiState) => uiState.error);
 
 /**
  * Combined selectors

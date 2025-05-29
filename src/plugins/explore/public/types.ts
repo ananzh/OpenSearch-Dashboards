@@ -19,7 +19,7 @@ import { VisualizationsSetup, VisualizationsStart } from 'src/plugins/visualizat
 import { UsageCollectionSetup } from 'src/plugins/usage_collection/public';
 import { ExpressionsStart } from 'src/plugins/expressions/public';
 import { NavigationPublicPluginStart as NavigationStart } from '../../navigation/public';
-import { SavedSearchLoader } from './application/legacy/discover';
+import { SavedExploreLoader } from './saved_explore';
 
 export interface ExplorePluginSetup {
   docViews: {
@@ -32,7 +32,8 @@ export interface ExplorePluginSetup {
 
 export interface ExplorePluginStart {
   urlGenerator?: any;
-  savedSearchLoader: SavedSearchLoader;
+  savedSearchLoader: SavedExploreLoader;
+  savedExploreLoader: SavedExploreLoader;
 }
 
 /**

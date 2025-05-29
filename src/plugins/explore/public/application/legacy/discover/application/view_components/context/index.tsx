@@ -7,12 +7,12 @@ import React, { useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../../opensearch_dashboards_react/public';
-import { executeTabQuery } from '../../../../../state_management/actions/query_actions';
+import { executeTabQuery } from '../../../../../utils/state_management/actions/query_actions';
 import {
   exportToCsv,
   exportMaxSizeCsv,
-} from '../../../../../state_management/actions/export_actions';
-import * as selectors from '../../../../../state_management/selectors';
+} from '../../../../../utils/state_management/actions/export_actions';
+import * as selectors from '../../../../../utils/state_management/selectors';
 import { IndexPattern } from '../../../../../../../../data/public';
 import { getServices } from '../../../opensearch_dashboards_services';
 import { SavedSearch } from '../../../saved_searches';

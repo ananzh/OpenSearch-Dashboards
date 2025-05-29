@@ -15,7 +15,7 @@ import {
 } from '@elastic/eui';
 import { AppMountParameters, CoreStart } from 'src/core/public';
 import { ExploreStartDependencies } from '../types';
-import { getExploreStore } from './utils/state_management/store';
+import { getPreloadedStore } from './utils/state_management/store';
 import { registerTabs } from './register_tabs';
 import { syncQueryStateWithUrl } from '../../../data/public';
 import {
@@ -120,7 +120,8 @@ const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
 export const renderApp = async (
   coreStart: CoreStart,
   plugins: ExploreStartDependencies,
-  params: AppMountParameters
+  params: AppMountParameters,
+  store?: any
 ) => {
   const { element, history, setHeaderActionMenu } = params;
 
@@ -144,9 +145,17 @@ export const renderApp = async (
   services.tabRegistry = tabRegistry;
   registerTabs(services);
 
-  // Initialize store
-  const { store, unsubscribe: unsubscribeStore } = await getExploreStore(services);
-  services.store = store;
+  // Use passed store or initialize new one
+  let finalStore = store;
+  let unsubscribeStore: (() => void) | undefined;
+
+  if (!finalStore) {
+    const { store: newStore, unsubscribe } = await getPreloadedStore(services);
+    finalStore = newStore;
+    unsubscribeStore = unsubscribe;
+  }
+
+  services.store = finalStore;
 
   // Create a loading component
   const LoadingComponent = () => (
@@ -206,7 +215,9 @@ export const renderApp = async (
 
   // Return a function to clean up
   return () => {
-    unsubscribeStore();
+    if (unsubscribeStore) {
+      unsubscribeStore();
+    }
     unmount();
   };
 };

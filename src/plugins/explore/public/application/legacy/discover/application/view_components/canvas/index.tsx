@@ -11,8 +11,8 @@ import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dash
 import {
   beginTransaction,
   finishTransaction,
-} from '../../../../../state_management/actions/transaction_actions';
-import { clearResults } from '../../../../../state_management/slices/results_slice';
+} from '../../../../../utils/state_management/actions/transaction_actions';
+import { clearResults } from '../../../../../utils/state_management/slices/results_slice';
 import { LOGS_VIEW_ID } from '../../../../../../../common';
 import { TopNav } from './top_nav';
 import { DiscoverTable } from './discover_table';

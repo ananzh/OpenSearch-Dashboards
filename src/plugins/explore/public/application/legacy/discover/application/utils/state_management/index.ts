@@ -8,8 +8,8 @@ import {
   useDispatch as useReduxDispatch,
   useSelector as useReduxSelector,
 } from 'react-redux';
-import { RootState } from '../../../../../state_management/store';
-import { setDataset } from '../../../../../state_management/slices/query_slice';
+import { RootState } from '../../../../../utils/state_management/store';
+import { setDataset } from '../../../../../utils/state_management/slices/query_slice';
 import { DiscoverState } from './discover_slice';
 
 export * from './discover_slice';

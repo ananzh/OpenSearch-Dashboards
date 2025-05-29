@@ -14,6 +14,10 @@ export interface UIState {
   queryPanel: {
     promptQuery: string;
   };
+  transaction: {
+    inProgress: boolean;
+    pendingActions: string[];
+  };
 }
 
 const initialState: UIState = {
@@ -24,6 +28,10 @@ const initialState: UIState = {
   abortController: null,
   queryPanel: {
     promptQuery: '',
+  },
+  transaction: {
+    inProgress: false,
+    pendingActions: [],
   },
 };
 
@@ -49,6 +57,20 @@ const uiSlice = createSlice({
     setAbortController: (state, action: PayloadAction<AbortController | null>) => {
       state.abortController = action.payload;
     },
+    // Transaction actions
+    startTransaction: (state, action: PayloadAction<{ previousState: any }>) => {
+      state.transaction.inProgress = true;
+      state.transaction.pendingActions = [];
+    },
+    commitTransaction: (state) => {
+      state.transaction.inProgress = false;
+      state.transaction.pendingActions = [];
+    },
+    rollbackTransaction: (state, action: PayloadAction<Error>) => {
+      state.transaction.inProgress = false;
+      state.transaction.pendingActions = [];
+      state.error = action.payload;
+    },
   },
 });
 
@@ -59,5 +81,8 @@ export const {
   setError,
   setPromptQuery,
   setAbortController,
+  startTransaction,
+  commitTransaction,
+  rollbackTransaction,
 } = uiSlice.actions;
 export const uiReducer = uiSlice.reducer;

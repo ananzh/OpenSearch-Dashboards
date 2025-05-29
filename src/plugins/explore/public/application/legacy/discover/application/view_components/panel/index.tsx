@@ -16,13 +16,13 @@ import {
   removeColumn,
   moveColumn,
   setColumns,
-} from '../../../../../state_management/slices/legacy_slice';
+} from '../../../../../utils/state_management/slices/legacy_slice';
 import {
   selectColumns,
   selectFieldCounts,
   selectRows,
   selectIndexPattern,
-} from '../../../../../state_management/selectors';
+} from '../../../../../utils/state_management/selectors';
 import { DiscoverSidebar } from '../../components/sidebar';
 import { DiscoverViewServices } from '../../../build_services';
 import { popularizeField } from '../../helpers/popularize_field';

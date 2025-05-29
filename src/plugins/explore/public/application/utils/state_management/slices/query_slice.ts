@@ -4,7 +4,7 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Query, Dataset } from '../../../../../data/common';
+import { Query, Dataset } from '../../../../../../data/common';
 
 export interface QueryState {
   query: Query;

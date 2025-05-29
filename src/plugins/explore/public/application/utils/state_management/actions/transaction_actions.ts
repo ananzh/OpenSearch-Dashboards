@@ -4,11 +4,9 @@
  */
 
 import { Dispatch } from 'redux';
-import {
-  startTransaction,
-  commitTransaction,
-  rollbackTransaction,
-} from '../slices/transaction_slice';
+// Transaction actions now handled in UI slice
+// We'll create simple action creators for transaction management
+import { startTransaction, commitTransaction, rollbackTransaction } from '../slices/ui_slice';
 import { executeTabQuery } from './query_actions';
 import { COMMIT_STATE_TRANSACTION, RESTORE_STATE } from '../handlers/transaction_handler';
 
@@ -34,7 +32,7 @@ export const finishTransaction = () => (dispatch: Dispatch, getState: any) => {
   const state = getState();
 
   // Validate transaction state
-  if (!state.transaction.inProgress) {
+  if (!state.ui.transaction.inProgress) {
     // Attempting to commit when no transaction is in progress
     return;
   }

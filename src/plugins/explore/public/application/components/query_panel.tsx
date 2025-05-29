@@ -8,19 +8,19 @@ import { useDispatch, useSelector } from 'react-redux';
 import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiButton, EuiSpacer, EuiText } from '@elastic/eui';
 import { monaco } from '@osd/monaco';
 import { DefaultInput } from '../../../../data/public';
-import { setQueryString, setLanguage } from '../state_management/slices/query_slice';
+import { setQueryString, setLanguage } from '../utils/state_management/slices/query_slice';
 import {
   beginTransaction,
   finishTransaction,
-} from '../state_management/actions/transaction_actions';
-import { clearResults } from '../state_management/slices/results_slice';
+} from '../utils/state_management/actions/transaction_actions';
+import { clearResults } from '../utils/state_management/slices/results_slice';
 import {
   selectQueryString,
   selectQueryLanguage,
   selectIsLoading,
   selectError,
-} from '../state_management/selectors';
-import { ResultStatus, QueryStatus } from '../state_management/types';
+} from '../utils/state_management/selectors';
+import { ResultStatus, QueryStatus } from '../utils/state_management/types';
 
 export interface QueryPanelProps {
   datePickerRef?: React.RefObject<HTMLDivElement>;

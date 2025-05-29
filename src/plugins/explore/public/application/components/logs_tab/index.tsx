@@ -27,8 +27,6 @@ export const LogsTab: React.FC<TabComponentProps> = ({
   cacheKey,
 }) => {
   // Get data from Redux store
-  const columns = useSelector(selectColumns);
-  const sort = useSelector(selectSort);
   const savedSearch = useSelector(selectSavedSearch);
   const services = useSelector((state: any) => state.services);
 

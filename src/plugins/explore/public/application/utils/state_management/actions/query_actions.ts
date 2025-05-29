@@ -5,7 +5,7 @@
 
 import { Dispatch } from 'redux';
 import { i18n } from '@osd/i18n';
-import { RequestAdapter } from '../../../../../inspector/public';
+import { RequestAdapter } from '../../../../../../inspector/public';
 import { setLoading, setError, setAbortController } from '../slices/ui_slice';
 import { setResults, clearResults } from '../slices/results_slice';
 import { createCacheKey } from '../handlers/query_handler';
