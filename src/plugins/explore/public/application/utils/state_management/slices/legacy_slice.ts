@@ -32,8 +32,8 @@ export interface LegacyState {
   // Row count configuration
   rowCount: number;
 
-  // Saved query ID
-  savedQueryId: string | null;
+  // Saved query ID (legacy discover format)
+  savedQuery?: string;
 }
 
 const initialState: LegacyState = {
@@ -42,7 +42,7 @@ const initialState: LegacyState = {
   sort: [],
   interval: 'auto',
   rowCount: 50,
-  savedQueryId: null,
+  savedQuery: undefined,
 };
 
 const legacySlice = createSlice({
@@ -83,8 +83,8 @@ const legacySlice = createSlice({
     setRowCount: (state, action: PayloadAction<number>) => {
       state.rowCount = action.payload;
     },
-    setSavedQueryId: (state, action: PayloadAction<string | null>) => {
-      state.savedQueryId = action.payload;
+    setSavedQuery: (state, action: PayloadAction<string | undefined>) => {
+      state.savedQuery = action.payload;
     },
   },
 });
@@ -98,7 +98,7 @@ export const {
   setSort,
   setInterval,
   setRowCount,
-  setSavedQueryId,
+  setSavedQuery,
 } = legacySlice.actions;
 
 export const legacyReducer = legacySlice.reducer;

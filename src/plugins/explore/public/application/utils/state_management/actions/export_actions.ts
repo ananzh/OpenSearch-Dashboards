@@ -11,12 +11,17 @@ import { createTabCacheKey } from './query_actions';
  * Redux Thunk for exporting data to CSV
  * Uses existing results from the Redux store
  */
-export const exportToCsv = (options: { fileName?: string } = {}) => {
+export const exportToCsv = (options: { fileName?: string; services?: any } = {}) => {
   return (dispatch: Dispatch, getState: () => any) => {
     const state = getState();
     const { activeTabId } = state.ui;
-    const { query } = state.query;
-    const services = state.services;
+    const query = state.query; // Now query state is flattened
+    const services = options.services; // Services now passed as parameter
+
+    if (!services) {
+      console.error('Services not provided to exportToCsv');
+      return;
+    }
 
     // Get tab definition
     const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
@@ -89,12 +94,19 @@ function generateCsv(rows: any[], indexPattern: any, columns: string[]) {
  * Redux Thunk for exporting data to CSV with a maximum size
  * Creates a new SearchSource to fetch more data than is in the cache
  */
-export const exportMaxSizeCsv = (options: { maxSize?: number; fileName?: string } = {}) => {
+export const exportMaxSizeCsv = (
+  options: { maxSize?: number; fileName?: string; services?: any } = {}
+) => {
   return async (dispatch: Dispatch, getState: () => any) => {
     const state = getState();
     const { activeTabId } = state.ui;
-    const { query } = state.query;
-    const services = state.services;
+    const query = state.query; // Now query state is flattened
+    const services = options.services; // Services now passed as parameter
+
+    if (!services) {
+      console.error('Services not provided to exportMaxSizeCsv');
+      return;
+    }
 
     // Get tab definition
     const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);

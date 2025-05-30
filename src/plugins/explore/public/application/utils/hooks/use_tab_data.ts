@@ -5,6 +5,8 @@
 
 import { useSelector } from 'react-redux';
 import { useMemo } from 'react';
+import { useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../../types';
 import { RootState } from '../state_management/store';
 import { createTabCacheKey } from '../state_management/actions/query_actions';
 
@@ -13,13 +15,18 @@ import { createTabCacheKey } from '../state_management/actions/query_actions';
  * This replaces the table data functionality from useDiscoverContext
  */
 export const useTabData = () => {
+  // Get services from context
+  const { services } = useOpenSearchDashboards<ExploreServices>();
+
   const queryState = useSelector((state: RootState) => state.query);
   const resultsState = useSelector((state: RootState) => state.results);
   const uiState = useSelector((state: RootState) => state.ui);
-  const services = useSelector((state: RootState) => state.services);
 
-  // Get current time range
-  const timeRange = services.data.query.timefilter.timefilter.getTime();
+  // Get current time range from services context
+  const timeRange = services.data?.query?.timefilter?.timefilter?.getTime() || {
+    from: 'now-15m',
+    to: 'now',
+  };
 
   // Create cache key
   const cacheKey = createTabCacheKey(queryState.query, timeRange);

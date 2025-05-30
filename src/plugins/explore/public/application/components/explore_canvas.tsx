@@ -5,7 +5,9 @@
 
 import React from 'react';
 import { EuiPanel } from '@elastic/eui';
-import { useSelector } from 'react-redux';
+import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../types';
+import { ResultStatus } from '../utils/state_management/types';
 import { TopNav } from '../legacy/discover/application/view_components/canvas/top_nav';
 import { DiscoverChartContainer } from '../legacy/discover/application/view_components/canvas/discover_chart_container';
 import { QueryPanel } from './query_panel';
@@ -17,7 +19,8 @@ export interface ExploreCanvasProps {
 }
 
 export const ExploreCanvas: React.FC<ExploreCanvasProps> = ({ setHeaderActionMenu }) => {
-  const services = useSelector((state: any) => state.services);
+  // Get services from context
+  const { services } = useOpenSearchDashboards<ExploreServices>();
   const isEnhancementsEnabled = services?.uiSettings?.get('query:enhancementsEnabled') || false;
 
   // Create TopNav props
@@ -59,7 +62,7 @@ export const ExploreCanvas: React.FC<ExploreCanvasProps> = ({ setHeaderActionMen
 
       {/* Chart container from legacy */}
       <div className="dscCanvas__chart">
-        <DiscoverChartContainer />
+        <DiscoverChartContainer rows={[]} status={ResultStatus.READY} />
       </div>
 
       {/* Tab content that renders the active tab */}

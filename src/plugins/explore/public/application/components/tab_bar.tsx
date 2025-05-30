@@ -6,17 +6,14 @@
 import React, { useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { EuiTabs, EuiTab } from '@elastic/eui';
+import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../types';
 import { setActiveTab } from '../utils/state_management/slices/ui_slice';
 import {
   beginTransaction,
   finishTransaction,
 } from '../utils/state_management/actions/transaction_actions';
-import {
-  selectActiveTabId,
-  selectAllTabs,
-  selectTabsForLanguage,
-  selectQueryLanguage,
-} from '../utils/state_management/selectors';
+import { selectActiveTabId, selectQueryLanguage } from '../utils/state_management/selectors';
 import { TabDefinition } from '../../services/tab_registry/tab_registry_service';
 
 /**
@@ -26,15 +23,22 @@ import { TabDefinition } from '../../services/tab_registry/tab_registry_service'
 export const TabBar: React.FC = () => {
   const dispatch = useDispatch();
 
-  // Use memoized selectors
+  // Get services from context
+  const { services } = useOpenSearchDashboards<ExploreServices>();
+
+  // Use Redux selectors for UI state only
   const activeTabId = useSelector(selectActiveTabId);
   const queryLanguage = useSelector(selectQueryLanguage);
 
-  // Get tabs that support the current query language
-  const tabs = useSelector(selectTabsForLanguage);
+  // Get all tabs from tabRegistry service
+  const allTabs = useMemo(() => {
+    return services.tabRegistry?.getAllTabs?.() || [];
+  }, [services.tabRegistry]);
 
-  // Get all tabs (used as fallback)
-  const allTabs = useSelector(selectAllTabs);
+  // Filter tabs that support the current query language
+  const tabs = useMemo(() => {
+    return allTabs.filter((tab: TabDefinition) => tab.supportedLanguages.includes(queryLanguage));
+  }, [allTabs, queryLanguage]);
 
   // Handle tab click with transaction pattern
   const handleTabClick = useCallback(

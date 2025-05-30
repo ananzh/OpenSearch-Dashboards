@@ -111,7 +111,7 @@ export const loadReduxState = async (services: any): Promise<any> => {
     const queryState = services.osdUrlStateStorage?.get('_q');
     const appState = services.osdUrlStateStorage?.get('_a');
 
-    if (queryState !== null || appState !== null) {
+    if (queryState != null || appState != null) {
       // Start with default state
       const defaultState = await getPreloadedState(services);
 
@@ -120,9 +120,14 @@ export const loadReduxState = async (services: any): Promise<any> => {
         ...defaultState,
         ...(queryState && { query: { ...defaultState.query, ...queryState } }),
         ...(appState && {
-          ui: { ...defaultState.ui, ...appState.ui },
-          tab: { ...defaultState.tab, ...appState.tab },
-          legacy: { ...defaultState.legacy, ...appState.legacy },
+          ui: { ...defaultState.ui, ...(appState.ui || {}) },
+          tab: { ...defaultState.tab, ...(appState.tab || {}) },
+          legacy: {
+            ...defaultState.legacy,
+            ...(appState.legacy || {}),
+            // Handle legacy Discover savedQuery at top level
+            ...(appState.savedQuery && { savedQuery: appState.savedQuery }),
+          },
         }),
       };
 
@@ -132,42 +137,36 @@ export const loadReduxState = async (services: any): Promise<any> => {
       // Check if we have a dataset in query state that needs data source info
       if (isQueryEnhancementEnabled && mergedState.query.query.dataset?.id) {
         const dataset = mergedState.query.query.dataset;
+        const indexPattern = await services.data.indexPatterns.get(dataset.id);
 
-        try {
-          const indexPattern = await services.data.indexPatterns.get(dataset.id);
+        // Handle data source reference (for PPL support)
+        if (indexPattern.dataSourceRef) {
+          const dataSource = await services.data.indexPatterns.getDataSource(
+            indexPattern.dataSourceRef.id
+          );
 
-          // Handle data source reference (for PPL support)
-          if (indexPattern.dataSourceRef) {
-            const dataSource = await services.data.indexPatterns.getDataSource(
-              indexPattern.dataSourceRef.id
-            );
+          if (dataSource) {
+            // Update dataset with data source info
+            const updatedDataset = {
+              ...dataset,
+              dataSource: {
+                id: dataSource.id,
+                title: dataSource.attributes.title,
+                type: dataSource.attributes.dataSourceEngineType || '',
+              },
+            };
 
-            if (dataSource) {
-              // Update dataset with data source info
-              const updatedDataset = {
-                ...dataset,
-                dataSource: {
-                  id: dataSource.id,
-                  title: dataSource.attributes.title,
-                  type: dataSource.attributes.dataSourceEngineType || '',
-                },
-              };
+            // Update query string manager with dataset
+            services.data.query.queryString.setQuery({ dataset: updatedDataset });
 
-              // Update query string manager with dataset
-              services.data.query.queryString.setQuery({ dataset: updatedDataset });
-
-              // Update merged state with enhanced dataset
-              mergedState.query.query = {
-                ...mergedState.query.query,
-                dataset: updatedDataset,
-              };
-            }
+            // Update merged state with enhanced dataset
+            mergedState.query.query = {
+              ...mergedState.query.query,
+              dataset: updatedDataset,
+            };
           }
-        } catch (error) {
-          console.warn('Failed to load index pattern for dataset migration:', error);
         }
       }
-
       return mergedState;
     }
   } catch (err) {
@@ -194,7 +193,6 @@ export const getPreloadedState = async (services: any): Promise<any> => {
     results: resultsState,
     tab: tabState,
     legacy: legacyState,
-    services, // Inject services for thunks
   };
 };
 
@@ -219,7 +217,6 @@ const getPreloadedUIState = async (services: any) => {
 
   return {
     activeTabId: 'logs',
-    flavor: 'log',
     isLoading: false,
     error: null,
     abortController: null,

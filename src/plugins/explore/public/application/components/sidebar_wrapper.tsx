@@ -5,12 +5,16 @@
 
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../types';
 import { DiscoverSidebar } from '../legacy/discover/application/components/sidebar/discover_sidebar';
 
 export const SidebarWrapper: React.FC = () => {
+  // Get services from context
+  const { services } = useOpenSearchDashboards<ExploreServices>();
+
   // Get data from Redux store
   const results = useSelector((state: any) => state.results);
-  const services = useSelector((state: any) => state.services);
 
   // Mock props for now - in a real implementation these would come from the Redux store
   const sidebarProps = {
@@ -35,7 +39,7 @@ export const SidebarWrapper: React.FC = () => {
     onNormalize: () => {
       // TODO: Implement normalization logic
     },
-    selectedIndexPattern: services?.indexPattern || null,
+    selectedIndexPattern: undefined, // TODO: Get from current dataset/query
     services: services || {},
     state: {
       columns: [],

@@ -6,17 +6,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Query, Dataset } from '../../../../../../data/common';
 
-export interface QueryState {
-  query: Query;
-}
+// QueryState now directly extends Query interface - no nesting
+export type QueryState = Query;
 
-// Get the default language from the language service
+// Flattened structure - no nested query object
 const initialState: QueryState = {
-  query: {
-    query: '',
-    language: 'ppl', // Default to PPL as mentioned in requirements
-    dataset: undefined, // Store dataset here
-  },
+  query: '',
+  language: 'ppl', // Default to PPL as mentioned in requirements
+  dataset: undefined, // Store dataset here
 };
 
 const querySlice = createSlice({
@@ -24,25 +21,22 @@ const querySlice = createSlice({
   initialState,
   reducers: {
     setQuery: (state, action: PayloadAction<Query>) => {
-      // Use the language from the action payload
-      state.query = {
+      // Replace entire state with new query
+      return {
         ...action.payload,
       };
     },
     setQueryString: (state, action: PayloadAction<string>) => {
-      if (typeof state.query.query === 'string') {
-        state.query.query = action.payload;
-      } else {
-        state.query.query = { ...state.query.query, query: action.payload };
-      }
+      // Update just the query string
+      state.query = action.payload;
     },
     setLanguage: (state, action: PayloadAction<string>) => {
-      // Use the language from the action payload
-      state.query.language = action.payload;
+      // Update just the language
+      state.language = action.payload;
     },
     setDataset: (state, action: PayloadAction<Dataset | undefined>) => {
-      state.query.dataset = action.payload;
-      // Language will be managed by the language selector
+      // Update just the dataset
+      state.dataset = action.payload;
     },
   },
 });

@@ -14,22 +14,24 @@ import { TabDefinition } from '../../../../services/tab_registry/tab_registry_se
 const selectQueryState = (state: RootState) => state.query;
 const selectUIState = (state: RootState) => state.ui;
 const selectResultsState = (state: RootState) => state.results;
-const selectServicesState = (state: RootState) => state.services;
 const selectLegacyState = (state: RootState) => state.legacy;
 const selectTransactionState = (state: RootState) => state.ui.transaction;
 
 /**
  * Query selectors
  */
-export const selectQuery = createSelector([selectQueryState], (queryState) => queryState.query);
+export const selectQuery = createSelector([selectQueryState], (queryState) => queryState);
 
-export const selectQueryString = createSelector([selectQuery], (query) =>
-  typeof query.query === 'string' ? query.query : ''
+export const selectQueryString = createSelector([selectQueryState], (queryState) =>
+  typeof queryState.query === 'string' ? queryState.query : ''
 );
 
-export const selectQueryLanguage = createSelector([selectQuery], (query) => query.language);
+export const selectQueryLanguage = createSelector(
+  [selectQueryState],
+  (queryState) => queryState.language
+);
 
-export const selectDataset = createSelector([selectQuery], (query) => query.dataset);
+export const selectDataset = createSelector([selectQueryState], (queryState) => queryState.dataset);
 
 /**
  * UI selectors
@@ -49,32 +51,28 @@ export const selectPromptQuery = createSelector(
 
 /**
  * Tab selectors
+ * Note: These selectors now need to be used with services from context
+ * Components should use useOpenSearchDashboards<ExploreServices>() to get tabRegistry
  */
 export const selectActiveTab = createSelector(
-  [selectActiveTabId, selectServicesState],
-  (activeTabId, services) => services.tabRegistry?.getTab?.(activeTabId)
+  [selectActiveTabId],
+  (activeTabId) => activeTabId // Return just the ID, components will resolve the tab via context
 );
 
-export const selectAllTabs = createSelector(
-  [selectServicesState],
-  (services) => services.tabRegistry?.getAllTabs?.() || []
-);
-
-export const selectTabsForLanguage = createSelector(
-  [selectAllTabs, selectQueryLanguage],
-  (tabs, language) => tabs.filter((tab: TabDefinition) => tab.supportedLanguages.includes(language))
-);
+// These selectors are deprecated - use tabRegistry from context instead
+// export const selectAllTabs = ...
+// export const selectTabsForLanguage = ...
 
 /**
  * Results selectors
  */
-export const selectCacheKey = createSelector(
-  [selectQuery, selectServicesState],
-  (query, services) => {
-    const timeRange = services.data.query.timefilter.timefilter.getTime();
-    return createCacheKey(query, timeRange);
-  }
-);
+// Note: selectCacheKey now needs timeRange from context
+// Components should use useOpenSearchDashboards<ExploreServices>() to get timeRange
+export const selectCacheKey = createSelector([selectQuery], (query) => {
+  // Default timeRange - components should override with actual timeRange from context
+  const defaultTimeRange = { from: 'now-15m', to: 'now' };
+  return createCacheKey(query, defaultTimeRange);
+});
 
 export const selectResults = createSelector(
   [selectResultsState, selectCacheKey],
@@ -130,50 +128,27 @@ export const selectTransactionError = createSelector([selectUIState], (uiState) 
 
 /**
  * Combined selectors
+ * Note: These selectors are deprecated and should be replaced with context-based access
  */
 export const selectTabData = createSelector(
-  [
-    selectActiveTabId,
-    selectQuery,
-    selectResults,
-    selectIsLoading,
-    selectError,
-    selectServicesState,
-  ],
-  (activeTabId, query, results, isLoading, error, services) => {
-    const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
-
-    if (!tabDefinition) {
-      return {
-        tabId: activeTabId,
-        query,
-        results,
-        isLoading,
-        error,
-        preparedQuery: query,
-      };
-    }
-
-    // Prepare query for the active tab
-    const preparedQuery = tabDefinition.prepareQuery(query);
-
+  [selectActiveTabId, selectQuery, selectResults, selectIsLoading, selectError],
+  (activeTabId, query, results, isLoading, error) => {
+    // Components should use tabRegistry from context to get tabDefinition
     return {
       tabId: activeTabId,
-      tabDefinition,
       query,
-      preparedQuery,
       results,
       isLoading,
       error,
+      preparedQuery: query, // Components should prepare query using tabDefinition from context
     };
   }
 );
 
 export const selectIndexPattern = createSelector(
-  [selectQuery, selectServicesState],
-  (query, services) => query.dataset || services.indexPattern
+  [selectQueryState],
+  (queryState) => queryState.dataset // Components should get indexPattern from context if needed
 );
 
-export const selectTimeRange = createSelector([selectServicesState], (services) =>
-  services.data.query.timefilter.timefilter.getTime()
-);
+// Deprecated: Components should use services.data.query.timefilter.timefilter.getTime() from context
+// export const selectTimeRange = ...

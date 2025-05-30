@@ -43,13 +43,18 @@ export const createTabCacheKey = (query: any, timeRange: any): string => {
  * A Redux Thunk is a function that returns another function which receives dispatch and getState
  * This pattern allows for async logic and accessing the Redux store
  */
-export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
+export const executeTabQuery = (options: { clearCache?: boolean; services?: any } = {}) => {
   // This is the thunk function that will be executed by the Redux Thunk middleware
   return async (dispatch: Dispatch, getState: () => any) => {
     const state = getState();
-    const { query } = state.query;
+    const query = state.query; // Now query state is flattened
     const { activeTabId } = state.ui;
-    const services = state.services;
+    const services = options.services; // Services now passed as parameter
+
+    if (!services) {
+      console.error('Services not provided to executeTabQuery');
+      return;
+    }
 
     // Get tab definition
     const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
@@ -185,12 +190,17 @@ export const executeTabQuery = (options: { clearCache?: boolean } = {}) => {
  * This is a Redux Thunk for executing histogram queries
  * It demonstrates how thunks can perform async operations and dispatch multiple actions
  */
-export const executeHistogramQuery = () => {
+export const executeHistogramQuery = (options: { services?: any } = {}) => {
   // Return a thunk function
   return async (dispatch: Dispatch, getState: () => any) => {
     const state = getState();
-    const { query } = state.query;
-    const services = state.services;
+    const query = state.query; // Now query state is flattened
+    const services = options.services; // Services now passed as parameter
+
+    if (!services) {
+      console.error('Services not provided to executeHistogramQuery');
+      return;
+    }
 
     // Skip if no time field
     const indexPattern = query.dataset || services.indexPattern;
@@ -264,14 +274,14 @@ export const executeHistogramQuery = () => {
  * This is a composed thunk that calls other thunks
  * It demonstrates how thunks can be composed together
  */
-export const executeQueries = (options: { clearCache?: boolean } = {}) => {
+export const executeQueries = (options: { clearCache?: boolean; services?: any } = {}) => {
   // Return a thunk function
   return async (dispatch: Dispatch) => {
     // Execute tab query first - note how we're dispatching another thunk
     await dispatch(executeTabQuery(options) as any);
 
     // Then execute histogram query - again dispatching another thunk
-    return dispatch(executeHistogramQuery() as any);
+    return dispatch(executeHistogramQuery({ services: options.services }) as any);
   };
 };
 

@@ -18,9 +18,9 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
   tabRegistry.registerTab({
     id: 'logs',
     label: 'Logs',
-    flavor: ['log'],
+    flavor: [],
     order: 10,
-    supportedLanguages: ['ppl', 'sql', 'lucene'],
+    supportedLanguages: ['ppl'],
 
     prepareQuery: (query) => {
       if (query.language === 'ppl') {
@@ -51,9 +51,9 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
   tabRegistry.registerTab({
     id: 'visualizations',
     label: 'Visualizations',
-    flavor: ['line', 'bar', 'pie'],
+    flavor: [],
     order: 20,
-    supportedLanguages: ['ppl', 'sql', 'promql'],
+    supportedLanguages: ['ppl'],
 
     prepareQuery: (query) => {
       // No query transformation for visualizations tab

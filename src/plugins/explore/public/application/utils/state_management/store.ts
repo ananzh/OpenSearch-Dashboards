@@ -14,21 +14,12 @@ import { persistReduxState, loadReduxState } from './utils/redux_persistence';
 // Note: Query execution is handled by Redux Thunk actions, not store subscriptions
 // This follows the design requirement for "Middleware-Driven: Query execution via Redux middleware"
 
-// Define a services slice to store services in the Redux store
-const servicesReducer = (state = null, action: any) => {
-  if (action.type === 'SET_SERVICES') {
-    return action.payload;
-  }
-  return state;
-};
-
 const rootReducer = combineReducers({
   query: queryReducer,
   ui: uiReducer,
   results: resultsReducer,
   tab: tabReducer,
   legacy: legacyReducer,
-  services: servicesReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

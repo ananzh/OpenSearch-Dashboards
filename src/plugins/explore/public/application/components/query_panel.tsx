@@ -7,6 +7,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiButton, EuiSpacer, EuiText } from '@elastic/eui';
 import { monaco } from '@osd/monaco';
+import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../types';
 import { DefaultInput } from '../../../../data/public';
 import { setQueryString, setLanguage } from '../utils/state_management/slices/query_slice';
 import {
@@ -33,8 +35,8 @@ export interface QueryPanelProps {
 export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
   const dispatch = useDispatch();
 
-  // Get services from Redux store
-  const services = useSelector((state: any) => state.services);
+  // Get services from context
+  const { services } = useOpenSearchDashboards<ExploreServices>();
 
   // Use selectors to get state from Redux
   const queryString = useSelector(selectQueryString);
@@ -133,7 +135,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
           indexPattern,
           datasetType: dataset?.type,
           position,
-          services,
+          services: services as any, // Type cast for compatibility
         });
 
         // Transform suggestions to Monaco format

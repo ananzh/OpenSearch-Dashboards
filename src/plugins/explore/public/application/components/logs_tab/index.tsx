@@ -6,6 +6,8 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { EuiText } from '@elastic/eui';
+import { useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../../types';
 import { TabComponentProps } from '../../../services/tab_registry/tab_registry_service';
 import { DiscoverResultsActionBar } from '../../legacy/discover/application/components/results_action_bar/results_action_bar';
 import { DiscoverTable } from '../../legacy/discover/application/view_components/canvas/discover_table';
@@ -26,9 +28,11 @@ export const LogsTab: React.FC<TabComponentProps> = ({
   error,
   cacheKey,
 }) => {
+  // Get services from context
+  const { services } = useOpenSearchDashboards<ExploreServices>();
+
   // Get data from Redux store
   const savedSearch = useSelector(selectSavedSearch);
-  const services = useSelector((state: any) => state.services);
 
   // Create reset query function
   const resetQuery = () => {
@@ -44,7 +48,8 @@ export const LogsTab: React.FC<TabComponentProps> = ({
   }
 
   const rows = results.hits.hits;
-  const indexPattern = query.dataset || services.indexPattern;
+  // For now, we'll handle the indexPattern properly - this might need to be resolved from the dataset
+  const indexPattern = query.dataset as any; // TODO: Properly resolve IndexPattern from dataset
 
   return (
     <div className="dscPage">

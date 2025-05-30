@@ -6,7 +6,7 @@
 import { i18n } from '@osd/i18n';
 import React from 'react';
 import { LOGS_VIEW_ID } from '../../../../../../../common';
-import { DiscoverViewServices } from '../../../build_services';
+import { ExploreServices } from '../../../../../../types';
 import { SavedExplore } from '../../../../../../saved_explore';
 import { Adapters } from '../../../../../../../../inspector/public';
 import { TopNavMenuData, TopNavMenuIconData } from '../../../../../../../../navigation/public';
@@ -31,7 +31,7 @@ import { getRootBreadcrumbs } from '../../helpers/breadcrumbs';
 import { OpenSearchPanel } from './open_search_panel';
 
 const getLegacyTopNavLinks = (
-  services: DiscoverViewServices,
+  services: ExploreServices,
   inspectorAdapters: Adapters,
   savedSearch: SavedExplore,
   startSyncingQueryStateWithUrl: () => void,
@@ -96,7 +96,7 @@ const getLegacyTopNavLinks = (
           onTitleDuplicate,
         };
 
-        const state: DiscoverState = store!.getState().logs; // store is defined before the view is loaded
+        const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
 
         savedSearch.columns = state.columns;
         savedSearch.sort = state.sort;
@@ -215,7 +215,7 @@ const getLegacyTopNavLinks = (
       defaultMessage: `Share search`,
     }),
     run: async (anchorElement: HTMLElement) => {
-      const state: DiscoverState = store!.getState().logs; // store is defined before the view is loaded
+      const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
       const sharingData = await getSharingData({
         searchSource: savedSearch.searchSource,
         state,
@@ -280,7 +280,7 @@ const getLegacyTopNavLinks = (
 };
 
 export const getTopNavLinks = (
-  services: DiscoverViewServices,
+  services: ExploreServices,
   inspectorAdapters: Adapters,
   savedExplore: SavedExplore,
   startSyncingQueryStateWithUrl: () => void,
@@ -385,7 +385,7 @@ export const getTopNavLinks = (
             onTitleDuplicate,
           };
 
-          const state: DiscoverState = store!.getState().logs; // store is defined before the view is loaded
+          const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
 
           savedExplore.columns = state.columns;
           savedExplore.sort = state.sort;
@@ -474,7 +474,7 @@ export const getTopNavLinks = (
         defaultMessage: `Share search`,
       }),
       run: async (anchorElement) => {
-        const state: DiscoverState = store!.getState().logs; // store is defined before the view is loaded
+        const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
         const sharingData = await getSharingData({
           searchSource: savedExplore.searchSource,
           state,
@@ -583,7 +583,7 @@ const getSharingData = async ({
 }: {
   searchSource: ISearchSource;
   state: DiscoverState;
-  services: DiscoverViewServices;
+  services: ExploreServices;
 }) => {
   const searchSourceInstance = searchSource.createCopy();
   const indexPattern = await searchSourceInstance.getField('index');

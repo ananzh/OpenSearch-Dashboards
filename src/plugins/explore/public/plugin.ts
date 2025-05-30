@@ -281,10 +281,10 @@ export class ExplorePlugin
     // TODO: Register embeddable factory when ready
     // this.registerEmbeddable(core, plugins);
 
-    setupDeps.urlForwarding.forwardApp('doc', 'discover', (path) => {
+    setupDeps.urlForwarding.forwardApp('doc', PLUGIN_ID, (path) => {
       return `#${path}`;
     });
-    setupDeps.urlForwarding.forwardApp('context', 'discover', (path) => {
+    setupDeps.urlForwarding.forwardApp('context', PLUGIN_ID, (path) => {
       const urlParts = path.split('/');
       // take care of urls containing legacy url, those split in the following way
       // ["", "context", indexPatternId, _type, id + params]
@@ -295,7 +295,7 @@ export class ExplorePlugin
       }
       return `#${path}`;
     });
-    setupDeps.urlForwarding.forwardApp('discover', 'discover', (path) => {
+    setupDeps.urlForwarding.forwardApp('discover', PLUGIN_ID, (path) => {
       const [, id, tail] = /discover\/([^\?]+)(.*)/.exec(path) || [];
       if (!id) {
         return `#${path.replace('/discover', '') || '/'}`;

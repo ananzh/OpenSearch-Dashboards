@@ -6,6 +6,8 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
 import { EuiEmptyPrompt, EuiLoadingSpinner, EuiPanel } from '@elastic/eui';
+import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../types';
 import {
   selectActiveTabId,
   selectActiveTab,
@@ -20,23 +22,24 @@ import {
  * Uses memoized selectors for optimal performance
  */
 export const TabContent: React.FC = () => {
+  // Get services from context
+  const { services } = useOpenSearchDashboards<ExploreServices>();
+
   // Use memoized selectors to get state - all hooks must be called at top level
   const activeTabId = useSelector(selectActiveTabId);
-  const tabDefinition = useSelector(selectActiveTab);
   const query = useSelector(selectQuery);
   const isLoading = useSelector(selectIsLoading);
   const error = useSelector(selectError);
   const results = useSelector(selectResults);
 
-  // Always call useSelector at the top level
-  const timeRange = useSelector((state: any) => {
-    return (
-      state.services?.data?.query?.timefilter?.timefilter?.getTime() || {
-        from: 'now-15m',
-        to: 'now',
-      }
-    );
-  });
+  // Get tabDefinition from services context instead of Redux
+  const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
+
+  // Get timeRange from services instead of Redux
+  const timeRange = services.data?.query?.timefilter?.timefilter?.getTime() || {
+    from: 'now-15m',
+    to: 'now',
+  };
 
   if (!tabDefinition) {
     return (

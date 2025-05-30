@@ -126,4 +126,7 @@ export interface ExploreServices {
   storage: Storage;
   uiActions: UiActionsStart;
   tabRegistry: TabRegistryService;
+  // Additional properties needed by legacy components
+  store?: any; // Redux store
+  overlays: CoreStart['overlays']; // For flyouts and modals
 }
