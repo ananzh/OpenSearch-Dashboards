@@ -3,62 +3,67 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
-import { Provider } from 'react-redux';
-import { I18nProvider } from '@osd/i18n/react';
-import {
-  EuiErrorBoundary,
-  EuiLoadingSpinner,
-  EuiPage,
-  EuiPageBody,
-  EuiPageSideBar,
-} from '@elastic/eui';
-import { AppMountParameters, CoreStart } from 'src/core/public';
-import { ExploreStartDependencies } from '../types';
-import { getPreloadedStore } from './utils/state_management/store';
-import { registerTabs } from './register_tabs';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { EuiErrorBoundary, EuiPage, EuiPageBody, EuiPageSideBar } from '@elastic/eui';
 import { syncQueryStateWithUrl } from '../../../data/public';
 import {
   createOsdUrlStateStorage,
   withNotifyOnErrors,
 } from '../../../opensearch_dashboards_utils/public';
+import { useOpenSearchDashboards } from '../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../types';
+import { RootState } from './utils/state_management/store';
+import { executeQueries } from './utils/state_management/actions/query_actions';
 import { TopNav } from './legacy/discover/application/view_components/canvas/top_nav';
 import { QueryPanel } from './components/query_panel';
 import { TabBar } from './components/tab_bar';
 import { TabContent } from './components/tab_content';
-import { DiscoverChartContainer } from './legacy/discover/application/view_components/canvas/discover_chart_container';
 import { SidebarWrapper } from './components/sidebar_wrapper';
-
-/**
- * Services interface for the Explore plugin
- */
-export interface ExploreServices {
-  core: CoreStart;
-  plugins: ExploreStartDependencies;
-  scopedHistory: AppMountParameters['history'];
-  tabRegistry?: any;
-  store?: any;
-  osdUrlStateStorage?: any;
-}
 
 /**
  * Main application component for the Explore plugin
  */
-const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
-  const { core, plugins, osdUrlStateStorage } = services;
+export const ExploreApp: React.FC = () => {
+  const { services } = useOpenSearchDashboards<ExploreServices>();
+  const dispatch = useDispatch();
+  const queryState = useSelector((state: RootState) => state.query);
+  const uiState = useSelector((state: RootState) => state.ui);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Check if should search on page load (like discover)
+  const shouldSearchOnPageLoad = useMemo(() => {
+    return services.uiSettings.get('discover:searchOnPageLoad', true);
+  }, [services.uiSettings]);
+
+  // Initial query execution
+  useEffect(() => {
+    if (!isInitialized && queryState.query && shouldSearchOnPageLoad) {
+      // Trigger initial query execution
+      dispatch(executeQueries());
+      setIsInitialized(true);
+    }
+  }, [isInitialized, queryState.query, shouldSearchOnPageLoad, dispatch]);
 
   // Create refs for dataset selector and date picker
-  const datasetSelectorRef = React.useRef<HTMLDivElement>(null);
-  const datePickerRef = React.useRef<HTMLDivElement>(null);
+  const datasetSelectorRef = useRef<HTMLDivElement>(null);
+  const datePickerRef = useRef<HTMLDivElement>(null);
 
   // Sync query state with URL
   useEffect(() => {
-    if (osdUrlStateStorage && plugins.data) {
+    if (services?.data) {
+      // Create URL state storage
+      const osdUrlStateStorage = createOsdUrlStateStorage({
+        history: services.history(),
+        useHash: services.uiSettings.get('state:storeInSessionStorage'),
+        ...withNotifyOnErrors(services.toastNotifications),
+      });
+
       // syncs `_g` portion of url with query services
-      const { stop } = syncQueryStateWithUrl(plugins.data.query, osdUrlStateStorage);
+      const { stop } = syncQueryStateWithUrl(services.data.query, osdUrlStateStorage);
       return () => stop();
     }
-  }, [osdUrlStateStorage, plugins.data]);
+  }, [services]);
 
   // Create TopNav props structure
   const topNavProps = {
@@ -77,147 +82,42 @@ const ExploreApp: React.FC<{ services: ExploreServices }> = ({ services }) => {
   };
 
   return (
-    <div className="exploreApp">
-      {/* Top Navigation with Dataset Selector */}
-      <TopNav {...topNavProps} />
+    <EuiErrorBoundary>
+      <div className="exploreApp">
+        {/* Top Navigation with Dataset Selector */}
+        <TopNav {...topNavProps} />
 
-      {/* Query Panel with Date Picker */}
-      <div className="exploreQueryPanel">
-        <QueryPanel datePickerRef={datePickerRef} />
-      </div>
-
-      <div className="exploreContent">
-        {/* Histogram (using legacy component directly) */}
-        <div className="exploreChartContainer">
-          <DiscoverChartContainer />
+        {/* Query Panel with Date Picker */}
+        <div className="exploreQueryPanel">
+          <QueryPanel datePickerRef={datePickerRef} />
         </div>
 
-        <div className="exploreMainContent">
-          {/* Left Side Panel */}
-          <div className="exploreSidebar">
-            <SidebarWrapper />
+        <div className="exploreContent">
+          {/* Histogram (using legacy component directly) */}
+          <div className="exploreChartContainer">
+            {/* TODO: Fix DiscoverChartContainer props */}
+            <div>Chart Container Placeholder</div>
           </div>
 
-          {/* Right Content Area */}
-          <div className="exploreRightContent">
-            {/* Tab Bar */}
-            <TabBar />
+          <div className="exploreMainContent">
+            {/* Left Side Panel */}
+            <div className="exploreSidebar">
+              <SidebarWrapper />
+            </div>
 
-            {/* Tab Content */}
-            <div className="exploreTabContent">
-              <TabContent />
+            {/* Right Content Area */}
+            <div className="exploreRightContent">
+              {/* Tab Bar */}
+              <TabBar />
+
+              {/* Tab Content */}
+              <div className="exploreTabContent">
+                <TabContent />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </EuiErrorBoundary>
   );
-};
-
-/**
- * Renders the Explore application
- */
-export const renderApp = async (
-  coreStart: CoreStart,
-  plugins: ExploreStartDependencies,
-  params: AppMountParameters,
-  store?: any
-) => {
-  const { element, history, setHeaderActionMenu } = params;
-
-  // Create URL state storage
-  const osdUrlStateStorage = createOsdUrlStateStorage({
-    history,
-    useHash: coreStart.uiSettings.get('state:storeInSessionStorage'),
-    ...withNotifyOnErrors(coreStart.notifications.toasts),
-  });
-
-  // Create services object
-  const services: ExploreServices = {
-    core: coreStart,
-    plugins,
-    scopedHistory: history,
-    osdUrlStateStorage,
-  };
-
-  // Register tabs
-  const tabRegistry = {};
-  services.tabRegistry = tabRegistry;
-  registerTabs(services);
-
-  // Use passed store or initialize new one
-  let finalStore = store;
-  let unsubscribeStore: (() => void) | undefined;
-
-  if (!finalStore) {
-    const { store: newStore, unsubscribe } = await getPreloadedStore(services);
-    finalStore = newStore;
-    unsubscribeStore = unsubscribe;
-  }
-
-  services.store = finalStore;
-
-  // Create a loading component
-  const LoadingComponent = () => (
-    <div
-      style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}
-    >
-      <EuiLoadingSpinner size="xl" />
-    </div>
-  );
-
-  // Render the application
-  const App = () => {
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-      // Simulate loading time for initial state setup
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
-
-      return () => {
-        clearTimeout(timer);
-      };
-    }, []);
-
-    if (isLoading) {
-      return <LoadingComponent />;
-    }
-
-    return (
-      <Provider store={store}>
-        <I18nProvider>
-          <EuiErrorBoundary>
-            <ExploreApp services={services} />
-          </EuiErrorBoundary>
-        </I18nProvider>
-      </Provider>
-    );
-  };
-
-  // Mount the application
-  const unmount = () => {
-    // Render the React application
-    const root = document.createElement('div');
-    element.appendChild(root);
-
-    // Use ReactDOM to render the application
-    const ReactDOM = window.ReactDOM;
-    ReactDOM.render(<App />, root);
-
-    // Return a cleanup function
-    return () => {
-      ReactDOM.unmountComponentAtNode(root);
-      element.removeChild(root);
-    };
-  };
-
-  // Return a function to clean up
-  return () => {
-    if (unsubscribeStore) {
-      unsubscribeStore();
-    }
-    unmount();
-  };
 };

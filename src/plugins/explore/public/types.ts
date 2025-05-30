@@ -3,8 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { History } from 'history';
+import {
+  Capabilities,
+  ChromeStart,
+  CoreStart,
+  DocLinksStart,
+  ToastsStart,
+  IUiSettingsClient,
+} from 'opensearch-dashboards/public';
 import { ChartsPluginStart } from 'src/plugins/charts/public';
-import { DataPublicPluginSetup, DataPublicPluginStart } from 'src/plugins/data/public';
+import {
+  DataPublicPluginSetup,
+  DataPublicPluginStart,
+  IndexPatternsContract,
+  FilterManager,
+  TimefilterContract,
+} from 'src/plugins/data/public';
 import { EmbeddableSetup, EmbeddableStart } from 'src/plugins/embeddable/public';
 import { HomePublicPluginSetup } from 'src/plugins/home/public';
 import { Start as InspectorPublicPluginStart } from 'src/plugins/inspector/public';
@@ -12,14 +27,17 @@ import {
   OpenSearchDashboardsLegacySetup,
   OpenSearchDashboardsLegacyStart,
 } from 'src/plugins/opensearch_dashboards_legacy/public';
-import { SharePluginSetup, SharePluginStart } from 'src/plugins/share/public';
+import { SharePluginSetup, SharePluginStart, UrlGeneratorContract } from 'src/plugins/share/public';
 import { UiActionsSetup, UiActionsStart } from 'src/plugins/ui_actions/public';
 import { UrlForwardingSetup, UrlForwardingStart } from 'src/plugins/url_forwarding/public';
 import { VisualizationsSetup, VisualizationsStart } from 'src/plugins/visualizations/public';
 import { UsageCollectionSetup } from 'src/plugins/usage_collection/public';
 import { ExpressionsStart } from 'src/plugins/expressions/public';
 import { NavigationPublicPluginStart as NavigationStart } from '../../navigation/public';
-import { SavedExploreLoader } from './saved_explore';
+import { Storage } from '../../opensearch_dashboards_utils/public';
+import { SavedObjectLoader } from '../../saved_objects/public';
+import { SavedExploreLoader, SavedExplore } from './saved_explore';
+import { TabRegistryService } from './services/tab_registry/tab_registry_service';
 
 export interface ExplorePluginSetup {
   docViews: {
@@ -31,7 +49,7 @@ export interface ExplorePluginSetup {
 }
 
 export interface ExplorePluginStart {
-  urlGenerator?: any;
+  urlGenerator?: UrlGeneratorContract<'EXPLORE_APP_URL_GENERATOR'>;
   savedSearchLoader: SavedExploreLoader;
   savedExploreLoader: SavedExploreLoader;
 }
@@ -67,4 +85,41 @@ export interface ExploreStartDependencies {
   urlForwarding: UrlForwardingStart;
   inspector: InspectorPublicPluginStart;
   visualizations: VisualizationsStart;
+}
+
+/**
+ * Services interface for the Explore plugin
+ * Consolidated from legacy discover services and explore-specific services
+ */
+export interface ExploreServices {
+  addBasePath: (path: string) => string;
+  capabilities: Capabilities;
+  chrome: ChromeStart;
+  core: CoreStart;
+  data: DataPublicPluginStart;
+  docLinks: DocLinksStart;
+  history: () => History;
+  theme: ChartsPluginStart['theme'];
+  filterManager: FilterManager;
+  indexPatterns: IndexPatternsContract;
+  inspector: InspectorPublicPluginStart;
+  metadata: { branch: string };
+  navigation: NavigationStart;
+  share?: SharePluginStart;
+  opensearchDashboardsLegacy: OpenSearchDashboardsLegacyStart;
+  urlForwarding: UrlForwardingStart;
+  timefilter: TimefilterContract;
+  toastNotifications: ToastsStart;
+  getSavedExploreById: (id?: string) => Promise<SavedExplore>;
+  getSavedExploreUrlById: (id: string) => Promise<string>;
+  uiSettings: IUiSettingsClient;
+  visualizations: VisualizationsStart;
+  storage: Storage;
+  uiActions: UiActionsStart;
+  tabRegistry: TabRegistryService;
+  // Note: store, expressions, embeddable, scopedHistory, osdUrlStateStorage removed
+  // - store: passed separately to renderApp (like VisBuilder)
+  // - expressions: not needed for Explore
+  // - embeddable: handled at plugin level, not in services
+  // - scopedHistory/osdUrlStateStorage: created locally in components
 }

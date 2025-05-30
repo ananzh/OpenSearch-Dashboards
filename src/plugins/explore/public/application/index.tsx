@@ -9,8 +9,8 @@ import { Router, Route, Switch } from 'react-router-dom';
 import { Provider as ReduxProvider } from 'react-redux';
 import { Store } from 'redux';
 import { AppMountParameters } from '../../../../core/public';
-import { ExploreServices } from '../build_services';
-import { ExploreApp } from './components/explore_app';
+import { ExploreServices } from '../types';
+import { ExploreApp } from './app';
 import { OpenSearchDashboardsContextProvider } from '../../../opensearch_dashboards_react/public';
 
 // Route component props interface

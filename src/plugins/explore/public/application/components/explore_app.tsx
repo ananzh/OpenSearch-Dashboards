@@ -12,7 +12,7 @@ import {
   withNotifyOnErrors,
 } from '../../../../opensearch_dashboards_utils/public';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
-import { ExploreServices } from '../../build_services';
+import { ExploreServices } from '../../types';
 import { RootState } from '../utils/state_management/store';
 import { executeQueries } from '../utils/state_management/actions/query_actions';
 import { TopNav } from '../legacy/discover/application/view_components/canvas/top_nav';
@@ -96,7 +96,8 @@ export const ExploreApp: React.FC = () => {
         <div className="exploreContent">
           {/* Histogram (using legacy component directly) */}
           <div className="exploreChartContainer">
-            <DiscoverChartContainer />
+            {/* TODO: Fix DiscoverChartContainer props */}
+            <div>Chart Container Placeholder</div>
           </div>
 
           <div className="exploreMainContent">

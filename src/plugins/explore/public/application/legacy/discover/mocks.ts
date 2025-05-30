@@ -39,7 +39,8 @@ import { opensearchDashboardsLegacyPluginMock } from '../../../../../opensearch_
 import { uiActionsPluginMock } from '../../../../../ui_actions/public/mocks';
 import { urlForwardingPluginMock } from '../../../../../url_forwarding/public/mocks';
 import { visualizationsPluginMock } from '../../../../../visualizations/public/mocks';
-import { buildServices, DiscoverServices } from './build_services';
+import { ExploreServices } from '../../../types';
+import { buildServices } from '../../../build_services';
 
 export type Setup = jest.Mocked<DiscoverSetup>;
 export type Start = jest.Mocked<ExploreStart>;
@@ -66,7 +67,7 @@ const createStartContract = (): Start => {
   return startContract;
 };
 
-const createDiscoverServicesMock = (): DiscoverServices =>
+const createDiscoverServicesMock = (): ExploreServices =>
   buildServices(
     coreMock.createStart(),
     {
@@ -79,8 +80,10 @@ const createDiscoverServicesMock = (): DiscoverServices =>
       urlForwarding: urlForwardingPluginMock.createStartContract(),
       visualizations: visualizationsPluginMock.createStartContract(),
       opensearchDashboardsLegacy: opensearchDashboardsLegacyPluginMock.createStartContract(),
+      expressions: {} as any, // Mock expressions
     },
-    coreMock.createPluginInitializerContext()
+    coreMock.createPluginInitializerContext(),
+    {} as any // Mock tabRegistry
   );
 
 export const discoverPluginMock = {
