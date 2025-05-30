@@ -32,12 +32,14 @@ import { UiActionsSetup, UiActionsStart } from 'src/plugins/ui_actions/public';
 import { UrlForwardingSetup, UrlForwardingStart } from 'src/plugins/url_forwarding/public';
 import { VisualizationsSetup, VisualizationsStart } from 'src/plugins/visualizations/public';
 import { UsageCollectionSetup } from 'src/plugins/usage_collection/public';
-import { ExpressionsStart } from 'src/plugins/expressions/public';
 import { NavigationPublicPluginStart as NavigationStart } from '../../navigation/public';
 import { Storage } from '../../opensearch_dashboards_utils/public';
-import { SavedObjectLoader } from '../../saved_objects/public';
 import { SavedExploreLoader, SavedExplore } from './saved_explore';
 import { TabRegistryService } from './services/tab_registry/tab_registry_service';
+
+// ============================================================================
+// PLUGIN INTERFACES - What Explore provides to other plugins
+// ============================================================================
 
 export interface ExplorePluginSetup {
   docViews: {
@@ -53,6 +55,10 @@ export interface ExplorePluginStart {
   savedSearchLoader: SavedExploreLoader;
   savedExploreLoader: SavedExploreLoader;
 }
+
+// ============================================================================
+// PLUGIN DEPENDENCIES - What Explore needs from other plugins
+// ============================================================================
 
 /**
  * @internal
@@ -75,7 +81,6 @@ export interface ExploreSetupDependencies {
  */
 export interface ExploreStartDependencies {
   uiActions: UiActionsStart;
-  expressions: ExpressionsStart;
   embeddable: EmbeddableStart;
   navigation: NavigationStart;
   charts: ChartsPluginStart;
@@ -87,8 +92,12 @@ export interface ExploreStartDependencies {
   visualizations: VisualizationsStart;
 }
 
+// ============================================================================
+// INTERNAL SERVICES - For Explore's internal components
+// ============================================================================
+
 /**
- * Services interface for the Explore plugin
+ * Services interface for the Explore plugin's internal components
  * Consolidated from legacy discover services and explore-specific services
  */
 export interface ExploreServices {
@@ -117,9 +126,4 @@ export interface ExploreServices {
   storage: Storage;
   uiActions: UiActionsStart;
   tabRegistry: TabRegistryService;
-  // Note: store, expressions, embeddable, scopedHistory, osdUrlStateStorage removed
-  // - store: passed separately to renderApp (like VisBuilder)
-  // - expressions: not needed for Explore
-  // - embeddable: handled at plugin level, not in services
-  // - scopedHistory/osdUrlStateStorage: created locally in components
 }

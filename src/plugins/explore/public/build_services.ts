@@ -3,9 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { PluginInitializerContext } from 'opensearch-dashboards/public';
+import {
+  Capabilities,
+  ChromeStart,
+  CoreStart,
+  DocLinksStart,
+  ToastsStart,
+  IUiSettingsClient,
+  PluginInitializerContext,
+} from 'opensearch-dashboards/public';
+import {
+  FilterManager,
+  TimefilterContract,
+  IndexPatternsContract,
+  DataPublicPluginStart,
+} from 'src/plugins/data/public';
+import { Start as InspectorPublicPluginStart } from 'src/plugins/inspector/public';
+import { SharePluginStart } from 'src/plugins/share/public';
+import { ChartsPluginStart } from 'src/plugins/charts/public';
+import { UiActionsStart } from 'src/plugins/ui_actions/public';
+import { VisualizationsStart } from 'src/plugins/visualizations/public';
 import { SavedObjectOpenSearchDashboardsServices } from 'src/plugins/saved_objects/public';
-import { Storage } from 'src/plugins/opensearch_dashboards_utils/public';
+import { OpenSearchDashboardsLegacyStart } from 'src/plugins/opensearch_dashboards_legacy/public';
+import { UrlForwardingStart } from 'src/plugins/url_forwarding/public';
+import { NavigationPublicPluginStart } from 'src/plugins/navigation/public';
+import { Storage } from '../../opensearch_dashboards_utils/public';
 
 import { ExploreStartDependencies, ExploreServices } from './types';
 import { createSavedExploreLoader, SavedExplore } from './saved_explore';

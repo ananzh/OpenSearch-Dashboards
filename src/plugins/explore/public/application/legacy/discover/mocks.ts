@@ -29,7 +29,7 @@
  */
 
 import { coreMock } from 'opensearch-dashboards/public/mocks';
-import { DiscoverSetup, ExploreStart } from './index';
+import { ExplorePluginSetup, ExplorePluginStart } from '../../../types';
 import { chartPluginMock } from '../../../../../charts/public/mocks';
 import { dataPluginMock } from '../../../../../data/public/mocks';
 import { embeddablePluginMock } from '../../../../../embeddable/public/mocks';
@@ -42,8 +42,8 @@ import { visualizationsPluginMock } from '../../../../../visualizations/public/m
 import { ExploreServices } from '../../../types';
 import { buildServices } from '../../../build_services';
 
-export type Setup = jest.Mocked<DiscoverSetup>;
-export type Start = jest.Mocked<ExploreStart>;
+export type Setup = jest.Mocked<ExplorePluginSetup>;
+export type Start = jest.Mocked<ExplorePluginStart>;
 
 const createSetupContract = (): Setup => {
   const setupContract: Setup = {
@@ -60,6 +60,7 @@ const createSetupContract = (): Setup => {
 const createStartContract = (): Start => {
   const startContract: Start = {
     savedExploreLoader: {} as any,
+    savedSearchLoader: {} as any,
     urlGenerator: {
       createUrl: jest.fn(),
     } as any,
@@ -80,7 +81,6 @@ const createDiscoverServicesMock = (): ExploreServices =>
       urlForwarding: urlForwardingPluginMock.createStartContract(),
       visualizations: visualizationsPluginMock.createStartContract(),
       opensearchDashboardsLegacy: opensearchDashboardsLegacyPluginMock.createStartContract(),
-      expressions: {} as any, // Mock expressions
     },
     coreMock.createPluginInitializerContext(),
     {} as any // Mock tabRegistry
