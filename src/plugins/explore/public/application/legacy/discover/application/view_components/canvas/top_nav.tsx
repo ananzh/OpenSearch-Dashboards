@@ -15,13 +15,14 @@ import {
   QueryStatus,
   useSyncQueryStateWithUrl,
 } from '../../../../../../../../data/public';
+import { createOsdUrlStateStorage } from '../../../../../../../../opensearch_dashboards_utils/public';
 import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
+import { RequestAdapter } from '../../../../../../../../inspector/public';
 import { PLUGIN_ID } from '../../../../../../../common';
-import { DiscoverViewServices } from '../../../build_services';
+import { ExploreServices } from '../../../../../../types';
 import { IndexPattern } from '../../../opensearch_dashboards_services';
 import { getTopNavLinks } from '../../components/top_nav/get_top_nav_links';
 import { getRootBreadcrumbs } from '../../helpers/breadcrumbs';
-import { useDiscoverContext } from '../context';
 import { useDispatch, setSavedQuery, useSelector } from '../../utils/state_management';
 
 import './discover_canvas.scss';
@@ -39,13 +40,27 @@ export interface TopNavProps {
 }
 
 export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavProps) => {
-  const { services } = useOpenSearchDashboards<DiscoverViewServices>();
-  const { data$, inspectorAdapters, savedSearch, indexPattern } = useDiscoverContext();
+  const { services } = useOpenSearchDashboards<ExploreServices>();
+  const dispatch = useDispatch();
+
+  const queryState = useSelector((state: any) => state.query);
+  const legacyState = useSelector((state: any) => state.legacy);
+  const isLoading = useSelector((state: any) => state.ui.isLoading);
+  const error = useSelector((state: any) => state.ui.error);
+
+  // Replace inspectorAdapters
+  const inspectorAdapters = useMemo(() => ({ requests: new RequestAdapter() }), []);
+
+  // Replace savedSearch - use legacy state
+  const savedSearch = useMemo(() => {
+    return legacyState.savedSearch;
+  }, [legacyState.savedSearch]);
+
+  // Replace indexPattern - get from query state
+  const indexPattern = queryState.dataset;
   const [indexPatterns, setIndexPatterns] = useState<IndexPattern[] | undefined>(undefined);
   const [screenTitle, setScreenTitle] = useState<string>('');
   const [queryStatus, setQueryStatus] = useState<QueryStatus>({ status: ResultStatus.READY });
-  const state = useSelector((s) => s.legacy);
-  const dispatch = useDispatch();
 
   const {
     navigation: {
@@ -56,25 +71,32 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
     },
     data,
     chrome,
-    osdUrlStateStorage,
+    storage,
     uiSettings,
+    history,
   } = services;
+
+  // Create osdUrlStateStorage from storage
+  const osdUrlStateStorage = useMemo(() => {
+    return createOsdUrlStateStorage({
+      useHash: uiSettings.get('state:storeInSessionStorage', false),
+      history: history(),
+    });
+  }, [uiSettings, history]);
 
   const { startSyncingQueryStateWithUrl } = useSyncQueryStateWithUrl(
     data.query,
     osdUrlStateStorage
   );
-  const showActionsInGroup = uiSettings.get('home:useNewHomePage');
+  const showActionsInGroup = uiSettings.get('home:useNewHomePage', false);
 
-  const topNavLinks = savedSearch
-    ? getTopNavLinks(
-        services,
-        inspectorAdapters,
-        savedSearch,
-        startSyncingQueryStateWithUrl,
-        isEnhancementsEnabled
-      )
-    : [];
+  const topNavLinks = getTopNavLinks(
+    services,
+    inspectorAdapters,
+    savedSearch || ({} as any), // Provide empty object if savedSearch is null
+    startSyncingQueryStateWithUrl,
+    isEnhancementsEnabled
+  );
 
   const syncConfig = useMemo(() => {
     return {
@@ -85,19 +107,15 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
 
   useConnectStorageToQueryState(services.data.query, osdUrlStateStorage, syncConfig);
 
+  // Replace data$ subscription with Redux state-based queryStatus
   useEffect(() => {
-    const subscription = data$.subscribe((queryData) => {
-      const result = {
-        status: queryData.status,
-        ...queryData.queryStatus,
-      };
-      setQueryStatus(result);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [data$]);
+    const status = isLoading
+      ? ResultStatus.LOADING
+      : error
+      ? ResultStatus.ERROR
+      : ResultStatus.READY;
+    setQueryStatus({ status });
+  }, [isLoading, error]);
 
   useEffect(() => {
     let isMounted = true;
@@ -117,15 +135,17 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
   }, [data.indexPatterns, data.query]);
 
   useEffect(() => {
-    const pageTitleSuffix = savedSearch?.id && savedSearch.title ? `: ${savedSearch.title}` : '';
-    chrome.docTitle.change(`Discover${pageTitleSuffix}`);
+    // Set page title to "Explore" instead of "Discover"
+    chrome.docTitle.change('Explore');
 
-    if (savedSearch?.id) {
-      chrome.setBreadcrumbs([...getRootBreadcrumbs(), { text: savedSearch.title }]);
-    } else {
-      chrome.setBreadcrumbs([...getRootBreadcrumbs()]);
-    }
-  }, [chrome, getUrlForApp, savedSearch?.id, savedSearch?.title]);
+    // Set breadcrumbs to show "Explore"
+    chrome.setBreadcrumbs([
+      {
+        text: 'Explore',
+        href: '#/',
+      },
+    ]);
+  }, [chrome]);
 
   useEffect(() => {
     setScreenTitle(
@@ -150,17 +170,41 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
   return (
     <>
       {displayToNavLinkInPortal &&
+        opts.optionalRef?.topLinkRef?.current &&
         createPortal(
           <EuiFlexGroup gutterSize="m">
-            {topNavLinks.map((topNavLink) => (
-              <EuiFlexItem grow={false} key={topNavLink.id}>
-                <EuiToolTip position="bottom" content={topNavLink.label}>
+            {topNavLinks.map((topNavLink, index) => (
+              <EuiFlexItem
+                grow={false}
+                key={('id' in topNavLink ? topNavLink.id : undefined) || index}
+              >
+                <EuiToolTip
+                  position="bottom"
+                  content={('label' in topNavLink ? topNavLink.label : undefined) || ''}
+                >
                   <EuiButtonIcon
-                    onClick={(event) => {
-                      topNavLink.run(event.currentTarget);
+                    onClick={(event: React.MouseEvent) => {
+                      if (topNavLink.run) {
+                        // Handle different run function signatures
+                        if ('checked' in topNavLink) {
+                          // TopNavMenuSwitchAction expects (element, checked)
+                          const checked =
+                            typeof topNavLink.checked === 'function'
+                              ? topNavLink.checked()
+                              : topNavLink.checked;
+                          (topNavLink.run as any)(event.currentTarget as HTMLElement, checked);
+                        } else {
+                          // TopNavMenuAction or TopNavMenuClickAction expects just (element)
+                          (topNavLink.run as any)(event.currentTarget as HTMLElement);
+                        }
+                      }
                     }}
-                    iconType={topNavLink.iconType}
-                    aria-label={topNavLink.ariaLabel}
+                    iconType={
+                      ('iconType' in topNavLink ? topNavLink.iconType : undefined) || 'apps'
+                    }
+                    aria-label={
+                      ('ariaLabel' in topNavLink ? topNavLink.ariaLabel : undefined) || ''
+                    }
                   />
                 </EuiToolTip>
               </EuiFlexItem>
@@ -170,22 +214,22 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
         )}
       <TopNavMenu
         appName={PLUGIN_ID}
-        config={displayToNavLinkInPortal ? [] : topNavLinks}
-        showSearchBar={TopNavMenuItemRenderType.IN_PLACE}
-        showDatePicker={showDatePicker && TopNavMenuItemRenderType.IN_PORTAL}
+        config={topNavLinks}
+        showSearchBar={false}
+        showDatePicker={false}
         showSaveQuery={showSaveQuery}
         useDefaultBehaviors
         setMenuMountPoint={opts.setHeaderActionMenu}
         indexPatterns={indexPattern ? [indexPattern] : indexPatterns}
         onQuerySubmit={opts.onQuerySubmit}
-        savedQueryId={state.savedQuery}
+        savedQueryId={legacyState.savedQuery}
         onSavedQueryIdChange={updateSavedQueryId}
         datasetSelectorRef={opts?.optionalRef?.datasetSelectorRef}
         datePickerRef={opts?.optionalRef?.datePickerRef}
         groupActions={showActionsInGroup}
-        screenTitle={screenTitle}
+        screenTitle="Explore"
         queryStatus={queryStatus}
-        showQueryBar={!!opts?.optionalRef?.datasetSelectorRef}
+        showQueryBar={true}
       />
     </>
   );

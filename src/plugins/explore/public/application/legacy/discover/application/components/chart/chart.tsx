@@ -15,17 +15,17 @@ import classNames from 'classnames';
 import { DataPublicPluginStart, search } from '../../../../../../../../data/public';
 import { TimechartHeader, TimechartHeaderBucketInterval } from './timechart_header';
 import { DiscoverHistogram } from './histogram/histogram';
-import { DiscoverServices } from '../../../build_services';
+import { ExploreServices } from '../../../../../../types';
 import { Chart } from './utils';
-import { useDiscoverContext } from '../../view_components/context';
 import { setInterval, useDispatch, useSelector } from '../../utils/state_management';
+import { executeHistogramQuery } from '../../../../../utils/state_management/actions/query_actions';
 
 interface DiscoverChartProps {
   bucketInterval?: TimechartHeaderBucketInterval;
   chartData?: Chart;
   config: IUiSettingsClient;
   data: DataPublicPluginStart;
-  services: DiscoverServices;
+  services: ExploreServices;
   isEnhancementsEnabled: boolean;
 }
 
@@ -37,7 +37,6 @@ export const DiscoverChart = ({
   services,
   isEnhancementsEnabled,
 }: DiscoverChartProps) => {
-  const { refetch$ } = useDiscoverContext();
   const { from, to } = data.query.timefilter.timefilter.getTime();
   const timeRange = {
     from: dateMath.parse(from)?.format('YYYY-MM-DDTHH:mm:ss.SSSZ') || '',
@@ -47,7 +46,8 @@ export const DiscoverChart = ({
   const dispatch = useDispatch();
   const onChangeInterval = (newInterval: string) => {
     dispatch(setInterval(newInterval));
-    refetch$.next();
+    // Replace refetch$.next() with executeHistogramQuery to only update histogram
+    dispatch(executeHistogramQuery({ services }) as any);
   };
   const timefilterUpdateHandler = useCallback(
     (ranges: { from: number; to: number }) => {

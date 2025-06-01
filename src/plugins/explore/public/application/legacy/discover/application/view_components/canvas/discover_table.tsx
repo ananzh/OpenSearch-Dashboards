@@ -21,7 +21,7 @@ import {
   DEFAULT_COLUMNS_SETTING,
   MODIFY_COLUMNS_ON_SWITCH,
 } from '../../../../../../../common/legacy/discover';
-import { DiscoverViewServices } from '../../../build_services';
+import { ExploreServices } from '../../../../../../types';
 import { DataGridTable } from '../../components/data_grid/data_grid_table';
 import { SortDirection, SortOrder } from '../../../../../../saved_explore/types';
 import { popularizeField } from '../../helpers/popularize_field';
@@ -36,7 +36,7 @@ interface Props {
 }
 
 export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }: Props) => {
-  const { services } = useOpenSearchDashboards<DiscoverViewServices>();
+  const { services } = useOpenSearchDashboards<ExploreServices>();
   const { uiSettings, capabilities, indexPatterns } = services;
 
   // Always call useSelector hooks at the top level

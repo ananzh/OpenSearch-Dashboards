@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { EuiErrorBoundary, EuiPage, EuiPageBody, EuiPageSideBar } from '@elastic/eui';
+import { EuiErrorBoundary } from '@elastic/eui';
 import { syncQueryStateWithUrl } from '../../../data/public';
 import {
   createOsdUrlStateStorage,
@@ -15,11 +15,8 @@ import { useOpenSearchDashboards } from '../../../opensearch_dashboards_react/pu
 import { ExploreServices } from '../types';
 import { RootState } from './utils/state_management/store';
 import { executeQueries } from './utils/state_management/actions/query_actions';
-import { TopNav } from './legacy/discover/application/view_components/canvas/top_nav';
-import { QueryPanel } from './components/query_panel';
-import { TabBar } from './components/tab_bar';
-import { TabContent } from './components/tab_content';
-import { SidebarWrapper } from './components/sidebar_wrapper';
+import { clearResults } from './utils/state_management/slices/results_slice';
+import { ExploreCanvas } from './components/explore_canvas';
 
 /**
  * Main application component for the Explore plugin
@@ -45,9 +42,23 @@ export const ExploreApp: React.FC = () => {
     }
   }, [isInitialized, queryState.query, shouldSearchOnPageLoad, dispatch]);
 
-  // Create refs for dataset selector and date picker
-  const datasetSelectorRef = useRef<HTMLDivElement>(null);
-  const datePickerRef = useRef<HTMLDivElement>(null);
+  // Subscribe to timefilter changes (global state)
+  // This follows the middleware-driven architecture where timefilter changes
+  // trigger Redux actions that are handled by the query middleware
+  useEffect(() => {
+    if (!services?.timefilter) return;
+
+    const subscription = services.timefilter.getTimeUpdate$().subscribe(() => {
+      // Clear cached results when time range changes
+      dispatch(clearResults());
+      // Re-execute queries with new time range
+      dispatch(executeQueries());
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [services?.timefilter, dispatch]);
 
   // Sync query state with URL
   useEffect(() => {
@@ -55,7 +66,7 @@ export const ExploreApp: React.FC = () => {
       // Create URL state storage
       const osdUrlStateStorage = createOsdUrlStateStorage({
         history: services.history(),
-        useHash: services.uiSettings.get('state:storeInSessionStorage'),
+        useHash: services.uiSettings.get('state:storeInSessionStorage', false),
         ...withNotifyOnErrors(services.toastNotifications),
       });
 
@@ -65,59 +76,9 @@ export const ExploreApp: React.FC = () => {
     }
   }, [services]);
 
-  // Create TopNav props structure
-  const topNavProps = {
-    opts: {
-      setHeaderActionMenu: () => {}, // placeholder
-      onQuerySubmit: ({ dateRange, query }: any) => {
-        // Handle query submission
-      },
-      optionalRef: {
-        datasetSelectorRef,
-        datePickerRef,
-      },
-    },
-    showSaveQuery: true,
-    isEnhancementsEnabled: true,
-  };
-
   return (
     <EuiErrorBoundary>
-      <div className="exploreApp">
-        {/* Top Navigation with Dataset Selector */}
-        <TopNav {...topNavProps} />
-
-        {/* Query Panel with Date Picker */}
-        <div className="exploreQueryPanel">
-          <QueryPanel datePickerRef={datePickerRef} />
-        </div>
-
-        <div className="exploreContent">
-          {/* Histogram (using legacy component directly) */}
-          <div className="exploreChartContainer">
-            {/* TODO: Fix DiscoverChartContainer props */}
-            <div>Chart Container Placeholder</div>
-          </div>
-
-          <div className="exploreMainContent">
-            {/* Left Side Panel */}
-            <div className="exploreSidebar">
-              <SidebarWrapper />
-            </div>
-
-            {/* Right Content Area */}
-            <div className="exploreRightContent">
-              {/* Tab Bar */}
-              <TabBar />
-
-              {/* Tab Content */}
-              <div className="exploreTabContent">
-                <TabContent />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ExploreCanvas />
     </EuiErrorBoundary>
   );
 };

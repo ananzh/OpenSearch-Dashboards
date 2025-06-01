@@ -23,7 +23,7 @@ import { DiscoverNoIndexPatterns } from '../../components/no_index_patterns/no_i
 import { DiscoverUninitialized } from '../../components/uninitialized/uninitialized';
 import { LoadingSpinner } from '../../components/loading_spinner/loading_spinner';
 import { DiscoverResultsActionBar } from '../../components/results_action_bar/results_action_bar';
-import { DiscoverViewServices } from '../../../build_services';
+import { ExploreServices } from '../../../../../../types';
 import { QUERY_ENHANCEMENT_ENABLED_SETTING } from '../../../../../../../common/legacy/discover';
 import './discover_canvas.scss';
 
@@ -47,7 +47,7 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Can
       data,
       core,
     },
-  } = useOpenSearchDashboards<DiscoverViewServices>();
+  } = useOpenSearchDashboards<ExploreServices>();
 
   // Get data from Redux
   const isLoading = useSelector((state: any) => state.ui.isLoading);

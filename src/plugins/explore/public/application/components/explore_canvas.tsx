@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { EuiPanel } from '@elastic/eui';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
@@ -21,7 +21,12 @@ export interface ExploreCanvasProps {
 export const ExploreCanvas: React.FC<ExploreCanvasProps> = ({ setHeaderActionMenu }) => {
   // Get services from context
   const { services } = useOpenSearchDashboards<ExploreServices>();
-  const isEnhancementsEnabled = services?.uiSettings?.get('query:enhancementsEnabled') || false;
+  const isEnhancementsEnabled =
+    services?.uiSettings?.get('query:enhancementsEnabled', false) || false;
+
+  // Create refs for TopNav components
+  const datasetSelectorRef = useRef<HTMLDivElement>(null);
+  const datePickerRef = useRef<HTMLDivElement>(null);
 
   // Create TopNav props
   const topNavProps = {
@@ -33,6 +38,10 @@ export const ExploreCanvas: React.FC<ExploreCanvasProps> = ({ setHeaderActionMen
         if (dateRange && services?.data?.query?.timefilter?.timefilter) {
           services.data.query.timefilter.timefilter.setTime(dateRange);
         }
+      },
+      optionalRef: {
+        datasetSelectorRef,
+        datePickerRef,
       },
     },
     showSaveQuery: true,
@@ -52,7 +61,7 @@ export const ExploreCanvas: React.FC<ExploreCanvasProps> = ({ setHeaderActionMen
 
       {/* New QueryPanel component */}
       <div className="dscCanvas__queryPanel">
-        <QueryPanel />
+        <QueryPanel datePickerRef={datePickerRef} />
       </div>
 
       {/* Tab Bar for switching between tabs */}

@@ -98,9 +98,11 @@ export interface ExploreStartDependencies {
 
 /**
  * Services interface for the Explore plugin's internal components
- * Consolidated from legacy discover services and explore-specific services
+ * Based on DiscoverViewServices (DiscoverServices & DataExplorerServices) plus Explore-specific services
+ * Since Explore incorporates DataExplorer functionality directly, it needs all DataExplorer services
  */
 export interface ExploreServices {
+  // From DiscoverServices
   addBasePath: (path: string) => string;
   capabilities: Capabilities;
   chrome: ChromeStart;
@@ -125,8 +127,21 @@ export interface ExploreServices {
   visualizations: VisualizationsStart;
   storage: Storage;
   uiActions: UiActionsStart;
-  tabRegistry: TabRegistryService;
-  // Additional properties needed by legacy components
+
+  // Additional CoreStart properties that are accessed directly
+  savedObjects: CoreStart['savedObjects'];
+  notifications: CoreStart['notifications'];
+  http: CoreStart['http'];
+  overlays: CoreStart['overlays'];
+
+  // From DataExplorerServices (since Explore incorporates DataExplorer functionality)
   store?: any; // Redux store
-  overlays: CoreStart['overlays']; // For flyouts and modals
+  viewRegistry: any; // ViewServiceStart - will be replaced with tabRegistry
+  expressions: any; // ExpressionsStart
+  embeddable: any; // EmbeddableStart
+  scopedHistory: any; // ScopedHistory
+  osdUrlStateStorage: any; // IOsdUrlStateStorage
+
+  // Explore-specific services
+  tabRegistry: TabRegistryService;
 }

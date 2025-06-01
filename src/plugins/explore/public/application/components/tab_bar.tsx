@@ -37,6 +37,7 @@ export const TabBar: React.FC = () => {
 
   // Filter tabs that support the current query language
   const tabs = useMemo(() => {
+    if (!queryLanguage) return allTabs; // Fallback to all tabs if language is undefined
     return allTabs.filter((tab: TabDefinition) => tab.supportedLanguages.includes(queryLanguage));
   }, [allTabs, queryLanguage]);
 

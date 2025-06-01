@@ -68,7 +68,7 @@ const createStartContract = (): Start => {
   return startContract;
 };
 
-const createDiscoverServicesMock = (): ExploreServices =>
+const createExploreServicesMock = (): ExploreServices =>
   buildServices(
     coreMock.createStart(),
     {
@@ -87,7 +87,7 @@ const createDiscoverServicesMock = (): ExploreServices =>
   );
 
 export const discoverPluginMock = {
-  createDiscoverServicesMock,
+  createExploreServicesMock,
   createSetupContract,
   createStartContract,
 };

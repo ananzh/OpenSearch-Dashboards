@@ -24,12 +24,12 @@ import {
   selectIndexPattern,
 } from '../../../../../utils/state_management/selectors';
 import { DiscoverSidebar } from '../../components/sidebar';
-import { DiscoverViewServices } from '../../../build_services';
+import { ExploreServices } from '../../../../../../types';
 import { popularizeField } from '../../helpers/popularize_field';
 import { buildColumns } from '../../utils/columns';
 
 export function DiscoverPanel() {
-  const { services } = useOpenSearchDashboards<DiscoverViewServices>();
+  const { services } = useOpenSearchDashboards<ExploreServices>();
   const {
     data: {
       query: { filterManager },

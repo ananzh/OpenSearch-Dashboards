@@ -4,6 +4,7 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { SortOrder } from '../../../../saved_explore/types';
 
 /**
  * Legacy state interface
@@ -20,11 +21,8 @@ export interface LegacyState {
   // Column configuration
   columns: string[];
 
-  // Sort configuration
-  sort: Array<{
-    columnName: string;
-    direction: 'asc' | 'desc';
-  }>;
+  // Sort configuration - using SortOrder format to match Discover
+  sort: SortOrder[];
 
   // Interval configuration
   interval: string;
@@ -34,6 +32,13 @@ export interface LegacyState {
 
   // Saved query ID (legacy discover format)
   savedQuery?: string;
+
+  // Additional state from legacy discover slice
+  isDirty?: boolean;
+  metadata?: {
+    lineCount?: number;
+  };
+  saveExploreLoadCount: number;
 }
 
 const initialState: LegacyState = {
@@ -43,6 +48,9 @@ const initialState: LegacyState = {
   interval: 'auto',
   rowCount: 50,
   savedQuery: undefined,
+  isDirty: false,
+  metadata: undefined,
+  saveExploreLoadCount: 0,
 };
 
 const legacySlice = createSlice({
@@ -71,10 +79,7 @@ const legacySlice = createSlice({
         state.columns.splice(destination, 0, columnName);
       }
     },
-    setSort: (
-      state,
-      action: PayloadAction<Array<{ columnName: string; direction: 'asc' | 'desc' }>>
-    ) => {
+    setSort: (state, action: PayloadAction<SortOrder[]>) => {
       state.sort = action.payload;
     },
     setInterval: (state, action: PayloadAction<string>) => {
@@ -85,6 +90,18 @@ const legacySlice = createSlice({
     },
     setSavedQuery: (state, action: PayloadAction<string | undefined>) => {
       state.savedQuery = action.payload;
+    },
+    setIsDirty: (state, action: PayloadAction<boolean>) => {
+      state.isDirty = action.payload;
+    },
+    setMetadata: (state, action: PayloadAction<LegacyState['metadata']>) => {
+      state.metadata = action.payload;
+    },
+    setSaveExploreLoadCount: (state, action: PayloadAction<number>) => {
+      state.saveExploreLoadCount = action.payload;
+    },
+    incrementSaveExploreLoadCount: (state) => {
+      state.saveExploreLoadCount += 1;
     },
   },
 });
@@ -99,6 +116,10 @@ export const {
   setInterval,
   setRowCount,
   setSavedQuery,
+  setIsDirty,
+  setMetadata,
+  setSaveExploreLoadCount,
+  incrementSaveExploreLoadCount,
 } = legacySlice.actions;
 
 export const legacyReducer = legacySlice.reducer;

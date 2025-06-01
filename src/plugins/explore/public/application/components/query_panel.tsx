@@ -11,6 +11,7 @@ import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react
 import { ExploreServices } from '../../types';
 import { DefaultInput } from '../../../../data/public';
 import { setQueryString, setLanguage } from '../utils/state_management/slices/query_slice';
+import { RecentQuerySelector } from './recent_query_selector';
 import {
   beginTransaction,
   finishTransaction,
@@ -190,47 +191,45 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
       }}
       data-test-subj="exploreLanguageSelectorButton"
     >
-      {queryLanguage.toUpperCase()}
+      {queryLanguage?.toUpperCase() || 'PPL'}
     </EuiButton>
   );
 
   return (
     <EuiPanel paddingSize="s" hasBorder>
-      <EuiFlexGroup gutterSize="s" alignItems="center">
-        <EuiFlexItem>
-          <DefaultInput
-            languageId={queryLanguage}
-            value={localQuery}
-            onChange={handleQueryChange}
-            editorDidMount={handleEditorDidMount}
-            headerRef={headerRef}
-            provideCompletionItems={provideCompletionItems}
-            queryStatus={queryStatus}
-            footerItems={{
-              start: [
-                <EuiText size="xs" color="subdued">
-                  {queryLanguage.toUpperCase()}
-                </EuiText>,
-              ],
-              end: [
-                // Date picker will be rendered here via datePickerRef
-                datePickerRef && <div ref={datePickerRef} key="datePicker" />,
-              ].filter(Boolean),
-            }}
-          />
-        </EuiFlexItem>
-        <EuiFlexItem grow={false}>{renderLanguageSelector()}</EuiFlexItem>
-        <EuiFlexItem grow={false}>
-          <EuiButton
-            fill
-            onClick={handleRunQuery}
-            isLoading={isLoading}
-            data-test-subj="exploreQuerySubmitButton"
-          >
-            Run
-          </EuiButton>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      <DefaultInput
+        languageId={queryLanguage}
+        value={localQuery}
+        onChange={handleQueryChange}
+        editorDidMount={handleEditorDidMount}
+        headerRef={headerRef}
+        provideCompletionItems={provideCompletionItems}
+        queryStatus={queryStatus}
+        footerItems={{
+          start: [<RecentQuerySelector size="xs" key="recentQueries" />],
+          end: [
+            // Date picker will be rendered here via datePickerRef
+            datePickerRef && (
+              <div
+                ref={datePickerRef}
+                key="datePicker"
+                style={{ display: 'inline-flex', alignItems: 'center', marginRight: '8px' }}
+              />
+            ),
+            // Run button moved to footer
+            <EuiButton
+              key="runButton"
+              fill
+              size="s"
+              onClick={handleRunQuery}
+              isLoading={isLoading}
+              data-test-subj="exploreQuerySubmitButton"
+            >
+              Run
+            </EuiButton>,
+          ].filter(Boolean),
+        }}
+      />
 
       {error && (
         <>

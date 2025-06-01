@@ -21,7 +21,11 @@ import {
   OpenSearchDashboardsContextProvider,
   toMountPoint,
 } from '../../../../../../../../opensearch_dashboards_react/public';
-import { DiscoverState, setSavedSearchId } from '../../utils/state_management';
+import {
+  LegacyState,
+  setSavedSearch,
+} from '../../../../../utils/state_management/slices/legacy_slice';
+import { RootState } from '../../../../../utils/state_management/store';
 import {
   DOC_HIDE_TIME_COLUMN_SETTING,
   SORT_DEFAULT_ORDER_SETTING,
@@ -96,10 +100,16 @@ const getLegacyTopNavLinks = (
           onTitleDuplicate,
         };
 
-        const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
+        const state: LegacyState = store!.getState().legacy; // store is defined before the view is loaded
 
-        savedSearch.columns = state.columns;
-        savedSearch.sort = state.sort;
+        // Use transform approach similar to vis_builder - serialize state into saved object
+        const { updateLegacyPropertiesInSavedObject } = await import(
+          '../../../../../../saved_explore/transforms'
+        );
+        updateLegacyPropertiesInSavedObject(savedSearch, {
+          columns: state.columns,
+          sort: state.sort,
+        });
 
         try {
           const id = await savedSearch.save(saveOptions);
@@ -124,7 +134,9 @@ const getLegacyTopNavLinks = (
             }
 
             // set App state to clean
-            store!.dispatch({ type: setSavedSearchId.type, payload: id });
+            store!.dispatch(
+              setSavedSearch({ id, title: savedSearch.title, description: savedSearch.description })
+            );
 
             // starts syncing `_g` portion of url with query services
             startSyncingQueryStateWithUrl();
@@ -215,7 +227,7 @@ const getLegacyTopNavLinks = (
       defaultMessage: `Share search`,
     }),
     run: async (anchorElement: HTMLElement) => {
-      const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
+      const state: LegacyState = store!.getState().legacy; // store is defined before the view is loaded
       const sharingData = await getSharingData({
         searchSource: savedSearch.searchSource,
         state,
@@ -299,7 +311,7 @@ export const getTopNavLinks = (
     uiSettings,
   } = services;
 
-  const showActionsInGroup = uiSettings.get('home:useNewHomePage');
+  const showActionsInGroup = uiSettings.get('home:useNewHomePage', false);
   if (!showActionsInGroup)
     return getLegacyTopNavLinks(
       services,
@@ -322,7 +334,7 @@ export const getTopNavLinks = (
       });
       // TODO this behavior is different from Discover. Clicking New in Explore
       // only closes the saved search and does not change the query.
-      store!.dispatch({ type: setSavedSearchId.type, payload: undefined });
+      store!.dispatch(setSavedSearch(null));
     },
     testId: 'discoverNewButton',
     ariaLabel: i18n.translate('explore.discover.topNav.discoverNewButtonLabel', {
@@ -385,10 +397,16 @@ export const getTopNavLinks = (
             onTitleDuplicate,
           };
 
-          const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
+          const state: LegacyState = store!.getState().legacy; // store is defined before the view is loaded
 
-          savedExplore.columns = state.columns;
-          savedExplore.sort = state.sort;
+          // Use transform approach similar to vis_builder - serialize state into saved object
+          const { updateLegacyPropertiesInSavedObject } = await import(
+            '../../../../../../saved_explore/transforms'
+          );
+          updateLegacyPropertiesInSavedObject(savedExplore, {
+            columns: state.columns,
+            sort: state.sort,
+          });
 
           try {
             const id = await savedExplore.save(saveOptions);
@@ -413,7 +431,13 @@ export const getTopNavLinks = (
               }
 
               // set App state to clean
-              store!.dispatch({ type: setSavedSearchId.type, payload: id });
+              store!.dispatch(
+                setSavedSearch({
+                  id,
+                  title: savedExplore.title,
+                  description: savedExplore.description,
+                })
+              );
 
               // starts syncing `_g` portion of url with query services
               startSyncingQueryStateWithUrl();
@@ -474,7 +498,7 @@ export const getTopNavLinks = (
         defaultMessage: `Share search`,
       }),
       run: async (anchorElement) => {
-        const state: DiscoverState = store!.getState().legacy; // store is defined before the view is loaded
+        const state: LegacyState = store!.getState().legacy; // store is defined before the view is loaded
         const sharingData = await getSharingData({
           searchSource: savedExplore.searchSource,
           state,
@@ -582,7 +606,7 @@ const getSharingData = async ({
   services,
 }: {
   searchSource: ISearchSource;
-  state: DiscoverState;
+  state: LegacyState;
   services: ExploreServices;
 }) => {
   const searchSourceInstance = searchSource.createCopy();
@@ -590,7 +614,7 @@ const getSharingData = async ({
 
   const { searchFields } = await getSharingDataFields(
     state.columns,
-    services.uiSettings.get(DOC_HIDE_TIME_COLUMN_SETTING),
+    services.uiSettings.get(DOC_HIDE_TIME_COLUMN_SETTING, false),
     indexPattern?.timeFieldName
   );
 
@@ -600,7 +624,7 @@ const getSharingData = async ({
     getSortForSearchSource(
       state.sort,
       indexPattern,
-      services.uiSettings.get(SORT_DEFAULT_ORDER_SETTING)
+      services.uiSettings.get(SORT_DEFAULT_ORDER_SETTING, 'desc')
     )
   );
   searchSourceInstance.setField('highlight', null);
