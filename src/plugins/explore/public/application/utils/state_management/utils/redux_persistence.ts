@@ -20,8 +20,8 @@ export const persistReduxState = (state: RootState, services: any) => {
     services.osdUrlStateStorage.set(
       '_q',
       {
-        query: state.query.query.query,
-        dataset: state.query.query.dataset,
+        query: state.query.query,
+        dataset: state.query.dataset,
         // Note: timeRange and filters handled by data plugin
       },
       { replace: true }
@@ -39,7 +39,7 @@ export const persistReduxState = (state: RootState, services: any) => {
       { replace: true }
     );
   } catch (err) {
-    console.error('Error persisting state:', err);
+    // Error persisting state - silently ignore
   }
 };
 
@@ -170,7 +170,7 @@ export const loadReduxState = async (services: any): Promise<any> => {
       return mergedState;
     }
   } catch (err) {
-    console.error('Error loading state from URL:', err);
+    // Error loading state from URL - silently ignore
   }
 
   // If state is not found, load the default state
@@ -246,13 +246,22 @@ const getPreloadedTabState = async (services: any) => {
 };
 
 /**
- * Get preloaded legacy state
+ * Get preloaded legacy state (vis_builder approach - defaults only, no saved object loading)
  */
 const getPreloadedLegacyState = async (services: any) => {
+  // Only return defaults - NO saved object loading (like vis_builder)
+  const defaultColumns = services.uiSettings?.get('defaultColumns') || ['_source'];
+
   return {
-    columns: ['_source'],
+    // Fields that exist in data_explorer + discover
+    savedSearch: undefined, // Matches discover format - string ID, not object
+    columns: defaultColumns,
     sort: [],
+    isDirty: false,
+    savedQuery: undefined,
+    lineCount: undefined, // Flattened from metadata.lineCount
+
+    // Fields specific to explore (not in data_explorer + discover)
     interval: 'auto',
-    rowCount: 50,
   };
 };

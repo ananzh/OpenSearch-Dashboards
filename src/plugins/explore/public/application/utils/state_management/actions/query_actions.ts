@@ -52,7 +52,6 @@ export const executeTabQuery = (options: { clearCache?: boolean; services?: any 
     const services = options.services; // Services now passed as parameter
 
     if (!services) {
-      console.error('Services not provided to executeTabQuery');
       return;
     }
 
@@ -117,7 +116,7 @@ export const executeTabQuery = (options: { clearCache?: boolean; services?: any 
       const searchSource = await services.data.search.searchSource.create();
 
       // Configure SearchSource
-      const indexPattern = preparedQuery.dataset || services.indexPattern;
+      const indexPattern = preparedQuery.dataset || services.data.indexPattern;
       const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
 
       searchSource
@@ -198,12 +197,11 @@ export const executeHistogramQuery = (options: { services?: any } = {}) => {
     const services = options.services; // Services now passed as parameter
 
     if (!services) {
-      console.error('Services not provided to executeHistogramQuery');
       return;
     }
 
     // Skip if no time field
-    const indexPattern = query.dataset || services.indexPattern;
+    const indexPattern = query.dataset || services.data.indexPattern;
     if (!indexPattern.timeFieldName) {
       return null;
     }

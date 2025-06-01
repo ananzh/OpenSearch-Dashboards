@@ -19,7 +19,6 @@ export const exportToCsv = (options: { fileName?: string; services?: any } = {})
     const services = options.services; // Services now passed as parameter
 
     if (!services) {
-      console.error('Services not provided to exportToCsv');
       return;
     }
 
@@ -46,7 +45,7 @@ export const exportToCsv = (options: { fileName?: string; services?: any } = {})
     const rows = results.hits.hits;
 
     // Get index pattern
-    const indexPattern = preparedQuery.dataset || services.indexPattern;
+    const indexPattern = preparedQuery.dataset || services.data.indexPattern;
 
     // Get columns from legacy state
     const columns = state.legacy?.columns || [];
@@ -104,7 +103,6 @@ export const exportMaxSizeCsv = (
     const services = options.services; // Services now passed as parameter
 
     if (!services) {
-      console.error('Services not provided to exportMaxSizeCsv');
       return;
     }
 
@@ -119,7 +117,7 @@ export const exportMaxSizeCsv = (
       const searchSource = await services.data.search.searchSource.create();
 
       // Configure SearchSource
-      const indexPattern = preparedQuery.dataset || services.indexPattern;
+      const indexPattern = preparedQuery.dataset || services.data.indexPattern;
       const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
 
       searchSource

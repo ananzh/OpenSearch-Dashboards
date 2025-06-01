@@ -53,7 +53,7 @@ export default function DiscoverCanvas({ setHeaderActionMenu, optionalRef }: Can
   const isLoading = useSelector((state: any) => state.ui.isLoading);
   const error = useSelector((state: any) => state.ui.error);
   const indexPattern = useSelector((state: any) => {
-    return state.query.query.dataset || state.services.indexPattern;
+    return state.query.dataset || state.services.data.indexPattern;
   });
   const savedSearch = useSelector((state: any) => state.legacy?.savedSearch);
   const rows = useSelector((state: any) => {

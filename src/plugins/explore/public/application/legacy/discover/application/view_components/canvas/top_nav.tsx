@@ -14,6 +14,8 @@ import {
   opensearchFilters,
   QueryStatus,
   useSyncQueryStateWithUrl,
+  DatasetSelector,
+  DatasetSelectorAppearance,
 } from '../../../../../../../../data/public';
 import { createOsdUrlStateStorage } from '../../../../../../../../opensearch_dashboards_utils/public';
 import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
@@ -23,7 +25,8 @@ import { ExploreServices } from '../../../../../../types';
 import { IndexPattern } from '../../../opensearch_dashboards_services';
 import { getTopNavLinks } from '../../components/top_nav/get_top_nav_links';
 import { getRootBreadcrumbs } from '../../helpers/breadcrumbs';
-import { useDispatch, setSavedQuery, useSelector } from '../../utils/state_management';
+import { useDispatch, useSelector } from '../../utils/state_management';
+import { setSavedQuery } from '../../../../../utils/state_management/slices/legacy_slice';
 
 import './discover_canvas.scss';
 import { TopNavMenuItemRenderType } from '../../../../../../../../navigation/public';
@@ -135,19 +138,6 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
   }, [data.indexPatterns, data.query]);
 
   useEffect(() => {
-    // Set page title to "Explore" instead of "Discover"
-    chrome.docTitle.change('Explore');
-
-    // Set breadcrumbs to show "Explore"
-    chrome.setBreadcrumbs([
-      {
-        text: 'Explore',
-        href: '#/',
-      },
-    ]);
-  }, [chrome]);
-
-  useEffect(() => {
     setScreenTitle(
       savedSearch?.title ||
         i18n.translate('explore.discover.savedSearch.newTitle', {
@@ -172,43 +162,61 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
       {displayToNavLinkInPortal &&
         opts.optionalRef?.topLinkRef?.current &&
         createPortal(
-          <EuiFlexGroup gutterSize="m">
-            {topNavLinks.map((topNavLink, index) => (
-              <EuiFlexItem
-                grow={false}
-                key={('id' in topNavLink ? topNavLink.id : undefined) || index}
-              >
-                <EuiToolTip
-                  position="bottom"
-                  content={('label' in topNavLink ? topNavLink.label : undefined) || ''}
-                >
-                  <EuiButtonIcon
-                    onClick={(event: React.MouseEvent) => {
-                      if (topNavLink.run) {
-                        // Handle different run function signatures
-                        if ('checked' in topNavLink) {
-                          // TopNavMenuSwitchAction expects (element, checked)
-                          const checked =
-                            typeof topNavLink.checked === 'function'
-                              ? topNavLink.checked()
-                              : topNavLink.checked;
-                          (topNavLink.run as any)(event.currentTarget as HTMLElement, checked);
-                        } else {
-                          // TopNavMenuAction or TopNavMenuClickAction expects just (element)
-                          (topNavLink.run as any)(event.currentTarget as HTMLElement);
+          <EuiFlexGroup gutterSize="m" alignItems="center" justifyContent="spaceBetween">
+            {/* Left side: Actions next to test / */}
+            <EuiFlexItem grow={false}>
+              <EuiFlexGroup gutterSize="s" alignItems="center">
+                {topNavLinks.map((topNavLink, index) => (
+                  <EuiFlexItem
+                    grow={false}
+                    key={('id' in topNavLink ? topNavLink.id : undefined) || index}
+                  >
+                    <EuiToolTip
+                      position="bottom"
+                      content={('label' in topNavLink ? topNavLink.label : undefined) || ''}
+                    >
+                      <EuiButtonIcon
+                        onClick={(event: React.MouseEvent) => {
+                          if (topNavLink.run) {
+                            // Handle different run function signatures
+                            if ('checked' in topNavLink) {
+                              // TopNavMenuSwitchAction expects (element, checked)
+                              const checked =
+                                typeof topNavLink.checked === 'function'
+                                  ? topNavLink.checked()
+                                  : topNavLink.checked;
+                              (topNavLink.run as any)(event.currentTarget as HTMLElement, checked);
+                            } else {
+                              // TopNavMenuAction or TopNavMenuClickAction expects just (element)
+                              (topNavLink.run as any)(event.currentTarget as HTMLElement);
+                            }
+                          }
+                        }}
+                        iconType={
+                          ('iconType' in topNavLink ? topNavLink.iconType : undefined) || 'apps'
                         }
-                      }
-                    }}
-                    iconType={
-                      ('iconType' in topNavLink ? topNavLink.iconType : undefined) || 'apps'
-                    }
-                    aria-label={
-                      ('ariaLabel' in topNavLink ? topNavLink.ariaLabel : undefined) || ''
-                    }
-                  />
-                </EuiToolTip>
-              </EuiFlexItem>
-            ))}
+                        aria-label={
+                          ('ariaLabel' in topNavLink ? topNavLink.ariaLabel : undefined) || ''
+                        }
+                      />
+                    </EuiToolTip>
+                  </EuiFlexItem>
+                ))}
+              </EuiFlexGroup>
+            </EuiFlexItem>
+
+            {/* Right side: Dataset selector */}
+            <EuiFlexItem grow={false}>
+              <DatasetSelector
+                onSubmit={(query: Query, dateRange?: TimeRange) => {
+                  opts.onQuerySubmit({
+                    query,
+                    dateRange: dateRange || { from: 'now-15m', to: 'now' },
+                  });
+                }}
+                appearance={DatasetSelectorAppearance.Button}
+              />
+            </EuiFlexItem>
           </EuiFlexGroup>,
           opts.optionalRef.topLinkRef.current
         )}
@@ -216,7 +224,7 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
         appName={PLUGIN_ID}
         config={topNavLinks}
         showSearchBar={false}
-        showDatePicker={false}
+        showDatePicker={showDatePicker}
         showSaveQuery={showSaveQuery}
         useDefaultBehaviors
         setMenuMountPoint={opts.setHeaderActionMenu}
@@ -227,7 +235,7 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
         datasetSelectorRef={opts?.optionalRef?.datasetSelectorRef}
         datePickerRef={opts?.optionalRef?.datePickerRef}
         groupActions={showActionsInGroup}
-        screenTitle="Explore"
+        screenTitle=""
         queryStatus={queryStatus}
         showQueryBar={true}
       />

@@ -40,10 +40,9 @@ export function buildServices(
     getSavedExploreById: async (id?: string) => savedObjectService.get(id),
     getSavedExploreUrlById: async (id: string) => savedObjectService.urlFor(id),
     history: getHistory,
-    indexPatterns: plugins.data.indexPatterns,
     inspector: plugins.inspector,
     metadata: {
-      branch: context.env.packageInfo.branch,
+      branch: context.env.packageInfo.branch, // From discover - used for version info
     },
     navigation: plugins.navigation,
     share: plugins.share,
@@ -55,7 +54,22 @@ export function buildServices(
     visualizations: plugins.visualizations,
     storage,
     uiActions: plugins.uiActions,
-    tabRegistry,
+
+    // Additional CoreStart properties that are accessed directly
+    savedObjects: core.savedObjects,
+    notifications: core.notifications,
+    http: core.http,
     overlays: core.overlays,
+
+    // From DataExplorerServices (since Explore incorporates DataExplorer functionality)
+    store: undefined, // Will be set by the store
+    viewRegistry: undefined, // Will be replaced with tabRegistry
+    expressions: undefined, // Not available in ExploreStartDependencies
+    embeddable: plugins.embeddable,
+    scopedHistory: undefined, // Will be set by the app
+    osdUrlStateStorage: undefined, // Will be set by the app
+
+    // Explore-specific services
+    tabRegistry,
   };
 }

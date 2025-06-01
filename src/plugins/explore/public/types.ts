@@ -107,12 +107,11 @@ export interface ExploreServices {
   capabilities: Capabilities;
   chrome: ChromeStart;
   core: CoreStart;
-  data: DataPublicPluginStart;
+  data: DataPublicPluginStart; // Contains indexPatterns via data.indexPatterns
   docLinks: DocLinksStart;
   history: () => History;
   theme: ChartsPluginStart['theme'];
   filterManager: FilterManager;
-  indexPatterns: IndexPatternsContract;
   inspector: InspectorPublicPluginStart;
   metadata: { branch: string };
   navigation: NavigationStart;

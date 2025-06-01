@@ -11,12 +11,8 @@ import { SortOrder } from '../../../../saved_explore/types';
  * This contains state that is used by legacy components but not needed in the new architecture
  */
 export interface LegacyState {
-  // Saved search information
-  savedSearch: {
-    id?: string;
-    title?: string;
-    description?: string;
-  } | null;
+  // Saved search ID (matches discover format - just string, not object)
+  savedSearch?: string;
 
   // Column configuration
   columns: string[];
@@ -27,37 +23,31 @@ export interface LegacyState {
   // Interval configuration
   interval: string;
 
-  // Row count configuration
-  rowCount: number;
-
   // Saved query ID (legacy discover format)
   savedQuery?: string;
 
   // Additional state from legacy discover slice
   isDirty?: boolean;
-  metadata?: {
-    lineCount?: number;
-  };
-  saveExploreLoadCount: number;
+
+  // Line count for display (flattened from metadata.lineCount)
+  lineCount?: number;
 }
 
 const initialState: LegacyState = {
-  savedSearch: null,
+  savedSearch: undefined,
   columns: [],
   sort: [],
   interval: 'auto',
-  rowCount: 50,
   savedQuery: undefined,
   isDirty: false,
-  metadata: undefined,
-  saveExploreLoadCount: 0,
+  lineCount: undefined,
 };
 
 const legacySlice = createSlice({
   name: 'legacy',
   initialState,
   reducers: {
-    setSavedSearch: (state, action: PayloadAction<LegacyState['savedSearch']>) => {
+    setSavedSearch: (state, action: PayloadAction<string | undefined>) => {
       state.savedSearch = action.payload;
     },
     setColumns: (state, action: PayloadAction<string[]>) => {
@@ -85,23 +75,17 @@ const legacySlice = createSlice({
     setInterval: (state, action: PayloadAction<string>) => {
       state.interval = action.payload;
     },
-    setRowCount: (state, action: PayloadAction<number>) => {
-      state.rowCount = action.payload;
-    },
     setSavedQuery: (state, action: PayloadAction<string | undefined>) => {
       state.savedQuery = action.payload;
     },
     setIsDirty: (state, action: PayloadAction<boolean>) => {
       state.isDirty = action.payload;
     },
-    setMetadata: (state, action: PayloadAction<LegacyState['metadata']>) => {
-      state.metadata = action.payload;
+    setLineCount: (state, action: PayloadAction<number | undefined>) => {
+      state.lineCount = action.payload;
     },
-    setSaveExploreLoadCount: (state, action: PayloadAction<number>) => {
-      state.saveExploreLoadCount = action.payload;
-    },
-    incrementSaveExploreLoadCount: (state) => {
-      state.saveExploreLoadCount += 1;
+    setState: (state, action: PayloadAction<Partial<LegacyState>>) => {
+      return { ...state, ...action.payload };
     },
   },
 });
@@ -114,12 +98,10 @@ export const {
   moveColumn,
   setSort,
   setInterval,
-  setRowCount,
   setSavedQuery,
   setIsDirty,
-  setMetadata,
-  setSaveExploreLoadCount,
-  incrementSaveExploreLoadCount,
+  setLineCount,
+  setState,
 } = legacySlice.actions;
 
 export const legacyReducer = legacySlice.reducer;

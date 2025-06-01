@@ -64,7 +64,7 @@ export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }:
   const isLoading = useSelector((state: any) => state.ui.isLoading);
   const error = useSelector((state: any) => state.ui.error);
   const reduxIndexPattern = useSelector((state: any) => {
-    return state.query.query.dataset || state.services.indexPattern;
+    return state.query.dataset || state.services.data.indexPattern;
   });
 
   // Get data from props if provided, otherwise from Redux

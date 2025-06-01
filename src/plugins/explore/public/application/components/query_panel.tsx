@@ -125,7 +125,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
       try {
         // Get current dataset/index pattern
         const dataset = services?.data?.query?.queryString?.getQuery()?.dataset;
-        const indexPattern = dataset ? await services.indexPatterns?.get(dataset.id) : undefined;
+        const indexPattern = dataset
+          ? await services.data.indexPatterns.get(dataset.id)
+          : undefined;
 
         // Use the autocomplete service
         const suggestions = await services?.data?.autocomplete?.getQuerySuggestions({
