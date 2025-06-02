@@ -16,6 +16,7 @@ import { ExploreServices } from '../types';
 import { RootState } from './utils/state_management/store';
 import { executeQueries } from './utils/state_management/actions/query_actions';
 import { clearResults } from './utils/state_management/slices/results_slice';
+import { setQuery } from './utils/state_management/slices/query_slice';
 import { ResultStatus } from './utils/state_management/types';
 import { TopNav } from './legacy/discover/application/view_components/canvas/top_nav';
 import { DiscoverChartContainer } from './legacy/discover/application/view_components/canvas/discover_chart_container';
@@ -35,20 +36,83 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
   const dispatch = useDispatch();
   const queryState = useSelector((state: RootState) => state.query);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isPPLConverted, setIsPPLConverted] = useState(false);
 
   // Check if should search on page load (like discover)
   const shouldSearchOnPageLoad = useMemo(() => {
     return services.uiSettings.get('discover:searchOnPageLoad', true);
   }, [services.uiSettings]);
 
+  // Convert to PPL and generate default query after app loads
+  useEffect(() => {
+    if (!isPPLConverted && services?.data?.query?.queryString) {
+      const checkPPLAvailability = () => {
+        const queryStringManager = services.data.query.queryString;
+        const languageService = queryStringManager.getLanguageService();
+        const pplLanguage = languageService.getLanguage('PPL');
+
+        if (pplLanguage) {
+          const currentQuery = queryStringManager.getQuery();
+
+          if (currentQuery.language !== 'PPL' && currentQuery.dataset) {
+            // Convert to PPL and generate default query
+            const datasetWithPPL = { ...currentQuery.dataset, language: 'PPL' };
+            const pplQuery = queryStringManager.getInitialQueryByDataset(datasetWithPPL);
+
+            // Update both queryStringManager and Redux
+            queryStringManager.setQuery(pplQuery);
+            dispatch(setQuery(pplQuery));
+          } else if (
+            currentQuery.language === 'PPL' &&
+            currentQuery.dataset &&
+            !currentQuery.query
+          ) {
+            // Already PPL but no query string, generate default
+            const datasetWithPPL = { ...currentQuery.dataset, language: 'PPL' };
+            const pplQuery = queryStringManager.getInitialQueryByDataset(datasetWithPPL);
+
+            queryStringManager.setQuery(pplQuery);
+            dispatch(setQuery(pplQuery));
+          }
+
+          setIsPPLConverted(true);
+          return true; // PPL found and converted
+        } else {
+          console.warn('PPL language not yet available, will retry...');
+          return false; // PPL not found, need to retry
+        }
+      };
+
+      // Try immediately
+      if (!checkPPLAvailability()) {
+        // If not available, retry every 100ms for up to 5 seconds
+        let retryCount = 0;
+        const maxRetries = 50; // 5 seconds
+
+        const retryInterval = setInterval(() => {
+          retryCount++;
+          if (checkPPLAvailability() || retryCount >= maxRetries) {
+            clearInterval(retryInterval);
+            if (retryCount >= maxRetries) {
+              console.error('PPL language not available after 5 seconds, giving up');
+            }
+          }
+        }, 100);
+
+        // Cleanup interval on unmount
+        return () => clearInterval(retryInterval);
+      }
+    }
+  }, [isPPLConverted, services, dispatch]);
+
   // Initial query execution
   useEffect(() => {
-    if (!isInitialized && queryState.query && shouldSearchOnPageLoad) {
-      // Trigger initial query execution
+    if (!isInitialized && queryState.query && shouldSearchOnPageLoad && isPPLConverted) {
+      // Trigger initial query execution only after PPL conversion
       dispatch(executeQueries());
       setIsInitialized(true);
     }
-  }, [isInitialized, queryState.query, shouldSearchOnPageLoad, dispatch]);
+  }, [isInitialized, queryState.query, shouldSearchOnPageLoad, isPPLConverted, dispatch]);
 
   // Subscribe to timefilter changes (global state)
   // This follows the middleware-driven architecture where timefilter changes

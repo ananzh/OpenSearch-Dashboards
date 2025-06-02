@@ -215,7 +215,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSe
       size="s"
       onClick={() => {
         // Toggle between ppl and lucene for demo
-        const newLanguage = queryLanguage === 'ppl' ? 'lucene' : 'ppl';
+        const newLanguage = queryLanguage === 'PPL' ? 'lucene' : 'PPL';
         handleLanguageChange(newLanguage);
       }}
       data-test-subj="exploreLanguageSelectorButton"

@@ -156,14 +156,13 @@ export const loadReduxState = async (services: any): Promise<any> => {
               },
             };
 
-            // Update query string manager with dataset
-            services.data.query.queryString.setQuery({ dataset: updatedDataset });
+            // CRITICAL: Regenerate query string with dataset using PPL defaults
+            const queryStringManager = services.data.query.queryString;
+            const queryWithDataset = queryStringManager.getInitialQueryByDataset(updatedDataset);
+            queryStringManager.setQuery(queryWithDataset);
 
-            // Update merged state with enhanced dataset
-            mergedState.query.query = {
-              ...mergedState.query.query,
-              dataset: updatedDataset,
-            };
+            // Update merged state with complete query (including generated query string)
+            mergedState.query = queryWithDataset; // Now has "source = dataset_name"
           }
         }
       }
@@ -200,28 +199,31 @@ export const getPreloadedState = async (services: any): Promise<any> => {
  * Get preloaded query state with default query from data plugin
  */
 const getPreloadedQueryState = async (services: any) => {
-  // Get default query from data plugin (like discover does)
-  const defaultQuery = services.data.query.queryString.getDefaultQuery();
+  const queryStringManager = services.data.query.queryString;
 
-  return {
-    query: defaultQuery, // This will be "source = dataset_name" for PPL
-    // Note: timeRange and filters are handled by data plugin, not stored in Redux
-  };
+  // During preloading, just return the current query state
+  // PPL conversion will happen later when the app is fully loaded
+  const currentQuery = queryStringManager.getQuery();
+  console.log('Preloaded query state (before PPL conversion):', currentQuery);
+
+  return currentQuery;
 };
 
 /**
  * Get preloaded UI state
  */
 const getPreloadedUIState = async (services: any) => {
-  const defaultQuery = services.data.query.queryString.getDefaultQuery();
+  const queryStringManager = services.data.query.queryString;
+  const currentQuery = queryStringManager.getQuery();
 
   return {
     activeTabId: 'logs',
+    flavor: 'log',
     isLoading: false,
     error: null,
     abortController: null,
     queryPanel: {
-      promptQuery: defaultQuery.query, // Show default query in panel
+      promptQuery: currentQuery.query || '', // Show current query in panel
     },
     // Transaction state moved to UI slice
     transaction: {

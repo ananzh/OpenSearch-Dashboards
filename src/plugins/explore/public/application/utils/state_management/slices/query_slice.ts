@@ -12,7 +12,7 @@ export type QueryState = Query;
 // Flattened structure - no nested query object
 const initialState: QueryState = {
   query: '',
-  language: 'ppl', // Default to PPL as mentioned in requirements
+  language: 'PPL', // Default to PPL as mentioned in requirements
   dataset: undefined, // Store dataset here
 };
 

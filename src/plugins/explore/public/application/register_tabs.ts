@@ -23,7 +23,7 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
     supportedLanguages: ['ppl'],
 
     prepareQuery: (query) => {
-      if (query.language === 'ppl') {
+      if (query.language === 'PPL') {
         // Remove stats pipe for logs view
         return {
           ...query,

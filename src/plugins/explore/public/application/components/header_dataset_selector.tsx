@@ -9,7 +9,7 @@ import { useDispatch } from 'react-redux';
 import { DatasetSelector, DatasetSelectorAppearance, Query } from '../../../../data/public';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
-import { setLanguage } from '../utils/state_management/slices/query_slice';
+import { setQuery } from '../utils/state_management/slices/query_slice';
 import {
   beginTransaction,
   finishTransaction,
@@ -41,15 +41,18 @@ export const HeaderDatasetSelector: React.FC<HeaderDatasetSelectorProps> = ({
   // Handle dataset selection - sync with Explore's Redux store
   const handleDatasetSelect = useCallback(
     (query: Query, dateRange?: any) => {
-      if (!isMounted.current) return;
+      if (!isMounted.current || !query.dataset) return;
 
       // Start transaction to batch state updates
       dispatch(beginTransaction());
 
-      // Update language in Explore's Redux store if it changed
-      if (query.language) {
-        dispatch(setLanguage(query.language));
-      }
+      // Use queryStringManager to get proper default query with dataset
+      const queryWithDefaults = services.data.query.queryString.getInitialQueryByDataset(
+        query.dataset
+      );
+
+      // Update Redux with the complete query (including generated query string)
+      dispatch(setQuery(queryWithDefaults));
 
       // Clear results cache since dataset changed
       dispatch(clearResults());

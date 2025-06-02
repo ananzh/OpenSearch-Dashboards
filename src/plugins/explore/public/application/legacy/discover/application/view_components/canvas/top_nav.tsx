@@ -60,7 +60,7 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
   }, [legacyState.savedSearch]);
 
   // Replace indexPattern - get from query state
-  const indexPattern = queryState.dataset;
+  const [indexPattern, setIndexPattern] = useState<IndexPattern | undefined>(undefined);
   const [indexPatterns, setIndexPatterns] = useState<IndexPattern[] | undefined>(undefined);
   const [screenTitle, setScreenTitle] = useState<string>('');
   const [queryStatus, setQueryStatus] = useState<QueryStatus>({ status: ResultStatus.READY });
@@ -136,6 +136,25 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
       isMounted = false;
     };
   }, [data.indexPatterns, data.query]);
+
+  // Fetch IndexPattern from dataset
+  useEffect(() => {
+    const fetchIndexPattern = async () => {
+      if (queryState.dataset?.id) {
+        try {
+          const pattern = await data.indexPatterns.get(queryState.dataset.id);
+          setIndexPattern(pattern);
+        } catch (err) {
+          console.error('Failed to fetch index pattern:', err);
+          setIndexPattern(undefined);
+        }
+      } else {
+        setIndexPattern(undefined);
+      }
+    };
+
+    fetchIndexPattern();
+  }, [queryState.dataset?.id, data.indexPatterns]);
 
   useEffect(() => {
     setScreenTitle(

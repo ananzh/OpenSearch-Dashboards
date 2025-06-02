@@ -4,7 +4,7 @@
  */
 
 import './discover_chart_container.scss';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { ExploreServices } from '../../../../../../types';
 import { useOpenSearchDashboards } from '../../../../../../../../opensearch_dashboards_react/public';
@@ -21,13 +21,39 @@ export const DiscoverChartContainer = ({ rows, bucketInterval, chartData }: Sear
 
   const isEnhancementsEnabled = uiSettings.get(QUERY_ENHANCEMENT_ENABLED_SETTING, false);
 
+  const [indexPattern, setIndexPattern] = useState<any>(undefined);
+
+  // Fetch IndexPattern from dataset
+  useEffect(() => {
+    const fetchIndexPattern = async () => {
+      if (dataset?.id) {
+        try {
+          const pattern = await services.data.indexPatterns.get(dataset.id);
+          setIndexPattern(pattern);
+        } catch (err) {
+          console.error('Failed to fetch index pattern for chart:', err);
+          setIndexPattern(undefined);
+        }
+      } else if (indexPatternId) {
+        // Fallback to legacy approach
+        try {
+          const pattern = await services.data.indexPatterns.get(indexPatternId);
+          setIndexPattern(pattern);
+        } catch (err) {
+          console.error('Failed to fetch index pattern for chart (legacy):', err);
+          setIndexPattern(undefined);
+        }
+      } else {
+        setIndexPattern(undefined);
+      }
+    };
+
+    fetchIndexPattern();
+  }, [dataset?.id, indexPatternId, services.data.indexPatterns]);
+
   const isTimeBased = useMemo(() => {
-    // Use dataset if available (modern), otherwise use indexPatternId (legacy)
-    // Both approaches work - dataset is preferred for explore
-    const indexPattern =
-      dataset || (indexPatternId ? { id: indexPatternId, isTimeBased: () => true } : undefined);
     return indexPattern ? indexPattern.isTimeBased() : false;
-  }, [dataset, indexPatternId]);
+  }, [indexPattern]);
 
   if (!rows || !isTimeBased) return null;
 
