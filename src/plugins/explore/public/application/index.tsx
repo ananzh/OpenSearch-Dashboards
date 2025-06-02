@@ -20,20 +20,25 @@ interface ExploreRouteProps {
 }
 
 // Route components for different paths
-const ExploreMainRoute = (props: ExploreRouteProps) => <ExploreApp />;
+const ExploreMainRoute = (props: ExploreRouteProps & { setHeaderActionMenu?: any }) => (
+  <ExploreApp setHeaderActionMenu={props.setHeaderActionMenu} />
+);
 
 // View route for saved searches
-const ViewRoute = (props: ExploreRouteProps) => <ExploreApp />;
+const ViewRoute = (props: ExploreRouteProps & { setHeaderActionMenu?: any }) => (
+  <ExploreApp setHeaderActionMenu={props.setHeaderActionMenu} />
+);
 
 export const renderApp = (
-  { element, history }: AppMountParameters,
+  { element, history, setHeaderActionMenu }: AppMountParameters,
   services: ExploreServices,
   store: Store
 ) => {
   // Create main route props
-  const mainRouteProps: ExploreRouteProps = {
+  const mainRouteProps = {
     services,
     history,
+    setHeaderActionMenu,
   };
   ReactDOM.render(
     <Router history={history}>

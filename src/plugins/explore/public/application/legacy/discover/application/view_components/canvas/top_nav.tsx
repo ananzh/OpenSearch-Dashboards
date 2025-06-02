@@ -91,7 +91,7 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
     data.query,
     osdUrlStateStorage
   );
-  const showActionsInGroup = uiSettings.get('home:useNewHomePage', false);
+  const showActionsInGroup = false; // Use portal approach to display actions in nav bar
 
   const topNavLinks = getTopNavLinks(
     services,
@@ -160,71 +160,35 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
   return (
     <>
       {displayToNavLinkInPortal &&
-        opts.optionalRef?.topLinkRef?.current &&
         createPortal(
-          <EuiFlexGroup gutterSize="m" alignItems="center" justifyContent="spaceBetween">
-            {/* Left side: Actions next to test / */}
-            <EuiFlexItem grow={false}>
-              <EuiFlexGroup gutterSize="s" alignItems="center">
-                {topNavLinks.map((topNavLink, index) => (
-                  <EuiFlexItem
-                    grow={false}
-                    key={('id' in topNavLink ? topNavLink.id : undefined) || index}
-                  >
-                    <EuiToolTip
-                      position="bottom"
-                      content={('label' in topNavLink ? topNavLink.label : undefined) || ''}
-                    >
-                      <EuiButtonIcon
-                        onClick={(event: React.MouseEvent) => {
-                          if (topNavLink.run) {
-                            // Handle different run function signatures
-                            if ('checked' in topNavLink) {
-                              // TopNavMenuSwitchAction expects (element, checked)
-                              const checked =
-                                typeof topNavLink.checked === 'function'
-                                  ? topNavLink.checked()
-                                  : topNavLink.checked;
-                              (topNavLink.run as any)(event.currentTarget as HTMLElement, checked);
-                            } else {
-                              // TopNavMenuAction or TopNavMenuClickAction expects just (element)
-                              (topNavLink.run as any)(event.currentTarget as HTMLElement);
-                            }
-                          }
-                        }}
-                        iconType={
-                          ('iconType' in topNavLink ? topNavLink.iconType : undefined) || 'apps'
-                        }
-                        aria-label={
-                          ('ariaLabel' in topNavLink ? topNavLink.ariaLabel : undefined) || ''
-                        }
-                      />
-                    </EuiToolTip>
-                  </EuiFlexItem>
-                ))}
-              </EuiFlexGroup>
-            </EuiFlexItem>
-
-            {/* Right side: Dataset selector */}
-            <EuiFlexItem grow={false}>
-              <DatasetSelector
-                onSubmit={(query: Query, dateRange?: TimeRange) => {
-                  opts.onQuerySubmit({
-                    query,
-                    dateRange: dateRange || { from: 'now-15m', to: 'now' },
-                  });
-                }}
-                appearance={DatasetSelectorAppearance.Button}
-              />
-            </EuiFlexItem>
+          <EuiFlexGroup gutterSize="xs" alignItems="center">
+            {topNavLinks.map((topNavLink) => (
+              <EuiFlexItem grow={false} key={(topNavLink as any).id}>
+                <EuiToolTip position="bottom" content={(topNavLink as any).label}>
+                  <EuiButtonIcon
+                    onClick={(event: any) => {
+                      if (topNavLink.run) {
+                        (topNavLink.run as any)(event.currentTarget);
+                      }
+                    }}
+                    iconType={(topNavLink as any).iconType}
+                    aria-label={(topNavLink as any).ariaLabel}
+                    size="s"
+                    color="text"
+                    data-test-subj={`${(topNavLink as any).id}Button`}
+                  />
+                </EuiToolTip>
+              </EuiFlexItem>
+            ))}
           </EuiFlexGroup>,
-          opts.optionalRef.topLinkRef.current
+          opts.optionalRef!.topLinkRef.current!
         )}
       <TopNavMenu
         appName={PLUGIN_ID}
-        config={topNavLinks}
+        config={displayToNavLinkInPortal ? [] : topNavLinks}
+        data={data}
         showSearchBar={false}
-        showDatePicker={showDatePicker}
+        showDatePicker={showDatePicker && TopNavMenuItemRenderType.IN_PORTAL}
         showSaveQuery={showSaveQuery}
         useDefaultBehaviors
         setMenuMountPoint={opts.setHeaderActionMenu}
@@ -234,10 +198,10 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
         onSavedQueryIdChange={updateSavedQueryId}
         datasetSelectorRef={opts?.optionalRef?.datasetSelectorRef}
         datePickerRef={opts?.optionalRef?.datePickerRef}
-        groupActions={showActionsInGroup}
-        screenTitle=""
+        groupActions={!showActionsInGroup}
+        screenTitle={screenTitle}
         queryStatus={queryStatus}
-        showQueryBar={true}
+        showQueryBar={!!opts?.optionalRef?.datasetSelectorRef}
       />
     </>
   );

@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { EuiErrorBoundary, EuiPanel } from '@elastic/eui';
+import { EuiErrorBoundary, EuiPanel, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
 import { syncQueryStateWithUrl } from '../../../data/public';
 import {
   createOsdUrlStateStorage,
@@ -22,11 +22,15 @@ import { DiscoverChartContainer } from './legacy/discover/application/view_compo
 import { QueryPanel } from './components/query_panel';
 import { TabBar } from './components/tab_bar';
 import { TabContent } from './components/tab_content';
+import { QUERY_ENHANCEMENT_ENABLED_SETTING } from './constants';
+import './app.scss';
 
 /**
  * Main application component for the Explore plugin
  */
-export const ExploreApp: React.FC = () => {
+export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => void }> = ({
+  setHeaderActionMenu,
+}) => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const dispatch = useDispatch();
   const queryState = useSelector((state: RootState) => state.query);
@@ -81,18 +85,18 @@ export const ExploreApp: React.FC = () => {
   }, [services]);
 
   // Get enhanced UI setting
-  const isEnhancementsEnabled =
-    services?.uiSettings?.get('query:enhancementsEnabled', false) || false;
+  const isEnhancementsEnabled = services.uiSettings?.get(QUERY_ENHANCEMENT_ENABLED_SETTING);
 
-  // Create refs for TopNav components
+  // Create refs for portal positioning to match discover layout
+  const topLinkRef = useRef<HTMLDivElement>(null);
   const datasetSelectorRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
 
-  // Create TopNav props
+  // Create TopNav props - use portal approach for precise positioning
   const topNavProps = {
     isEnhancementsEnabled,
     opts: {
-      setHeaderActionMenu: () => {}, // Required but not used in this context
+      setHeaderActionMenu: setHeaderActionMenu || (() => {}), // Use real global header mount point
       onQuerySubmit: ({ dateRange, query }: any) => {
         // Update time range
         if (dateRange && services?.data?.query?.timefilter?.timefilter) {
@@ -100,6 +104,7 @@ export const ExploreApp: React.FC = () => {
         }
       },
       optionalRef: {
+        topLinkRef,
         datasetSelectorRef,
         datePickerRef,
       },
@@ -109,37 +114,64 @@ export const ExploreApp: React.FC = () => {
 
   return (
     <EuiErrorBoundary>
-      <EuiPanel
-        hasBorder={true}
-        hasShadow={false}
-        paddingSize="s"
-        className="dscCanvas"
-        data-test-subj="dscCanvas"
-        borderRadius="l"
-      >
-        {/* Legacy TopNav component */}
-        <TopNav {...topNavProps} />
+      <div className="mainPage">
+        {/* Nav bar structure exactly like data_explorer */}
+        {isEnhancementsEnabled && (
+          <EuiFlexGroup
+            direction="row"
+            className="mainPage navBar"
+            gutterSize="none"
+            alignItems="center"
+            justifyContent="spaceBetween"
+          >
+            <EuiFlexItem grow={false}>
+              <div ref={topLinkRef} />
+            </EuiFlexItem>
+            <EuiFlexItem grow={false}>
+              <EuiFlexGroup gutterSize="s" alignItems="center">
+                <EuiFlexItem grow={false}>
+                  <div ref={datasetSelectorRef} />
+                </EuiFlexItem>
+                <EuiFlexItem grow={false}>
+                  <div ref={datePickerRef} />
+                </EuiFlexItem>
+              </EuiFlexGroup>
+            </EuiFlexItem>
+          </EuiFlexGroup>
+        )}
 
-        {/* New QueryPanel component */}
-        <div className="dscCanvas__queryPanel">
-          <QueryPanel datePickerRef={datePickerRef} />
-        </div>
+        <EuiPanel
+          hasBorder={true}
+          hasShadow={false}
+          paddingSize="s"
+          className="dscCanvas"
+          data-test-subj="dscCanvas"
+          borderRadius="l"
+        >
+          {/* TopNav component - configured like discover */}
+          <TopNav {...topNavProps} />
 
-        {/* Tab Bar for switching between tabs */}
-        <div className="dscCanvas__tabBar">
-          <TabBar />
-        </div>
+          {/* QueryPanel component */}
+          <div className="dscCanvas__queryPanel">
+            <QueryPanel datePickerRef={datePickerRef} datasetSelectorRef={datasetSelectorRef} />
+          </div>
 
-        {/* Chart container from legacy */}
-        <div className="dscCanvas__chart">
-          <DiscoverChartContainer rows={[]} status={ResultStatus.READY} />
-        </div>
+          {/* Tab Bar for switching between tabs */}
+          <div className="dscCanvas__tabBar">
+            <TabBar />
+          </div>
 
-        {/* Tab content that renders the active tab */}
-        <div className="dscCanvas__tabContent">
-          <TabContent />
-        </div>
-      </EuiPanel>
+          {/* Chart container from legacy */}
+          <div className="dscCanvas__chart">
+            <DiscoverChartContainer rows={[]} status={ResultStatus.READY} />
+          </div>
+
+          {/* Tab content that renders the active tab */}
+          <div className="dscCanvas__tabContent">
+            <TabContent />
+          </div>
+        </EuiPanel>
+      </div>
     </EuiErrorBoundary>
   );
 };

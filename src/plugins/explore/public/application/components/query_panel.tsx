@@ -7,9 +7,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiButton, EuiSpacer, EuiText } from '@elastic/eui';
 import { monaco } from '@osd/monaco';
+import { createPortal } from 'react-dom';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
-import { DefaultInput } from '../../../../data/public';
+import { DefaultInput, DatasetSelector, DatasetSelectorAppearance } from '../../../../data/public';
 import { setQueryString, setLanguage } from '../utils/state_management/slices/query_slice';
 import { RecentQuerySelector } from './recent_query_selector';
 import {
@@ -27,13 +28,14 @@ import { ResultStatus, QueryStatus } from '../utils/state_management/types';
 
 export interface QueryPanelProps {
   datePickerRef?: React.RefObject<HTMLDivElement>;
+  datasetSelectorRef?: React.RefObject<HTMLDivElement>;
 }
 
 /**
  * Custom query panel component for the Explore plugin
  * Uses Redux for state management and supports datePickerRef for external date picker
  */
-export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
+export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSelectorRef }) => {
   const dispatch = useDispatch();
 
   // Get services from context
@@ -92,6 +94,31 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
     // Commit transaction to trigger query execution
     dispatch(finishTransaction());
   }, [dispatch, localQuery]);
+
+  // Handle dataset selection - sync with Explore's Redux store
+  const handleDatasetSelect = useCallback(
+    (query: any, dateRange?: any) => {
+      // Start transaction to batch state updates
+      dispatch(beginTransaction());
+
+      // Update language in Explore's Redux store if it changed
+      if (query.language) {
+        dispatch(setLanguage(query.language));
+      }
+
+      // Clear results cache since dataset changed
+      dispatch(clearResults());
+
+      // Update time range if provided
+      if (dateRange && services?.data?.query?.timefilter?.timefilter) {
+        services.data.query.timefilter.timefilter.setTime(dateRange);
+      }
+
+      // Commit transaction to trigger query execution
+      dispatch(finishTransaction());
+    },
+    [dispatch, services]
+  );
 
   // Handle editor mount
   const handleEditorDidMount = useCallback(
@@ -198,49 +225,64 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
   );
 
   return (
-    <EuiPanel paddingSize="s" hasBorder>
-      <DefaultInput
-        languageId={queryLanguage}
-        value={localQuery}
-        onChange={handleQueryChange}
-        editorDidMount={handleEditorDidMount}
-        headerRef={headerRef}
-        provideCompletionItems={provideCompletionItems}
-        queryStatus={queryStatus}
-        footerItems={{
-          start: [<RecentQuerySelector size="xs" key="recentQueries" />],
-          end: [
-            // Date picker will be rendered here via datePickerRef
-            datePickerRef && (
-              <div
-                ref={datePickerRef}
-                key="datePicker"
-                style={{ display: 'inline-flex', alignItems: 'center', marginRight: '8px' }}
-              />
-            ),
-            // Run button moved to footer
-            <EuiButton
-              key="runButton"
-              fill
-              size="s"
-              onClick={handleRunQuery}
-              isLoading={isLoading}
-              data-test-subj="exploreQuerySubmitButton"
-            >
-              Run
-            </EuiButton>,
-          ].filter(Boolean),
-        }}
-      />
+    <>
+      {/* Portal dataset selector to header if ref is provided */}
+      {datasetSelectorRef?.current &&
+        createPortal(
+          <DatasetSelector
+            onSubmit={handleDatasetSelect}
+            appearance={DatasetSelectorAppearance.Button}
+            buttonProps={{
+              'data-test-subj': 'exploreHeaderDatasetSelector',
+            }}
+          />,
+          datasetSelectorRef.current
+        )}
 
-      {error && (
-        <>
-          <EuiSpacer size="s" />
-          <EuiText color="danger" size="s">
-            {error.message}
-          </EuiText>
-        </>
-      )}
-    </EuiPanel>
+      <EuiPanel paddingSize="s" hasBorder>
+        <DefaultInput
+          languageId={queryLanguage}
+          value={localQuery}
+          onChange={handleQueryChange}
+          editorDidMount={handleEditorDidMount}
+          headerRef={headerRef}
+          provideCompletionItems={provideCompletionItems}
+          queryStatus={queryStatus}
+          footerItems={{
+            start: [<RecentQuerySelector size="xs" key="recentQueries" />],
+            end: [
+              // Date picker will be rendered here via datePickerRef
+              datePickerRef && (
+                <div
+                  ref={datePickerRef}
+                  key="datePicker"
+                  style={{ display: 'inline-flex', alignItems: 'center', marginRight: '8px' }}
+                />
+              ),
+              // Run button moved to footer
+              <EuiButton
+                key="runButton"
+                fill
+                size="s"
+                onClick={handleRunQuery}
+                isLoading={isLoading}
+                data-test-subj="exploreQuerySubmitButton"
+              >
+                Run
+              </EuiButton>,
+            ].filter(Boolean),
+          }}
+        />
+
+        {error && (
+          <>
+            <EuiSpacer size="s" />
+            <EuiText color="danger" size="s">
+              {error.message}
+            </EuiText>
+          </>
+        )}
+      </EuiPanel>
+    </>
   );
 };

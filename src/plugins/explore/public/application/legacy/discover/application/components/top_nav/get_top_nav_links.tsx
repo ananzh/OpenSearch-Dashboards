@@ -134,9 +134,7 @@ const getLegacyTopNavLinks = (
             }
 
             // set App state to clean
-            store!.dispatch(
-              setSavedSearch({ id, title: savedSearch.title, description: savedSearch.description })
-            );
+            store!.dispatch(setSavedSearch(id));
 
             // starts syncing `_g` portion of url with query services
             startSyncingQueryStateWithUrl();
@@ -334,7 +332,7 @@ export const getTopNavLinks = (
       });
       // TODO this behavior is different from Discover. Clicking New in Explore
       // only closes the saved search and does not change the query.
-      store!.dispatch(setSavedSearch(null));
+      store!.dispatch(setSavedSearch(undefined));
     },
     testId: 'discoverNewButton',
     ariaLabel: i18n.translate('explore.discover.topNav.discoverNewButtonLabel', {
@@ -431,13 +429,7 @@ export const getTopNavLinks = (
               }
 
               // set App state to clean
-              store!.dispatch(
-                setSavedSearch({
-                  id,
-                  title: savedExplore.title,
-                  description: savedExplore.description,
-                })
-              );
+              store!.dispatch(setSavedSearch(id));
 
               // starts syncing `_g` portion of url with query services
               startSyncingQueryStateWithUrl();
