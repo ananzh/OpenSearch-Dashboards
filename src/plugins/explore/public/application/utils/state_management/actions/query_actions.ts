@@ -115,8 +115,22 @@ export const executeTabQuery = (options: { clearCache?: boolean; services?: any 
       // Create new SearchSource for this query
       const searchSource = await services.data.search.searchSource.create();
 
-      // Configure SearchSource
-      const indexPattern = preparedQuery.dataset || services.data.indexPattern;
+      // Configure SearchSource - need to get actual IndexPattern, not Dataset
+      let indexPattern;
+      if (preparedQuery.dataset) {
+        // Convert Dataset to IndexPattern
+        indexPattern = await services.data.indexPatterns.get(
+          preparedQuery.dataset.id,
+          preparedQuery.dataset.type !== 'INDEX_PATTERN'
+        );
+      } else {
+        indexPattern = services.data.indexPattern;
+      }
+
+      if (!indexPattern) {
+        throw new Error('IndexPattern not found for query execution');
+      }
+
       const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
 
       searchSource

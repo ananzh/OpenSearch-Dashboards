@@ -5,7 +5,16 @@
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { EuiErrorBoundary, EuiPanel, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
+import {
+  EuiErrorBoundary,
+  EuiPanel,
+  EuiFlexGroup,
+  EuiFlexItem,
+  EuiResizableContainer,
+  EuiPage,
+  EuiPageBody,
+  useIsWithinBreakpoints,
+} from '@elastic/eui';
 import { syncQueryStateWithUrl } from '../../../data/public';
 import {
   createOsdUrlStateStorage,
@@ -23,6 +32,7 @@ import { DiscoverChartContainer } from './legacy/discover/application/view_compo
 import { QueryPanel } from './components/query_panel';
 import { TabBar } from './components/tab_bar';
 import { TabContent } from './components/tab_content';
+import { DiscoverPanel } from './legacy/discover/application/view_components/panel';
 import { QUERY_ENHANCEMENT_ENABLED_SETTING } from './constants';
 import './app.scss';
 
@@ -37,6 +47,7 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
   const queryState = useSelector((state: RootState) => state.query);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPPLConverted, setIsPPLConverted] = useState(false);
+  const isMobile = useIsWithinBreakpoints(['xs', 's', 'm']);
 
   // Check if should search on page load (like discover)
   const shouldSearchOnPageLoad = useMemo(() => {
@@ -54,10 +65,25 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
         if (pplLanguage) {
           const currentQuery = queryStringManager.getQuery();
 
+          console.log('🔧 PPL Conversion: Current query from URL:', {
+            language: currentQuery.language,
+            query: currentQuery.query,
+            dataset: currentQuery.dataset
+              ? {
+                  id: currentQuery.dataset.id,
+                  title: currentQuery.dataset.title,
+                  type: currentQuery.dataset.type,
+                }
+              : 'undefined',
+          });
+
           if (currentQuery.language !== 'PPL' && currentQuery.dataset) {
             // Convert to PPL and generate default query
+            console.log('🔧 PPL Conversion: Converting non-PPL to PPL');
             const datasetWithPPL = { ...currentQuery.dataset, language: 'PPL' };
             const pplQuery = queryStringManager.getInitialQueryByDataset(datasetWithPPL);
+
+            console.log('🔧 PPL Conversion: Generated PPL query:', pplQuery);
 
             // Update both queryStringManager and Redux
             queryStringManager.setQuery(pplQuery);
@@ -65,14 +91,25 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
           } else if (
             currentQuery.language === 'PPL' &&
             currentQuery.dataset &&
-            !currentQuery.query
+            (!currentQuery.query || currentQuery.query === '')
           ) {
             // Already PPL but no query string, generate default
+            console.log('🔧 PPL Conversion: PPL language but missing query, generating default');
             const datasetWithPPL = { ...currentQuery.dataset, language: 'PPL' };
             const pplQuery = queryStringManager.getInitialQueryByDataset(datasetWithPPL);
 
+            console.log('🔧 PPL Conversion: Generated default PPL query:', pplQuery);
+
             queryStringManager.setQuery(pplQuery);
             dispatch(setQuery(pplQuery));
+          } else if (
+            currentQuery.language === 'PPL' &&
+            currentQuery.dataset &&
+            currentQuery.query
+          ) {
+            // Already PPL with query, just sync to Redux
+            console.log('🔧 PPL Conversion: PPL query already exists, syncing to Redux');
+            dispatch(setQuery(currentQuery));
           }
 
           setIsPPLConverted(true);
@@ -104,6 +141,28 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
       }
     }
   }, [isPPLConverted, services, dispatch]);
+
+  // Simplified dataset change detection - mainly for edge cases
+  // Primary dataset handling is now in QueryPanel.handleDatasetSelect
+  useEffect(() => {
+    if (isPPLConverted && services?.data?.query?.queryString && queryState.dataset) {
+      const queryStringManager = services.data.query.queryString;
+      const currentQuery = queryStringManager.getQuery();
+
+      // Only regenerate if there's a clear mismatch (backup mechanism)
+      const datasetIdMismatch = currentQuery.dataset?.id !== queryState.dataset?.id;
+      const queryMismatch =
+        currentQuery.language === 'PPL' && !currentQuery.query?.includes(queryState.dataset.title);
+
+      if (datasetIdMismatch || queryMismatch) {
+        const datasetWithPPL = { ...queryState.dataset, language: 'PPL' };
+        const pplQuery = queryStringManager.getInitialQueryByDataset(datasetWithPPL);
+
+        queryStringManager.setQuery(pplQuery);
+        dispatch(setQuery(pplQuery));
+      }
+    }
+  }, [isPPLConverted, services, dispatch, queryState.dataset?.id, queryState.dataset?.title]);
 
   // Initial query execution
   useEffect(() => {
@@ -204,37 +263,59 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
           </EuiFlexGroup>
         )}
 
-        <EuiPanel
-          hasBorder={true}
-          hasShadow={false}
-          paddingSize="s"
-          className="dscCanvas"
-          data-test-subj="dscCanvas"
-          borderRadius="l"
-        >
-          {/* TopNav component - configured like discover */}
-          <TopNav {...topNavProps} />
+        <EuiPage className="deLayout" paddingSize="none" grow={false}>
+          <EuiPageBody>
+            {/* TopNav component - configured like discover */}
+            <TopNav {...topNavProps} />
 
-          {/* QueryPanel component */}
-          <div className="dscCanvas__queryPanel">
-            <QueryPanel datePickerRef={datePickerRef} datasetSelectorRef={datasetSelectorRef} />
-          </div>
+            {/* QueryPanel component */}
+            <div className="dscCanvas__queryPanel">
+              <QueryPanel datePickerRef={datePickerRef} datasetSelectorRef={datasetSelectorRef} />
+            </div>
 
-          {/* Tab Bar for switching between tabs */}
-          <div className="dscCanvas__tabBar">
-            <TabBar />
-          </div>
+            {/* Main content area with resizable panels under QueryPanel */}
+            <EuiResizableContainer
+              direction={isMobile ? 'vertical' : 'horizontal'}
+              style={{ flex: 1 }}
+            >
+              {(EuiResizablePanel, EuiResizableButton) => (
+                <>
+                  {/* Left Panel: DiscoverPanel (Fields) */}
+                  <EuiResizablePanel
+                    initialSize={20}
+                    minSize="260px"
+                    mode={['collapsible', { position: 'top' }]}
+                    paddingSize="none"
+                  >
+                    <DiscoverPanel />
+                  </EuiResizablePanel>
 
-          {/* Chart container from legacy */}
-          <div className="dscCanvas__chart">
-            <DiscoverChartContainer rows={[]} status={ResultStatus.READY} />
-          </div>
+                  <EuiResizableButton />
 
-          {/* Tab content that renders the active tab */}
-          <div className="dscCanvas__tabContent">
-            <TabContent />
-          </div>
-        </EuiPanel>
+                  {/* Right Panel: Chart and Tab Content */}
+                  <EuiResizablePanel initialSize={80} mode="main" paddingSize="none">
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                      {/* Tab Bar for switching between tabs */}
+                      <div className="dscCanvas__tabBar">
+                        <TabBar />
+                      </div>
+
+                      {/* Chart container from legacy */}
+                      <div className="dscCanvas__chart">
+                        <DiscoverChartContainer rows={[]} status={ResultStatus.READY} />
+                      </div>
+
+                      {/* Tab content that renders the active tab */}
+                      <div className="dscCanvas__tabContent">
+                        <TabContent />
+                      </div>
+                    </div>
+                  </EuiResizablePanel>
+                </>
+              )}
+            </EuiResizableContainer>
+          </EuiPageBody>
+        </EuiPage>
       </div>
     </EuiErrorBoundary>
   );

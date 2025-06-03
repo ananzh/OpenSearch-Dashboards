@@ -20,7 +20,7 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
     label: 'Logs',
     flavor: [],
     order: 10,
-    supportedLanguages: ['ppl'],
+    supportedLanguages: ['PPL'],
 
     prepareQuery: (query) => {
       if (query.language === 'PPL') {
@@ -53,7 +53,7 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
     label: 'Visualizations',
     flavor: [],
     order: 20,
-    supportedLanguages: ['ppl'],
+    supportedLanguages: ['PPL'],
 
     prepareQuery: (query) => {
       // No query transformation for visualizations tab

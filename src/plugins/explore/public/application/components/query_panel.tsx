@@ -11,7 +11,11 @@ import { createPortal } from 'react-dom';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
 import { DefaultInput, DatasetSelector, DatasetSelectorAppearance } from '../../../../data/public';
-import { setQueryString, setLanguage } from '../utils/state_management/slices/query_slice';
+import {
+  setQueryString,
+  setLanguage,
+  setQuery,
+} from '../utils/state_management/slices/query_slice';
 import { RecentQuerySelector } from './recent_query_selector';
 import {
   beginTransaction,
@@ -91,31 +95,46 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSe
     // Clear results cache
     dispatch(clearResults());
 
-    // Commit transaction to trigger query execution
+    // Commit transaction
     dispatch(finishTransaction());
-  }, [dispatch, localQuery]);
 
-  // Handle dataset selection - sync with Explore's Redux store
+    // Execute query directly with services (since transaction handler isn't connected)
+    const { executeQueries } = require('../utils/state_management/actions/query_actions');
+    dispatch(executeQueries({ clearCache: true, services }) as any);
+  }, [dispatch, localQuery, services]);
+
+  // Handle dataset selection - simplified approach
+  // Let ConnectedDatasetSelector do the heavy lifting, we just update Redux and execute
   const handleDatasetSelect = useCallback(
     (query: any, dateRange?: any) => {
-      // Start transaction to batch state updates
-      dispatch(beginTransaction());
+      // ConnectedDatasetSelector already:
+      // 1. Updates queryStringManager via setQuery()
+      // 2. Sets user language preference
+      // 3. Calls getInitialQuery() (though not getInitialQueryByDataset)
 
-      // Update language in Explore's Redux store if it changed
-      if (query.language) {
-        dispatch(setLanguage(query.language));
+      // We need to generate the proper PPL query since ConnectedDatasetSelector
+      // calls getInitialQuery() instead of getInitialQueryByDataset()
+      if (query.dataset) {
+        const datasetWithPPL = { ...query.dataset, language: 'PPL' };
+        const pplQuery = services.data.query.queryString.getInitialQueryByDataset(datasetWithPPL);
+
+        // Update Redux with the PPL query
+        dispatch(setQuery(pplQuery));
+
+        // Update queryStringManager to stay in sync
+        services.data.query.queryString.setQuery(pplQuery);
+      } else {
+        // No dataset, just use the query as-is
+        dispatch(setQuery(query));
       }
 
-      // Clear results cache since dataset changed
+      // Clear results and execute
       dispatch(clearResults());
 
       // Update time range if provided
       if (dateRange && services?.data?.query?.timefilter?.timefilter) {
         services.data.query.timefilter.timefilter.setTime(dateRange);
       }
-
-      // Commit transaction to trigger query execution
-      dispatch(finishTransaction());
     },
     [dispatch, services]
   );

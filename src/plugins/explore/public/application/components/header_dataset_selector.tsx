@@ -4,7 +4,6 @@
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { useDispatch } from 'react-redux';
 import { DatasetSelector, DatasetSelectorAppearance, Query } from '../../../../data/public';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
@@ -46,10 +45,18 @@ export const HeaderDatasetSelector: React.FC<HeaderDatasetSelectorProps> = ({
       // Start transaction to batch state updates
       dispatch(beginTransaction());
 
-      // Use queryStringManager to get proper default query with dataset
+      // IMPORTANT: Ignore the query from ConnectedDatasetSelector since it uses getInitialQuery()
+      // instead of getInitialQueryByDataset(). We need to generate our own PPL query.
+
+      // Set language to PPL to ensure proper query generation
+      const datasetWithPPL = { ...query.dataset, language: 'PPL' };
+
       const queryWithDefaults = services.data.query.queryString.getInitialQueryByDataset(
-        query.dataset
+        datasetWithPPL
       );
+
+      // Also update the global queryStringManager to keep it in sync
+      services.data.query.queryString.setQuery(queryWithDefaults);
 
       // Update Redux with the complete query (including generated query string)
       dispatch(setQuery(queryWithDefaults));
