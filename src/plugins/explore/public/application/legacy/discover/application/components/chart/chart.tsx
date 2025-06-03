@@ -17,7 +17,8 @@ import { TimechartHeader, TimechartHeaderBucketInterval } from './timechart_head
 import { DiscoverHistogram } from './histogram/histogram';
 import { ExploreServices } from '../../../../../../types';
 import { Chart } from './utils';
-import { setInterval, useDispatch, useSelector } from '../../utils/state_management';
+import { useDispatch, useSelector } from '../../utils/state_management';
+import { setInterval } from '../../../../../utils/state_management/slices/legacy_slice';
 import { executeHistogramQuery } from '../../../../../utils/state_management/actions/query_actions';
 
 interface DiscoverChartProps {
@@ -135,6 +136,21 @@ export const DiscoverChart = ({
             data-test-subj="dscTimechart"
           >
             <div className="dscHistogram" data-test-subj="discoverChart">
+              {/* DEBUG: Log chartData structure before passing to DiscoverHistogram */}
+              {(() => {
+                console.log('🔍 [EXPLORE] DiscoverChart chartData:', {
+                  hasOrdered: !!chartData.ordered,
+                  orderedKeys: chartData.ordered ? Object.keys(chartData.ordered) : 'N/A',
+                  ordered: chartData.ordered,
+                  hasValues: !!chartData.values,
+                  valuesLength: chartData.values?.length || 0,
+                  hasXAxisOrderedValues: !!chartData.xAxisOrderedValues,
+                  xAxisOrderedValuesLength: chartData.xAxisOrderedValues?.length || 0,
+                  chartDataKeys: Object.keys(chartData),
+                  fullChartData: chartData,
+                });
+                return null;
+              })()}
               <DiscoverHistogram
                 chartData={chartData}
                 timefilterUpdateHandler={timefilterUpdateHandler}

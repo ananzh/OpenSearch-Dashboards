@@ -245,6 +245,7 @@ export class ExplorePlugin
 
         // For main explore routes, load the full application
         const { renderApp } = await import('./application');
+        const { registerTabs } = await import('./application/register_tabs');
 
         // Build services using the buildServices function
         const services = buildServices(
@@ -253,6 +254,9 @@ export class ExplorePlugin
           this.initializerContext,
           this.tabRegistry
         );
+
+        // Register tabs with the tab registry
+        registerTabs(services);
 
         // Instantiate the store
         const { store, unsubscribe: unsubscribeStore } = await getPreloadedStore(services);

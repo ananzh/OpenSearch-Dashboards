@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useSelector } from 'react-redux';
 import { EuiEmptyPrompt, EuiLoadingSpinner, EuiPanel } from '@elastic/eui';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
@@ -14,6 +14,7 @@ import {
   selectQuery,
   selectResults,
   selectIsLoading,
+  selectStatus,
   selectError,
 } from '../utils/state_management/selectors';
 
@@ -29,11 +30,23 @@ export const TabContent: React.FC = () => {
   const activeTabId = useSelector(selectActiveTabId);
   const query = useSelector(selectQuery);
   const isLoading = useSelector(selectIsLoading);
+  const status = useSelector(selectStatus);
   const error = useSelector(selectError);
   const results = useSelector(selectResults);
 
+  // DEBUG: Log TabContent state
+  console.log('🔍 TabContent - activeTabId:', activeTabId);
+  console.log('🔍 TabContent - tabRegistry available:', !!services.tabRegistry);
+  console.log('🔍 TabContent - query:', query);
+  console.log('🔍 TabContent - isLoading:', isLoading);
+  console.log('🔍 TabContent - status:', status);
+  console.log('🔍 TabContent - error:', error);
+  console.log('🔍 TabContent - results:', !!results);
+
   // Get tabDefinition from services context instead of Redux
   const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
+  console.log('🔍 TabContent - tabDefinition found:', !!tabDefinition);
+  console.log('🔍 TabContent - tabDefinition:', tabDefinition);
 
   // Get timeRange from services instead of Redux
   const timeRange = services.data?.query?.timefilter?.timefilter?.getTime() || {
@@ -42,6 +55,7 @@ export const TabContent: React.FC = () => {
   };
 
   if (!tabDefinition) {
+    console.log('❌ TabContent - No tab definition found for activeTabId:', activeTabId);
     return (
       <EuiEmptyPrompt
         title={<h2>Tab not found</h2>}
@@ -61,23 +75,16 @@ export const TabContent: React.FC = () => {
 
   return (
     <EuiPanel paddingSize="m">
-      {isLoading && !results ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <EuiLoadingSpinner size="xl" />
-        </div>
-      ) : error ? (
-        <EuiEmptyPrompt title={<h2>Error</h2>} body={<p>{error.message}</p>} />
-      ) : !results ? (
-        <EuiEmptyPrompt title={<h2>No results</h2>} body={<p>Run a query to see results.</p>} />
-      ) : (
+      {console.log('🔍 TabContent - Rendering with status:', status, 'results:', !!results)}
+      <Suspense fallback={<EuiLoadingSpinner size="l" />}>
         <TabComponent
           query={preparedQuery}
           results={results}
-          isLoading={isLoading}
+          status={status}
           error={error}
           cacheKey={cacheKey}
         />
-      )}
+      </Suspense>
     </EuiPanel>
   );
 };

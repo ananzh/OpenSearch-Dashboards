@@ -5,6 +5,7 @@
 
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../store';
+import { ResultStatus } from '../../../legacy/discover/application/view_components/utils/use_search';
 import { createCacheKey } from '../handlers/query_handler';
 
 /**
@@ -37,9 +38,18 @@ export const selectDataset = createSelector([selectQueryState], (queryState) => 
  */
 export const selectActiveTabId = createSelector([selectUIState], (uiState) => uiState.activeTabId);
 
-export const selectExecutionCacheKeys = createSelector([selectUIState], (uiState) => uiState?.executionCacheKeys || []);
+export const selectExecutionCacheKeys = createSelector(
+  [selectUIState],
+  (uiState) => uiState?.executionCacheKeys || []
+);
 
-export const selectIsLoading = createSelector([selectUIState], (uiState) => uiState.isLoading);
+export const selectStatus = createSelector([selectUIState], (uiState) => uiState.status);
+
+// Backward compatibility selector for components that still check isLoading
+export const selectIsLoading = createSelector(
+  [selectUIState],
+  (uiState) => uiState.status === ResultStatus.LOADING
+);
 
 export const selectError = createSelector([selectUIState], (uiState) => uiState.error);
 
@@ -132,14 +142,14 @@ export const selectTransactionError = createSelector([selectUIState], (uiState) 
  * Note: These selectors are deprecated and should be replaced with context-based access
  */
 export const selectTabData = createSelector(
-  [selectActiveTabId, selectQuery, selectResults, selectIsLoading, selectError],
-  (activeTabId, query, results, isLoading, error) => {
+  [selectActiveTabId, selectQuery, selectResults, selectStatus, selectError],
+  (activeTabId, query, results, status, error) => {
     // Components should use tabRegistry from context to get tabDefinition
     return {
       tabId: activeTabId,
       query,
       results,
-      isLoading,
+      status,
       error,
       preparedQuery: query, // Components should prepare query using tabDefinition from context
     };

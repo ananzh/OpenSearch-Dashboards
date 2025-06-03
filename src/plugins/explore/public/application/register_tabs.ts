@@ -14,15 +14,19 @@ const VisualizationsTabComponent = React.lazy(() => import('./components/tabs/vi
  * Registers built-in tabs with the tab registry
  */
 export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
+  console.log('🔧 registerBuiltInTabs - Starting tab registration');
+  console.log('🔧 registerBuiltInTabs - TabRegistry:', tabRegistry);
+  console.log('🔧 registerBuiltInTabs - LogsTabComponent:', LogsTabComponent);
+
   // Register Logs Tab
-  tabRegistry.registerTab({
+  const logsTabDefinition = {
     id: 'logs',
     label: 'Logs',
     flavor: [],
     order: 10,
     supportedLanguages: ['PPL'],
 
-    prepareQuery: (query) => {
+    prepareQuery: (query: any) => {
       if (query.language === 'PPL') {
         // Remove stats pipe for logs view
         return {
@@ -45,7 +49,11 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
     onInactive: () => {
       // Tab deactivated
     },
-  });
+  };
+
+  console.log('🔧 registerBuiltInTabs - Registering logs tab with definition:', logsTabDefinition);
+  tabRegistry.registerTab(logsTabDefinition);
+  console.log('🔧 registerBuiltInTabs - Logs tab registered successfully');
 
   // Register Visualizations Tab
   tabRegistry.registerTab({
@@ -78,12 +86,16 @@ export const registerBuiltInTabs = (tabRegistry: TabRegistryService) => {
  * This is the main entry point for tab registration
  */
 export const registerTabs = (services: any) => {
+  console.log('🔧 registerTabs - Starting tab registration with services:', services);
+  console.log('🔧 registerTabs - TabRegistry available:', !!services.tabRegistry);
+
   // Register built-in tabs
   registerBuiltInTabs(services.tabRegistry);
 
   // Register plugin-provided tabs
   // This would be called by plugins that want to add tabs
   const pluginTabs = services.plugins?.explore?.getTabs?.() || [];
+  console.log('🔧 registerTabs - Plugin tabs:', pluginTabs);
 
   pluginTabs.forEach((tabDefinition: any) => {
     services.tabRegistry.registerTab(tabDefinition);
@@ -91,4 +103,6 @@ export const registerTabs = (services: any) => {
 
   // Get the number of registered tabs
   const tabCount = services.tabRegistry.getAllTabs().length;
+  console.log('🔧 registerTabs - Total registered tabs:', tabCount);
+  console.log('🔧 registerTabs - All tabs:', services.tabRegistry.getAllTabs());
 };

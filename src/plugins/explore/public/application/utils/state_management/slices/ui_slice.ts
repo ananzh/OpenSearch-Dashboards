@@ -4,11 +4,12 @@
  */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ResultStatus } from '../../../legacy/discover/application/view_components/utils/use_search';
 
 export interface UIState {
   activeTabId: string;
   flavor: string;
-  isLoading: boolean;
+  status: ResultStatus;
   error: Error | null;
   abortController: AbortController | null;
   executionCacheKeys: string[];
@@ -24,7 +25,7 @@ export interface UIState {
 const initialState: UIState = {
   activeTabId: 'logs',
   flavor: 'log',
-  isLoading: false,
+  status: ResultStatus.UNINITIALIZED,
   error: null,
   abortController: null,
   executionCacheKeys: [],
@@ -47,8 +48,8 @@ const uiSlice = createSlice({
     setFlavor: (state, action: PayloadAction<string>) => {
       state.flavor = action.payload;
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.isLoading = action.payload;
+    setStatus: (state, action: PayloadAction<ResultStatus>) => {
+      state.status = action.payload;
     },
     setError: (state, action: PayloadAction<Error | null>) => {
       state.error = action.payload;
@@ -82,7 +83,7 @@ const uiSlice = createSlice({
 export const {
   setActiveTab,
   setFlavor,
-  setLoading,
+  setStatus,
   setError,
   setPromptQuery,
   setAbortController,

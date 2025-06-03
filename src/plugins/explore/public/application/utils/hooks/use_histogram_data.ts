@@ -26,7 +26,7 @@ export const useHistogramData = () => {
   useEffect(() => {
     const fetchData = async () => {
       // Skip if already loading or if query is empty
-      if (isLoading || !queryState.query.query) {
+      if (isLoading || !queryState.query) {
         return;
       }
 
@@ -56,7 +56,7 @@ export const useHistogramData = () => {
   return {
     chartData,
     bucketInterval,
-    isLoading: isLoading || uiState.isLoading,
+    isLoading: isLoading || uiState.status === 'loading',
     error: error || uiState.error,
   };
 };

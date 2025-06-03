@@ -5,6 +5,7 @@
 
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { debounceTime } from 'rxjs/operators';
 import {
   EuiErrorBoundary,
   EuiPanel,
@@ -26,7 +27,7 @@ import { RootState } from './utils/state_management/store';
 import { executeQueries } from './utils/state_management/actions/query_actions';
 import { clearResults } from './utils/state_management/slices/results_slice';
 import { setQuery } from './utils/state_management/slices/query_slice';
-import { ResultStatus } from './utils/state_management/types';
+import { ResultStatus } from './legacy/discover/application/view_components/utils/use_search';
 import { TopNav } from './legacy/discover/application/view_components/canvas/top_nav';
 import { DiscoverChartContainer } from './legacy/discover/application/view_components/canvas/discover_chart_container';
 import { QueryPanel } from './components/query_panel';
@@ -48,16 +49,77 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
   const queryState = useSelector((state: RootState) => state.query);
   const resultsState = useSelector((state: RootState) => state.results);
   const uiState = useSelector((state: RootState) => state.ui);
+
+  // Get status and rows for histogram and tab content
+  const status = useSelector((state: RootState) => {
+    console.log('🎯 App.tsx - Current Status:', state.ui?.status);
+    return state.ui?.status || ResultStatus.UNINITIALIZED;
+  });
+  const rows = useSelector((state: RootState) => {
+    console.log('🔍 App.tsx - Full Redux State:', state);
+    console.log('🔍 App.tsx - UI State:', state.ui);
+    console.log('🔍 App.tsx - ExecutionCacheKeys:', state.ui?.executionCacheKeys);
+    console.log('🔍 App.tsx - Results State:', state.results);
+
+    const executionCacheKeys = state.ui?.executionCacheKeys || [];
+    if (executionCacheKeys.length === 0) {
+      console.log('❌ App.tsx - No cache keys available');
+      return [];
+    }
+
+    const cacheKey = executionCacheKeys[0];
+    console.log('🔑 App.tsx - Using cache key:', cacheKey);
+
+    const results = state.results[cacheKey];
+    console.log('📊 App.tsx - Results for cache key:', results);
+
+    const hits = results?.hits?.hits || [];
+    console.log('📈 App.tsx - Rows count:', hits.length);
+
+    return hits;
+  });
+
+  // Get cache key from Redux state - use executionCacheKeys if available
+  const cacheKey = useSelector((state: RootState) => {
+    console.log('🔍 App.tsx Cache Key Selector - UI State:', state.ui);
+    console.log(
+      '🔍 App.tsx Cache Key Selector - ExecutionCacheKeys:',
+      state.ui?.executionCacheKeys
+    );
+    console.log(
+      '🔍 App.tsx Cache Key Selector - ExecutionCacheKeys length:',
+      state.ui?.executionCacheKeys?.length
+    );
+    console.log(
+      '🔍 App.tsx Cache Key Selector - ExecutionCacheKeys array:',
+      JSON.stringify(state.ui?.executionCacheKeys)
+    );
+
+    const executionCacheKeys = state.ui?.executionCacheKeys;
+    if (executionCacheKeys && executionCacheKeys.length > 0) {
+      console.log(
+        '✅ App.tsx Cache Key Selector - Using executionCacheKeys[0]:',
+        executionCacheKeys[0]
+      );
+      // Use the first cache key for histogram data
+      return executionCacheKeys[0];
+    }
+
+    console.log(
+      '❌ App.tsx Cache Key Selector - No cache key available, length:',
+      executionCacheKeys?.length
+    );
+    return '';
+  });
+
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPPLConverted, setIsPPLConverted] = useState(false);
   const isMobile = useIsWithinBreakpoints(['xs', 's', 'm']);
-  
 
   // Check if should search on page load (like discover)
   const shouldSearchOnPageLoad = useMemo(() => {
     return services.uiSettings.get('discover:searchOnPageLoad', true);
   }, [services.uiSettings]);
-
 
   // Convert to PPL and generate default query after app loads
   useEffect(() => {
@@ -171,10 +233,16 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
 
   // Initial query execution
   useEffect(() => {
-    if (!isInitialized && queryState.query && shouldSearchOnPageLoad && isPPLConverted && services) {
+    if (
+      !isInitialized &&
+      queryState.query &&
+      shouldSearchOnPageLoad &&
+      isPPLConverted &&
+      services
+    ) {
       console.log('🚀 App.tsx - Triggering initial query execution on page load');
       console.log('🚀 App.tsx - Query state:', queryState);
-      
+
       // Trigger initial query execution (cache keys will be stored in Redux)
       dispatch(executeQueries({ services }) as any);
       console.log('🚀 App.tsx - Initial query execution triggered');
@@ -182,40 +250,47 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
     }
   }, [isInitialized, queryState.query, shouldSearchOnPageLoad, isPPLConverted, dispatch, services]);
 
-  // Subscribe to timefilter changes (global state)
-  // This follows the middleware-driven architecture where timefilter changes
-  // trigger Redux actions that are handled by the query middleware
+  // Sync query state with URL and handle timefilter changes
   useEffect(() => {
-    if (!services?.timefilter) return;
+    if (!services?.data) return;
 
-    const subscription = services.timefilter.getTimeUpdate$().subscribe(() => {
-      // Clear cached results when time range changes
+    // Create URL state storage
+    const osdUrlStateStorage = createOsdUrlStateStorage({
+      history: services.history(),
+      useHash: services.uiSettings.get('state:storeInSessionStorage', false),
+      ...withNotifyOnErrors(services.toastNotifications),
+    });
+
+    // syncs `_g` portion of url with query services
+    const { stop: stopUrlSync } = syncQueryStateWithUrl(
+      services.data.query,
+      osdUrlStateStorage,
+      services.uiSettings
+    );
+
+    // Subscribe to timefilter changes (integrated with URL sync)
+    const timefilter = services.data.query.timefilter.timefilter;
+    const filterManager = services.data.query.filterManager;
+
+    // Combine all the observables that should trigger a search
+    const searchTriggers$ = services.data.query.state$.pipe(
+      // Debounce to avoid multiple rapid searches
+      debounceTime(100)
+    );
+
+    const subscription = searchTriggers$.subscribe(() => {
+      // Clear cached results when query state changes (time, filters, etc.)
       dispatch(clearResults());
-      // Re-execute queries with new time range (cache keys will be stored in Redux)
+      // Re-execute queries with new state (cache keys will be stored in Redux)
       dispatch(executeQueries({ services }) as any);
-      console.log('🔄 App.tsx - Time range changed, re-executing queries');
+      console.log('🔄 App.tsx - Query state changed, re-executing queries');
     });
 
     return () => {
+      stopUrlSync();
       subscription.unsubscribe();
     };
-  }, [services?.timefilter, dispatch]);
-
-  // Sync query state with URL
-  useEffect(() => {
-    if (services?.data) {
-      // Create URL state storage
-      const osdUrlStateStorage = createOsdUrlStateStorage({
-        history: services.history(),
-        useHash: services.uiSettings.get('state:storeInSessionStorage', false),
-        ...withNotifyOnErrors(services.toastNotifications),
-      });
-
-      // syncs `_g` portion of url with query services
-      const { stop } = syncQueryStateWithUrl(services.data.query, osdUrlStateStorage);
-      return () => stop();
-    }
-  }, [services]);
+  }, [services, dispatch]);
 
   // Get enhanced UI setting
   const isEnhancementsEnabled = services.uiSettings?.get(QUERY_ENHANCEMENT_ENABLED_SETTING);
@@ -310,14 +385,18 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
                   {/* Right Panel: Chart and Tab Content */}
                   <EuiResizablePanel initialSize={80} mode="main" paddingSize="none">
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                      {/* Chart container from legacy - show above tabs when there are results */}
+                      {(status === ResultStatus.READY ||
+                        (status === ResultStatus.LOADING && !!rows?.length) ||
+                        (status === ResultStatus.ERROR && !!rows?.length)) && (
+                        <div className="dscCanvas__chart">
+                          <DiscoverChartContainer />
+                        </div>
+                      )}
+
                       {/* Tab Bar for switching between tabs */}
                       <div className="dscCanvas__tabBar">
                         <TabBar />
-                      </div>
-
-                      {/* Chart container from legacy */}
-                      <div className="dscCanvas__chart">
-                        <DiscoverChartContainer />
                       </div>
 
                       {/* Tab content that renders the active tab */}

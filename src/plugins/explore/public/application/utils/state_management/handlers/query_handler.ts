@@ -18,14 +18,14 @@ export const handleQueryStateChanges = (
   previousState: RootState
 ) => {
   // Skip if in a transaction - query execution will be handled by transaction handler
-  if (currentState.transaction.inProgress) {
+  if (currentState.ui.transaction.inProgress) {
     return;
   }
 
   // Skip if only the query changed but not by user action (e.g., during loading)
   // This prevents unnecessary query execution during initialization
   const isInitialLoad = !previousState.query.query && currentState.query.query;
-  if (isInitialLoad && !currentState.ui.isLoading) {
+  if (isInitialLoad && currentState.ui.status !== 'loading') {
     return;
   }
 

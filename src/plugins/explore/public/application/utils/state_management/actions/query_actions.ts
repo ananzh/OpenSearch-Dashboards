@@ -6,7 +6,8 @@
 import { Dispatch } from 'redux';
 import { i18n } from '@osd/i18n';
 import { RequestAdapter } from '../../../../../../inspector/public';
-import { setLoading, setError, setAbortController, setExecutionCacheKeys } from '../slices/ui_slice';
+import { setStatus, setError, setAbortController, setExecutionCacheKeys } from '../slices/ui_slice';
+import { ResultStatus } from '../../../legacy/discover/application/view_components/utils/use_search';
 import { setResults, clearResults } from '../slices/results_slice';
 import { createCacheKey } from '../handlers/query_handler';
 
@@ -14,7 +15,11 @@ import { createCacheKey } from '../handlers/query_handler';
  * Default results processor for tabs
  * Processes raw hits to calculate field counts
  */
-export const defaultResultsProcessor = (rawResults: any, indexPattern: any, includeHistogram = false) => {
+export const defaultResultsProcessor = (
+  rawResults: any,
+  indexPattern: any,
+  includeHistogram = false
+) => {
   const fieldCounts: Record<string, number> = {};
   if (rawResults.hits && rawResults.hits.hits) {
     for (const hit of rawResults.hits.hits) {
@@ -24,18 +29,18 @@ export const defaultResultsProcessor = (rawResults: any, indexPattern: any, incl
       }
     }
   }
-  
-  let result: any = {
+
+  const result: any = {
     hits: rawResults.hits,
     fieldCounts,
   };
-  
+
   // Add histogram data if requested and available
   if (includeHistogram && rawResults.aggregations) {
     result.chartData = transformAggregationToChartData(rawResults, indexPattern);
     result.bucketInterval = { interval: 'auto', scale: 1 };
   }
-  
+
   return result;
 };
 
@@ -44,7 +49,14 @@ export const defaultResultsProcessor = (rawResults: any, indexPattern: any, incl
  * This is a regular function, not a thunk
  */
 export const createTabCacheKey = (query: any, timeRange: any): string => {
-  return `${query.query}_${timeRange.from}_${timeRange.to}`;
+  console.log('🔑 createTabCacheKey - Input query:', query);
+  console.log('🔑 createTabCacheKey - Input timeRange:', timeRange);
+
+  const queryString = query?.query || query || '';
+  const cacheKey = `${queryString}_${timeRange.from}_${timeRange.to}`;
+
+  console.log('🔑 createTabCacheKey - Generated cache key:', cacheKey);
+  return cacheKey;
 };
 
 /**
@@ -56,52 +68,58 @@ export const updateDatasetOnly = (dataset: any) => ({ type: 'query/setDataset', 
 /**
  * Enhanced executeQueries with reason and cache awareness
  */
-export const executeQueries = (options: {
-  clearCache?: boolean;
-  services: any;
-  reason?: 'user_action' | 'tab_switch' | 'dataset_change';
-  preparedQueries?: Array<{ query: any, cacheKey: string, tabId: string }>
-} = { services: null }) => {
+export const executeQueries = (
+  options: {
+    clearCache?: boolean;
+    services: any;
+    reason?: 'user_action' | 'tab_switch' | 'dataset_change';
+    preparedQueries?: Array<{ query: any; cacheKey: string; tabId: string }>;
+  } = { services: null }
+) => {
   return async (dispatch: Dispatch, getState: () => any) => {
     const { reason = 'user_action', preparedQueries, services } = options;
-    
+
     if (!services) {
       console.error('Services required for query execution');
       return { cacheKeys: [] };
     }
-    
+
     // Generate cache keys if not provided
     const state = getState();
     const finalPreparedQueries = preparedQueries || generatePreparedQueries(state, services);
-    
+
     if (reason === 'tab_switch' && finalPreparedQueries) {
-      await dispatch(executeTabSwitchQuery({
-        targetTabId: state.ui.activeTabId,
-        services,
-        preparedQueries: finalPreparedQueries
-      }) as any);
-      
+      await dispatch(
+        executeTabSwitchQuery({
+          targetTabId: state.ui.activeTabId,
+          services,
+          preparedQueries: finalPreparedQueries,
+        }) as any
+      );
+
       // Store cache keys in Redux state for UI components to access
-      const cacheKeys = finalPreparedQueries.map(q => q.cacheKey);
+      const cacheKeys = finalPreparedQueries.map((q) => q.cacheKey);
       dispatch(setExecutionCacheKeys(cacheKeys));
-      
+
       return { cacheKeys };
     }
-    
+
     if (options.clearCache) {
       dispatch(clearResults());
     }
-    
+
     await dispatch(executeHybridQuery({ services, preparedQueries: finalPreparedQueries }) as any);
-    
+
     // Store cache keys in Redux state for UI components to access
-    const cacheKeys = finalPreparedQueries.map(q => q.cacheKey);
+    const cacheKeys = finalPreparedQueries.map((q) => q.cacheKey);
     console.log('🔍 executeQueries - Storing cache keys in Redux:', {
       cacheKeys,
-      preparedQueries: finalPreparedQueries.map(q => ({ tabId: q.tabId, cacheKey: q.cacheKey }))
+      finalPreparedQueriesLength: finalPreparedQueries.length,
+      finalPreparedQueries,
+      preparedQueries: finalPreparedQueries.map((q) => ({ tabId: q.tabId, cacheKey: q.cacheKey })),
     });
     dispatch(setExecutionCacheKeys(cacheKeys));
-    
+
     return { cacheKeys };
   };
 };
@@ -110,104 +128,137 @@ export const executeQueries = (options: {
  * Generate prepared queries with cache keys at execution time
  */
 const generatePreparedQueries = (state: any, services: any) => {
+  console.log('🔧 generatePreparedQueries - Input state:', state);
+  console.log('🔧 generatePreparedQueries - Services:', services);
+
   const activeTabId = state.ui.activeTabId || 'logs';
   const queries = [];
-  
+
   // Get current time range for cache key generation
   const timeRange = services.data.query.timefilter.timefilter.getTime();
-  
+  console.log('🔧 generatePreparedQueries - Time range:', timeRange);
+
   // Always include logs tab for histogram
   const logsTab = services.tabRegistry?.getTab('logs');
+  console.log('🔧 generatePreparedQueries - Logs tab:', logsTab);
+  console.log('🔧 generatePreparedQueries - TabRegistry available:', !!services.tabRegistry);
+
   if (logsTab) {
+    console.log('🔧 generatePreparedQueries - State query:', state.query);
     const logsQuery = logsTab.prepareQuery ? logsTab.prepareQuery(state.query) : state.query;
+    console.log('🔧 generatePreparedQueries - Prepared logs query:', logsQuery);
+
     const logsCacheKey = createTabCacheKey(logsQuery, timeRange);
+    console.log('🔧 generatePreparedQueries - Logs cache key:', logsCacheKey);
+
     queries.push({
       query: logsQuery,
       tabId: 'logs',
-      cacheKey: logsCacheKey
+      cacheKey: logsCacheKey,
+    });
+  } else {
+    // Fallback when tabRegistry is not available - use state.query directly
+    console.log('🔧 generatePreparedQueries - No logs tab found, using fallback');
+    console.log('🔧 generatePreparedQueries - State query (fallback):', state.query);
+
+    const fallbackCacheKey = createTabCacheKey(state.query, timeRange);
+    console.log('🔧 generatePreparedQueries - Fallback cache key:', fallbackCacheKey);
+
+    queries.push({
+      query: state.query,
+      tabId: 'logs',
+      cacheKey: fallbackCacheKey,
     });
   }
-  
+
   // If active tab is not logs, add it as well (dual query strategy)
   if (activeTabId !== 'logs') {
     const activeTab = services.tabRegistry?.getTab(activeTabId);
     if (activeTab) {
-      const activeQuery = activeTab.prepareQuery ? activeTab.prepareQuery(state.query) : state.query;
+      const activeQuery = activeTab.prepareQuery
+        ? activeTab.prepareQuery(state.query)
+        : state.query;
       const activeCacheKey = createTabCacheKey(activeQuery, timeRange);
       queries.push({
         query: activeQuery,
         tabId: activeTabId,
-        cacheKey: activeCacheKey
+        cacheKey: activeCacheKey,
       });
     }
   }
-  
+
   return queries;
 };
 
 /**
  * Cache-aware tab switching query execution
  */
-export const executeTabSwitchQuery = (options: { 
-  targetTabId: string, 
-  services: any,
-  preparedQueries: Array<{ query: any, cacheKey: string, tabId: string }>
+export const executeTabSwitchQuery = (options: {
+  targetTabId: string;
+  services: any;
+  preparedQueries: Array<{ query: any; cacheKey: string; tabId: string }>;
 }) => {
   return async (dispatch: Dispatch, getState: () => any) => {
     const { targetTabId, services, preparedQueries } = options;
     const state = getState();
-    
+
     // Check cache status for all required queries
     const cacheStatus = preparedQueries.map(({ cacheKey, tabId }) => ({
       cacheKey,
       tabId,
-      cached: !!state.results[cacheKey]
+      cached: !!state.results[cacheKey],
     }));
-    
-    const missingCaches = cacheStatus.filter(item => !item.cached);
-    
+
+    const missingCaches = cacheStatus.filter((item) => !item.cached);
+
     if (missingCaches.length === 0) {
       console.log('✅ All caches available for tab switch to:', targetTabId);
       return; // UI will use cacheKeys to get data
     }
-    
+
     // Determine execution strategy based on missing caches
     if (targetTabId === 'logs') {
       // Switching to logs - only need one query with histogram
       console.log('🔄 Switching to logs - executing single query with histogram');
-      return dispatch(executeTabQueryWithHistogram({ 
-        services, 
-        preparedQuery: preparedQueries[0].query,
-        cacheKey: preparedQueries[0].cacheKey 
-      }) as any);
+      return dispatch(
+        executeTabQueryWithHistogram({
+          services,
+          preparedQuery: preparedQueries[0].query,
+          cacheKey: preparedQueries[0].cacheKey,
+        }) as any
+      );
     } else {
       // Switching to other tab - need two queries
-      const histogramMissing = missingCaches.find(item => item.tabId === 'logs');
-      const activeTabMissing = missingCaches.find(item => item.tabId === targetTabId);
-      
+      const histogramMissing = missingCaches.find((item) => item.tabId === 'logs');
+      const activeTabMissing = missingCaches.find((item) => item.tabId === targetTabId);
+
       if (histogramMissing && activeTabMissing) {
         console.log('🔄 Both caches missing - executing hybrid query');
         return dispatch(executeHybridQuery({ services, preparedQueries }) as any);
       } else if (histogramMissing) {
         console.log('🔄 Histogram cache missing - executing histogram query');
-        const histogramQuery = preparedQueries.find(item => item.tabId === 'logs');
+        const histogramQuery = preparedQueries.find((item) => item.tabId === 'logs');
         if (histogramQuery) {
-          return dispatch(executeTabQueryWithHistogram({ 
-            services, 
-            preparedQuery: histogramQuery.query,
-            cacheKey: histogramQuery.cacheKey 
-          }) as any);
+          return dispatch(
+            executeTabQueryWithHistogram({
+              services,
+              preparedQuery: histogramQuery.query,
+              cacheKey: histogramQuery.cacheKey,
+            }) as any
+          );
         }
       } else if (activeTabMissing) {
         console.log('🔄 Active tab cache missing - executing tab query');
-        const activeTabQuery = preparedQueries.find(item => item.tabId === targetTabId);
+        const activeTabQuery = preparedQueries.find((item) => item.tabId === targetTabId);
         if (activeTabQuery) {
-          return dispatch(executeTabQuery({ 
-            services, 
-            tabId: targetTabId,
-            preparedQuery: activeTabQuery.query,
-            cacheKey: activeTabQuery.cacheKey 
-          }) as any);
+          return dispatch(
+            executeTabQuery({
+              services,
+              tabId: targetTabId,
+              preparedQuery: activeTabQuery.query,
+              cacheKey: activeTabQuery.cacheKey,
+            }) as any
+          );
         }
       }
     }
@@ -217,43 +268,49 @@ export const executeTabSwitchQuery = (options: {
 /**
  * Hybrid query strategy - single for logs, dual for others
  */
-export const executeHybridQuery = (options: { 
-  services: any,
-  preparedQueries?: Array<{ query: any, cacheKey: string, tabId: string }>
+export const executeHybridQuery = (options: {
+  services: any;
+  preparedQueries?: Array<{ query: any; cacheKey: string; tabId: string }>;
 }) => {
   return async (dispatch: Dispatch, getState: () => any) => {
     const { services, preparedQueries } = options;
     const state = getState();
     const activeTabId = state.ui.activeTabId;
-    
+
     if (activeTabId === 'logs') {
       // Strategy A: Single query with histogram
       console.log('🔄 Strategy A: Single Query for logs tab');
-      const logsQuery = preparedQueries?.find(item => item.tabId === 'logs');
-      return dispatch(executeTabQueryWithHistogram({ 
-        services,
-        preparedQuery: logsQuery?.query,
-        cacheKey: logsQuery?.cacheKey
-      }) as any);
+      const logsQuery = preparedQueries?.find((item) => item.tabId === 'logs');
+      return dispatch(
+        executeTabQueryWithHistogram({
+          services,
+          preparedQuery: logsQuery?.query,
+          cacheKey: logsQuery?.cacheKey,
+        }) as any
+      );
     } else {
       // Strategy B: Dual queries
       console.log('🔄 Strategy B: Dual Query for non-logs tab');
-      const histogramQuery = preparedQueries?.find(item => item.tabId === 'logs');
-      const activeTabQuery = preparedQueries?.find(item => item.tabId === activeTabId);
-      
+      const histogramQuery = preparedQueries?.find((item) => item.tabId === 'logs');
+      const activeTabQuery = preparedQueries?.find((item) => item.tabId === activeTabId);
+
       // Execute both queries
-      await dispatch(executeTabQueryWithHistogram({ 
-        services,
-        preparedQuery: histogramQuery?.query,
-        cacheKey: histogramQuery?.cacheKey
-      }) as any);
-      
-      return dispatch(executeTabQuery({ 
-        services, 
-        tabId: activeTabId,
-        preparedQuery: activeTabQuery?.query,
-        cacheKey: activeTabQuery?.cacheKey
-      }) as any);
+      await dispatch(
+        executeTabQueryWithHistogram({
+          services,
+          preparedQuery: histogramQuery?.query,
+          cacheKey: histogramQuery?.cacheKey,
+        }) as any
+      );
+
+      return dispatch(
+        executeTabQuery({
+          services,
+          tabId: activeTabId,
+          preparedQuery: activeTabQuery?.query,
+          cacheKey: activeTabQuery?.cacheKey,
+        }) as any
+      );
     }
   };
 };
@@ -261,11 +318,13 @@ export const executeHybridQuery = (options: {
 /**
  * Execute tab query with histogram aggregations (for logs tab)
  */
-export const executeTabQueryWithHistogram = (options: { 
-  services: any; 
-  preparedQuery?: any; 
-  cacheKey?: string 
-} = { services: null }) => {
+export const executeTabQueryWithHistogram = (
+  options: {
+    services: any;
+    preparedQuery?: any;
+    cacheKey?: string;
+  } = { services: null }
+) => {
   return async (dispatch: Dispatch, getState: () => any) => {
     const state = getState();
     const query = options.preparedQuery || state.query;
@@ -284,7 +343,7 @@ export const executeTabQueryWithHistogram = (options: {
     }
 
     try {
-      dispatch(setLoading(true));
+      dispatch(setStatus(ResultStatus.LOADING));
       dispatch(setError(null));
 
       // Create abort controller
@@ -319,11 +378,11 @@ export const executeTabQueryWithHistogram = (options: {
       } else {
         indexPattern = services.data.indexPattern;
       }
-      
+
       if (!indexPattern) {
         throw new Error('IndexPattern not found for query execution');
       }
-      
+
       const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
 
       // Add histogram aggregations if time-based
@@ -395,22 +454,31 @@ export const executeTabQueryWithHistogram = (options: {
       const tabData = {
         ...processedData,
         elapsedMs: inspectorRequest.getTime(),
+        indexPattern, // Include the properly converted IndexPattern with flattenHit method
       };
 
       // Store results in cache
       dispatch(setResults({ cacheKey, results: tabData }));
 
+      // Set status based on results
+      if (tabData.hits && tabData.hits.hits && tabData.hits.hits.length > 0) {
+        dispatch(setStatus(ResultStatus.READY));
+      } else {
+        dispatch(setStatus(ResultStatus.NO_RESULTS));
+      }
+
       return tabData;
     } catch (error: any) {
       // Handle abort errors
       if (error instanceof Error && error.name === 'AbortError') {
+        dispatch(setStatus(ResultStatus.READY)); // Keep current status on abort
         return;
       }
 
       dispatch(setError(error as Error));
+      dispatch(setStatus(ResultStatus.ERROR));
       throw error;
     } finally {
-      dispatch(setLoading(false));
       dispatch(setAbortController(null));
     }
   };
@@ -421,13 +489,15 @@ export const executeTabQueryWithHistogram = (options: {
  * A Redux Thunk is a function that returns another function which receives dispatch and getState
  * This pattern allows for async logic and accessing the Redux store
  */
-export const executeTabQuery = (options: { 
-  clearCache?: boolean; 
-  services?: any; 
-  tabId?: string;
-  preparedQuery?: any;
-  cacheKey?: string;
-} = {}) => {
+export const executeTabQuery = (
+  options: {
+    clearCache?: boolean;
+    services?: any;
+    tabId?: string;
+    preparedQuery?: any;
+    cacheKey?: string;
+  } = {}
+) => {
   // This is the thunk function that will be executed by the Redux Thunk middleware
   return async (dispatch: Dispatch, getState: () => any) => {
     const state = getState();
@@ -444,7 +514,9 @@ export const executeTabQuery = (options: {
     }
 
     // Prepare query for the tab (transform if needed)
-    const tabDefinition = services.tabRegistry?.getTab?.(options.tabId || state.ui.activeTab || 'logs');
+    const tabDefinition = services.tabRegistry?.getTab?.(
+      options.tabId || state.ui.activeTab || 'logs'
+    );
     const preparedQuery = tabDefinition?.prepareQuery ? tabDefinition.prepareQuery(query) : query;
 
     // Create cache key for this specific query
@@ -457,7 +529,7 @@ export const executeTabQuery = (options: {
     }
 
     try {
-      dispatch(setLoading(true));
+      dispatch(setStatus(ResultStatus.LOADING));
       dispatch(setError(null));
 
       // Create abort controller
@@ -492,11 +564,11 @@ export const executeTabQuery = (options: {
       } else {
         indexPattern = services.data.indexPattern;
       }
-      
+
       if (!indexPattern) {
         throw new Error('IndexPattern not found for query execution');
       }
-      
+
       const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
 
       searchSource
@@ -548,22 +620,31 @@ export const executeTabQuery = (options: {
       const tabData = {
         ...processedData,
         elapsedMs: inspectorRequest.getTime(),
+        indexPattern, // Include the properly converted IndexPattern with flattenHit method
       };
 
       // Store results in cache
       dispatch(setResults({ cacheKey, results: tabData }));
 
+      // Set status based on results
+      if (tabData.hits && tabData.hits.hits && tabData.hits.hits.length > 0) {
+        dispatch(setStatus(ResultStatus.READY));
+      } else {
+        dispatch(setStatus(ResultStatus.NO_RESULTS));
+      }
+
       return tabData;
     } catch (error: any) {
       // Handle abort errors
       if (error instanceof Error && error.name === 'AbortError') {
+        dispatch(setStatus(ResultStatus.READY)); // Keep current status on abort
         return;
       }
 
       dispatch(setError(error as Error));
+      dispatch(setStatus(ResultStatus.ERROR));
       throw error;
     } finally {
-      dispatch(setLoading(false));
       dispatch(setAbortController(null));
     }
   };
@@ -663,19 +744,39 @@ function transformAggregationToChartData(results: any, indexPattern: any) {
 
   const buckets = results.aggregations.histogram.buckets;
 
+  // Import moment for date handling
+  const moment = require('moment');
+
+  // Calculate interval from buckets
+  let intervalMs = 0;
+  if (buckets.length > 1) {
+    intervalMs = buckets[1].key - buckets[0].key;
+  }
+
+  // Create interval duration
+  const interval = moment.duration(intervalMs);
+
+  // Get min/max from buckets
+  const minTime = buckets.length > 0 ? moment(buckets[0].key) : moment();
+  const maxTime = buckets.length > 0 ? moment(buckets[buckets.length - 1].key) : moment();
+
+  // Create chart data structure that matches Discover's Chart interface
   return {
+    values: buckets.map((bucket: any) => ({
+      x: bucket.key,
+      y: bucket.doc_count,
+    })),
     xAxisOrderedValues: buckets.map((bucket: any) => bucket.key),
-    xAxisFormat: { id: 'date' },
-    xAxisLabel: indexPattern.timeFieldName,
+    xAxisFormat: { id: 'date', params: { pattern: 'YYYY-MM-DD HH:mm' } },
+    xAxisLabel: indexPattern.timeFieldName || 'Time',
     yAxisLabel: 'Count',
-    series: [
-      {
-        label: 'Documents',
-        values: buckets.map((bucket: any) => ({
-          x: bucket.key,
-          y: bucket.doc_count,
-        })),
-      },
-    ],
+    ordered: {
+      date: true,
+      interval,
+      intervalOpenSearchUnit: 'ms',
+      intervalOpenSearchValue: intervalMs,
+      min: minTime,
+      max: maxTime,
+    },
   };
 }

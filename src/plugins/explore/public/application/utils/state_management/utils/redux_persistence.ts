@@ -218,8 +218,7 @@ const getPreloadedUIState = async (services: any) => {
 
   return {
     activeTabId: 'logs',
-    flavor: 'log',
-    isLoading: false,
+    status: 'uninitialized',
     error: null,
     abortController: null,
     queryPanel: {

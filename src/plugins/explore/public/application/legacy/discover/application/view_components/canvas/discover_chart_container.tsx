@@ -12,19 +12,17 @@ import { SearchData } from '../utils/use_search';
 import { DiscoverChart } from '../../components/chart/chart';
 import { QUERY_ENHANCEMENT_ENABLED_SETTING } from '../../../../../../../common/legacy/discover';
 
-export const DiscoverChartContainer = ({
-  rows = [],
-  bucketInterval,
-  chartData,
-  cacheKey,
-  status = 'ready' as any
-}: Partial<SearchData> & { cacheKey?: string }) => {
+export const DiscoverChartContainer = () => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const { uiSettings, data } = services;
 
   const indexPatternId = useSelector((state: any) => state.metadata?.indexPattern);
   const dataset = useSelector((state: any) => state.query?.dataset);
-  const results = useSelector((state: any) => cacheKey ? state.results[cacheKey] : null);
+  const executionCacheKeys = useSelector((state: any) => state.ui?.executionCacheKeys || []);
+
+  // Get the first cache key for histogram data (or could be made configurable)
+  const cacheKey = executionCacheKeys.length > 0 ? executionCacheKeys[0] : '';
+  const results = useSelector((state: any) => (cacheKey ? state.results[cacheKey] : null));
 
   const isEnhancementsEnabled = uiSettings.get(QUERY_ENHANCEMENT_ENABLED_SETTING, false);
 
@@ -74,15 +72,17 @@ export const DiscoverChartContainer = ({
     return null;
   }
 
-  // Use cached results if available, otherwise fall back to props
-  const finalChartData = results?.chartData || chartData;
-  const finalBucketInterval = results?.bucketInterval || bucketInterval;
-  const finalRows = results?.hits?.hits || rows || [];
+  // Use cached results from Redux state only
+  const finalChartData = results?.chartData;
+  const finalBucketInterval = results?.bucketInterval;
+  const finalRows = results?.hits?.hits || [];
 
   console.log('🔍 DiscoverChartContainer Final Data:', {
+    cacheKey,
     finalChartData: !!finalChartData,
     finalBucketInterval: !!finalBucketInterval,
-    finalRowsLength: finalRows.length
+    finalRowsLength: finalRows.length,
+    hasResults: !!results,
   });
 
   if (!finalRows.length && !finalChartData) {

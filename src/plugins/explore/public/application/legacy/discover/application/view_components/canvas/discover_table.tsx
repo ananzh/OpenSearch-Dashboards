@@ -37,17 +37,20 @@ interface Props {
 
 export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }: Props) => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
-  const { uiSettings, capabilities, indexPatterns } = services;
+  const { uiSettings, capabilities } = services;
+  const indexPatterns = services.data?.indexPatterns;
 
   // Always call useSelector hooks at the top level
   const reduxRows = useSelector((state: any) => {
     // Fallback to Redux for backward compatibility
     const queryState = state.query;
     const resultsState = state.results;
-    const stateServices = state.services;
 
-    // Get current time range
-    const timeRange = stateServices.data.query.timefilter.timefilter.getTime();
+    // Get current time range from services context instead of Redux
+    const timeRange = services?.data?.query?.timefilter?.timefilter?.getTime() || {
+      from: 'now-15m',
+      to: 'now',
+    };
 
     // Create cache key using raw query (this is the old behavior)
     const fallbackCacheKey = `${queryState.query.query}_${timeRange.from}_${timeRange.to}`;
@@ -64,7 +67,7 @@ export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }:
   const isLoading = useSelector((state: any) => state.ui.isLoading);
   const error = useSelector((state: any) => state.ui.error);
   const reduxIndexPattern = useSelector((state: any) => {
-    return state.query.dataset || state.services.data.indexPattern;
+    return state.query.dataset;
   });
 
   // Get data from props if provided, otherwise from Redux
@@ -96,7 +99,7 @@ export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }:
   const dispatch = useDispatch();
 
   const onAddColumn = (col: string) => {
-    if (indexPattern && capabilities.discover?.save) {
+    if (indexPattern && capabilities.discover?.save && indexPatterns) {
       popularizeField(indexPattern, col, indexPatterns);
     }
 
@@ -104,7 +107,7 @@ export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }:
   };
 
   const onRemoveColumn = (col: string) => {
-    if (indexPattern && capabilities.discover?.save) {
+    if (indexPattern && capabilities.discover?.save && indexPatterns) {
       popularizeField(indexPattern, col, indexPatterns);
     }
 
@@ -112,7 +115,7 @@ export const DiscoverTable = ({ scrollToTop, cacheKey, results: passedResults }:
   };
 
   const onMoveColumn = (col: string, destination: number) => {
-    if (indexPattern && capabilities.discover?.save) {
+    if (indexPattern && capabilities.discover?.save && indexPatterns) {
       popularizeField(indexPattern, col, indexPatterns);
     }
     dispatch(moveColumn({ columnName: col, destination }));

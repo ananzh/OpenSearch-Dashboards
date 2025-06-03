@@ -4,6 +4,7 @@
  */
 
 import { Query } from '../../../../data/common';
+import { ResultStatus } from '../../application/legacy/discover/application/view_components/utils/use_search';
 
 /**
  * Props passed to tab components
@@ -11,7 +12,7 @@ import { Query } from '../../../../data/common';
 export interface TabComponentProps {
   query: Query;
   results: any;
-  isLoading: boolean;
+  status: ResultStatus;
   error: Error | null;
   cacheKey: string;
 }

@@ -5,26 +5,32 @@
 
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { EuiText } from '@elastic/eui';
+import { EuiText, EuiPanel, EuiSpacer } from '@elastic/eui';
 import { useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../../types';
 import { TabComponentProps } from '../../../services/tab_registry/tab_registry_service';
+import { ResultStatus } from '../../legacy/discover/application/view_components/utils/use_search';
 import { DiscoverResultsActionBar } from '../../legacy/discover/application/components/results_action_bar/results_action_bar';
 import { DiscoverTable } from '../../legacy/discover/application/view_components/canvas/discover_table';
+import { DiscoverNoResults } from '../../legacy/discover/application/components/no_results/no_results';
+import { DiscoverNoIndexPatterns } from '../../legacy/discover/application/components/no_index_patterns/no_index_patterns';
+import { DiscoverUninitialized } from '../../legacy/discover/application/components/uninitialized/uninitialized';
+import { LoadingSpinner } from '../../legacy/discover/application/components/loading_spinner/loading_spinner';
 import {
   selectColumns,
   selectSort,
   selectSavedSearch,
 } from '../../utils/state_management/selectors';
+import { QUERY_ENHANCEMENT_ENABLED_SETTING } from '../../constants';
 
 /**
  * Logs tab component for displaying log entries
- * Uses legacy components from discover
+ * Uses legacy components from discover and handles all content states
  */
 export const LogsTab: React.FC<TabComponentProps> = ({
   query,
   results,
-  isLoading,
+  status,
   error,
   cacheKey,
 }) => {
@@ -34,39 +40,116 @@ export const LogsTab: React.FC<TabComponentProps> = ({
   // Get data from Redux store
   const savedSearch = useSelector(selectSavedSearch);
 
+  // Check if enhancements are enabled
+  const isEnhancementsEnabled = services?.uiSettings?.get(QUERY_ENHANCEMENT_ENABLED_SETTING);
+
   // Create reset query function
   const resetQuery = () => {
-    if (savedSearch?.id && services?.core?.application) {
+    if (savedSearch && services?.core?.application) {
       services.core.application.navigateToApp('explore', {
-        path: `#/view/${savedSearch.id}`,
+        path: `#/view/${savedSearch}`,
       });
     }
   };
 
-  if (!results || !results.hits || !results.hits.hits) {
-    return <EuiText>No logs found.</EuiText>;
+  // Get index pattern from the structured results (passed from query actions)
+  // The query actions properly convert dataset to IndexPattern with all required methods including flattenHit
+  const indexPattern = results?.indexPattern;
+  console.log('🔍 LogsTab: Using IndexPattern from results:', !!indexPattern);
+  console.log('🔍 LogsTab: IndexPattern has flattenHit method:', !!indexPattern?.flattenHit);
+  const rows = results?.hits?.hits || [];
+
+  // Create scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo(0, 0);
+  };
+
+  // Create discover results action bar
+  const discoverResultsActionBar = (
+    <DiscoverResultsActionBar
+      hits={rows.length}
+      showResetButton={!!savedSearch}
+      resetQuery={resetQuery}
+      rows={rows}
+      indexPattern={indexPattern}
+    />
+  );
+
+  // Handle different states based on status and data availability
+  if (!indexPattern) {
+    // If we're loading, show loading spinner instead of no index patterns
+    if (status === ResultStatus.LOADING) {
+      return <LoadingSpinner />;
+    }
+    return (
+      <>
+        <EuiSpacer size="xxl" />
+        <DiscoverNoIndexPatterns />
+      </>
+    );
   }
 
-  const rows = results.hits.hits;
-  // For now, we'll handle the indexPattern properly - this might need to be resolved from the dataset
-  const indexPattern = query.dataset as any; // TODO: Properly resolve IndexPattern from dataset
+  // Handle NO_RESULTS status
+  if (status === ResultStatus.NO_RESULTS) {
+    return (
+      <DiscoverNoResults
+        queryString={services?.data?.query?.queryString}
+        query={services?.data?.query?.queryString?.getQuery()}
+        savedQuery={services?.data?.query?.savedQueries}
+        timeFieldName={indexPattern.timeFieldName}
+      />
+    );
+  }
 
-  return (
-    <div className="dscPage">
-      <DiscoverResultsActionBar
-        hits={rows.length}
-        showResetButton={!!savedSearch?.id}
-        resetQuery={resetQuery}
-        rows={rows}
-        indexPattern={indexPattern}
-      />
-      <DiscoverTable
-        cacheKey={cacheKey}
-        results={results}
-        scrollToTop={() => {
-          window.scrollTo(0, 0);
-        }}
-      />
-    </div>
-  );
+  // Handle LOADING status with no existing data
+  if (status === ResultStatus.LOADING && !rows?.length) {
+    return <LoadingSpinner />;
+  }
+
+  // Handle ERROR status with no existing data
+  if (status === ResultStatus.ERROR && !rows?.length) {
+    return <DiscoverUninitialized onRefresh={() => window.location.reload()} />;
+  }
+
+  // Handle READY, LOADING with data, or ERROR with data states
+  if (
+    status === ResultStatus.READY ||
+    (status === ResultStatus.LOADING && !!rows?.length) ||
+    (status === ResultStatus.ERROR && !!rows?.length)
+  ) {
+    // Structure the results data for DiscoverTable
+    // DiscoverTable expects: { hits: { hits: [...] }, indexPattern: ... }
+    const structuredResults = {
+      hits: {
+        hits: results?.hits?.hits || [],
+      },
+      indexPattern,
+    };
+
+    console.log('🔍 LogsTab: Structured results for DiscoverTable:', structuredResults);
+    console.log('🔍 LogsTab: Number of rows:', structuredResults.hits.hits.length);
+
+    return isEnhancementsEnabled ? (
+      <>
+        {discoverResultsActionBar}
+        <DiscoverTable scrollToTop={scrollToTop} cacheKey={cacheKey} results={structuredResults} />
+      </>
+    ) : (
+      <EuiPanel
+        hasShadow={false}
+        paddingSize="none"
+        className="dscCanvas_results"
+        data-test-subj="dscCanvasResults"
+      >
+        {discoverResultsActionBar}
+        <DiscoverTable scrollToTop={scrollToTop} cacheKey={cacheKey} results={structuredResults} />
+      </EuiPanel>
+    );
+  }
+
+  // Fallback for any unhandled states
+  return <EuiText>No logs found.</EuiText>;
 };
+
+// Default export for lazy loading
+export default LogsTab;

@@ -176,7 +176,6 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
   const displayToNavLinkInPortal =
     isEnhancementsEnabled && !!opts?.optionalRef?.topLinkRef?.current && !showActionsInGroup;
 
-
   return (
     <>
       {displayToNavLinkInPortal &&
@@ -221,7 +220,7 @@ export const TopNav = ({ opts, showSaveQuery, isEnhancementsEnabled }: TopNavPro
         groupActions={!showActionsInGroup}
         screenTitle={screenTitle}
         queryStatus={queryStatus}
-        showQueryBar={!!opts?.optionalRef?.datasetSelectorRef}
+        showQueryBar={false}
       />
     </>
   );
