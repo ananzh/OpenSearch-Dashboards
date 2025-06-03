@@ -6,7 +6,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../store';
 import { createCacheKey } from '../handlers/query_handler';
-import { TabDefinition } from '../../../../services/tab_registry/tab_registry_service';
 
 /**
  * Basic selectors
@@ -37,6 +36,8 @@ export const selectDataset = createSelector([selectQueryState], (queryState) => 
  * UI selectors
  */
 export const selectActiveTabId = createSelector([selectUIState], (uiState) => uiState.activeTabId);
+
+export const selectExecutionCacheKeys = createSelector([selectUIState], (uiState) => uiState?.executionCacheKeys || []);
 
 export const selectIsLoading = createSelector([selectUIState], (uiState) => uiState.isLoading);
 
@@ -149,6 +150,3 @@ export const selectIndexPattern = createSelector(
   [selectQueryState],
   (queryState) => queryState.dataset // Components should get indexPattern from context if needed
 );
-
-// Deprecated: Components should use services.data.query.timefilter.timefilter.getTime() from context
-// export const selectTimeRange = ...

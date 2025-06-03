@@ -9,11 +9,9 @@ import { EuiTabs, EuiTab } from '@elastic/eui';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
 import { setActiveTab } from '../utils/state_management/slices/ui_slice';
-import {
-  beginTransaction,
-  finishTransaction,
-} from '../utils/state_management/actions/transaction_actions';
-import { selectActiveTabId, selectQueryLanguage } from '../utils/state_management/selectors';
+import { executeQueries } from '../utils/state_management/actions/query_actions';
+import { createCacheKey } from '../utils/state_management/handlers/query_handler';
+import { selectActiveTabId, selectQueryLanguage, selectQuery } from '../utils/state_management/selectors';
 import { TabDefinition } from '../../services/tab_registry/tab_registry_service';
 
 /**
@@ -29,6 +27,7 @@ export const TabBar: React.FC = () => {
   // Use Redux selectors for UI state only
   const activeTabId = useSelector(selectActiveTabId);
   const queryLanguage = useSelector(selectQueryLanguage);
+  const query = useSelector(selectQuery);
 
   // Get all tabs from tabRegistry service
   const allTabs = useMemo(() => {
@@ -41,21 +40,58 @@ export const TabBar: React.FC = () => {
     return allTabs.filter((tab: TabDefinition) => tab.supportedLanguages.includes(queryLanguage));
   }, [allTabs, queryLanguage]);
 
-  // Handle tab click with transaction pattern
+  // Handle tab click with cache-aware logic
   const handleTabClick = useCallback(
     (tabId: string) => {
       if (tabId === activeTabId) return;
 
-      // Start transaction to batch state updates
-      dispatch(beginTransaction());
+      const timeRange = services.data.query.timefilter.timefilter.getTime();
+      const preparedQueries = [];
+      
+      if (tabId === 'logs') {
+        // Switching to logs - only need logs query
+        const logsTabDefinition = services.tabRegistry?.getTab('logs');
+        const logsPreparedQuery = logsTabDefinition?.prepareQuery ?
+          logsTabDefinition.prepareQuery(query) : query;
+        const logsCacheKey = createCacheKey(logsPreparedQuery, timeRange);
+        
+        preparedQueries.push({
+          query: logsPreparedQuery,
+          cacheKey: logsCacheKey,
+          tabId: 'logs'
+        });
+      } else {
+        // Switching to other tab - need both logs and target tab queries
+        
+        // 1. Logs query for histogram
+        const logsTabDefinition = services.tabRegistry?.getTab('logs');
+        const logsPreparedQuery = logsTabDefinition?.prepareQuery ?
+          logsTabDefinition.prepareQuery(query) : query;
+        const logsCacheKey = createCacheKey(logsPreparedQuery, timeRange);
+        
+        // 2. Target tab query
+        const targetTabDefinition = services.tabRegistry?.getTab(tabId);
+        const targetPreparedQuery = targetTabDefinition?.prepareQuery ?
+          targetTabDefinition.prepareQuery(query) : query;
+        const targetCacheKey = createCacheKey(targetPreparedQuery, timeRange);
+        
+        preparedQueries.push(
+          { query: logsPreparedQuery, cacheKey: logsCacheKey, tabId: 'logs' },
+          { query: targetPreparedQuery, cacheKey: targetCacheKey, tabId: tabId }
+        );
+      }
 
       // Update active tab
       dispatch(setActiveTab(tabId));
-
-      // Commit transaction to trigger query execution if needed
-      dispatch(finishTransaction());
+      
+      // Execute cache-aware tab switching
+      dispatch(executeQueries({
+        services,
+        reason: 'tab_switch',
+        preparedQueries
+      }) as any);
     },
-    [dispatch, activeTabId]
+    [dispatch, activeTabId, query, services]
   );
 
   // If no tabs support the current language, show all tabs

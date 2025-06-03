@@ -11,6 +11,7 @@ export interface UIState {
   isLoading: boolean;
   error: Error | null;
   abortController: AbortController | null;
+  executionCacheKeys: string[];
   queryPanel: {
     promptQuery: string;
   };
@@ -26,6 +27,7 @@ const initialState: UIState = {
   isLoading: false,
   error: null,
   abortController: null,
+  executionCacheKeys: [],
   queryPanel: {
     promptQuery: '',
   },
@@ -57,6 +59,9 @@ const uiSlice = createSlice({
     setAbortController: (state, action: PayloadAction<AbortController | null>) => {
       state.abortController = action.payload;
     },
+    setExecutionCacheKeys: (state, action: PayloadAction<string[]>) => {
+      state.executionCacheKeys = action.payload;
+    },
     // Transaction actions
     startTransaction: (state, action: PayloadAction<{ previousState: any }>) => {
       state.transaction.inProgress = true;
@@ -81,6 +86,7 @@ export const {
   setError,
   setPromptQuery,
   setAbortController,
+  setExecutionCacheKeys,
   startTransaction,
   commitTransaction,
   rollbackTransaction,

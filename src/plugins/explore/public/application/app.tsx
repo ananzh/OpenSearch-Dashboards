@@ -33,6 +33,7 @@ import { QueryPanel } from './components/query_panel';
 import { TabBar } from './components/tab_bar';
 import { TabContent } from './components/tab_content';
 import { DiscoverPanel } from './legacy/discover/application/view_components/panel';
+import { HeaderDatasetSelector } from './components/header_dataset_selector';
 import { QUERY_ENHANCEMENT_ENABLED_SETTING } from './constants';
 import './app.scss';
 
@@ -45,14 +46,18 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const dispatch = useDispatch();
   const queryState = useSelector((state: RootState) => state.query);
+  const resultsState = useSelector((state: RootState) => state.results);
+  const uiState = useSelector((state: RootState) => state.ui);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPPLConverted, setIsPPLConverted] = useState(false);
   const isMobile = useIsWithinBreakpoints(['xs', 's', 'm']);
+  
 
   // Check if should search on page load (like discover)
   const shouldSearchOnPageLoad = useMemo(() => {
     return services.uiSettings.get('discover:searchOnPageLoad', true);
   }, [services.uiSettings]);
+
 
   // Convert to PPL and generate default query after app loads
   useEffect(() => {
@@ -166,12 +171,16 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
 
   // Initial query execution
   useEffect(() => {
-    if (!isInitialized && queryState.query && shouldSearchOnPageLoad && isPPLConverted) {
-      // Trigger initial query execution only after PPL conversion
-      dispatch(executeQueries());
+    if (!isInitialized && queryState.query && shouldSearchOnPageLoad && isPPLConverted && services) {
+      console.log('🚀 App.tsx - Triggering initial query execution on page load');
+      console.log('🚀 App.tsx - Query state:', queryState);
+      
+      // Trigger initial query execution (cache keys will be stored in Redux)
+      dispatch(executeQueries({ services }) as any);
+      console.log('🚀 App.tsx - Initial query execution triggered');
       setIsInitialized(true);
     }
-  }, [isInitialized, queryState.query, shouldSearchOnPageLoad, isPPLConverted, dispatch]);
+  }, [isInitialized, queryState.query, shouldSearchOnPageLoad, isPPLConverted, dispatch, services]);
 
   // Subscribe to timefilter changes (global state)
   // This follows the middleware-driven architecture where timefilter changes
@@ -182,8 +191,9 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
     const subscription = services.timefilter.getTimeUpdate$().subscribe(() => {
       // Clear cached results when time range changes
       dispatch(clearResults());
-      // Re-execute queries with new time range
-      dispatch(executeQueries());
+      // Re-execute queries with new time range (cache keys will be stored in Redux)
+      dispatch(executeQueries({ services }) as any);
+      console.log('🔄 App.tsx - Time range changed, re-executing queries');
     });
 
     return () => {
@@ -268,9 +278,14 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
             {/* TopNav component - configured like discover */}
             <TopNav {...topNavProps} />
 
+            {/* HeaderDatasetSelector component - renders dataset selector in portal */}
+            {isEnhancementsEnabled && (
+              <HeaderDatasetSelector datasetSelectorRef={datasetSelectorRef} />
+            )}
+
             {/* QueryPanel component */}
             <div className="dscCanvas__queryPanel">
-              <QueryPanel datePickerRef={datePickerRef} datasetSelectorRef={datasetSelectorRef} />
+              <QueryPanel datePickerRef={datePickerRef} />
             </div>
 
             {/* Main content area with resizable panels under QueryPanel */}
@@ -302,7 +317,7 @@ export const ExploreApp: React.FC<{ setHeaderActionMenu?: (menuMount: any) => vo
 
                       {/* Chart container from legacy */}
                       <div className="dscCanvas__chart">
-                        <DiscoverChartContainer rows={[]} status={ResultStatus.READY} />
+                        <DiscoverChartContainer />
                       </div>
 
                       {/* Tab content that renders the active tab */}

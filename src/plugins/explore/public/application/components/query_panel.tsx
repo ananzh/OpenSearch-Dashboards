@@ -3,19 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiButton, EuiSpacer, EuiText } from '@elastic/eui';
+import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiButton, EuiSpacer, EuiText, EuiSuperDatePicker } from '@elastic/eui';
 import { monaco } from '@osd/monaco';
-import { createPortal } from 'react-dom';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
-import { DefaultInput, DatasetSelector, DatasetSelectorAppearance } from '../../../../data/public';
+import { DefaultInput, UI_SETTINGS } from '../../../../data/public';
+import { TopNavMenu, TopNavMenuItemRenderType } from '../../../../navigation/public';
 import {
   setQueryString,
   setLanguage,
   setQuery,
 } from '../utils/state_management/slices/query_slice';
+import {
+  updateQueryOnly,
+  executeHybridQuery,
+} from '../utils/state_management/actions/query_actions';
 import { RecentQuerySelector } from './recent_query_selector';
 import {
   beginTransaction,
@@ -27,19 +31,20 @@ import {
   selectQueryLanguage,
   selectIsLoading,
   selectError,
+  selectDataset,
 } from '../utils/state_management/selectors';
+import { setExecutionCacheKeys } from '../utils/state_management/slices/ui_slice';
 import { ResultStatus, QueryStatus } from '../utils/state_management/types';
 
 export interface QueryPanelProps {
   datePickerRef?: React.RefObject<HTMLDivElement>;
-  datasetSelectorRef?: React.RefObject<HTMLDivElement>;
 }
 
 /**
  * Custom query panel component for the Explore plugin
  * Uses Redux for state management and supports datePickerRef for external date picker
  */
-export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSelectorRef }) => {
+export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef }) => {
   const dispatch = useDispatch();
 
   // Get services from context
@@ -50,6 +55,61 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSe
   const queryLanguage = useSelector(selectQueryLanguage);
   const isLoading = useSelector(selectIsLoading);
   const error = useSelector(selectError);
+  const dataset = useSelector(selectDataset);
+
+  // Get current index pattern for DatePicker
+  const indexPattern = useMemo(() => {
+    if (dataset) {
+      // For now, return a basic object that indicates time-based
+      return {
+        isTimeBased: () => !!dataset?.timeFieldName,
+        timeFieldName: dataset?.timeFieldName,
+        id: dataset?.id,
+        title: dataset?.title,
+      };
+    }
+    return null;
+  }, [dataset]);
+
+  // Determine if DatePicker should be shown (like discover)
+  const showDatePicker = useMemo(() => {
+    const hasTimeField = dataset?.timeFieldName;
+    const result = Boolean(hasTimeField);
+    
+    console.log('🔍 QueryPanel DatePicker Debug:', {
+      indexPattern,
+      dataset,
+      hasTimeField,
+      showDatePicker: result,
+    });
+    
+    return result;
+  }, [indexPattern, dataset]);
+
+  // Time range state for DatePicker
+  const [timeRange, setTimeRange] = useState(() => {
+    const timefilter = services?.data?.query?.timefilter?.timefilter;
+    if (timefilter) {
+      const currentTime = timefilter.getTime();
+      return {
+        from: currentTime.from,
+        to: currentTime.to,
+      };
+    }
+    return { from: 'now-15m', to: 'now' };
+  });
+
+  const [refreshInterval, setRefreshInterval] = useState(() => {
+    const timefilter = services?.data?.query?.timefilter?.timefilter;
+    if (timefilter) {
+      const currentRefresh = timefilter.getRefreshInterval();
+      return {
+        pause: currentRefresh.pause,
+        value: currentRefresh.value,
+      };
+    }
+    return { pause: true, value: 0 };
+  });
 
   // Local state for editor
   const [localQuery, setLocalQuery] = useState(queryString);
@@ -66,26 +126,29 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSe
     setLocalQuery(value);
   }, []);
 
-  // Handle language change
-  const handleLanguageChange = useCallback(
-    (language: string) => {
-      // Start transaction to batch state updates
-      dispatch(beginTransaction());
+  // Handle time range changes
+  const handleTimeChange = useCallback(({ start, end }: { start: string; end: string }) => {
+    const newTimeRange = { from: start, to: end };
+    setTimeRange(newTimeRange);
+    
+    // Update timefilter
+    if (services?.data?.query?.timefilter?.timefilter) {
+      services.data.query.timefilter.timefilter.setTime(newTimeRange);
+    }
+  }, [services]);
 
-      // Update language
-      dispatch(setLanguage(language));
-
-      // Clear results cache
-      dispatch(clearResults());
-
-      // Commit transaction to trigger query execution
-      dispatch(finishTransaction());
-    },
-    [dispatch]
-  );
+  const handleRefreshChange = useCallback(({ isPaused, refreshInterval: interval }: { isPaused: boolean; refreshInterval: number }) => {
+    const newRefreshInterval = { pause: isPaused, value: interval };
+    setRefreshInterval(newRefreshInterval);
+    
+    // Update timefilter
+    if (services?.data?.query?.timefilter?.timefilter) {
+      services.data.query.timefilter.timefilter.setRefreshInterval(newRefreshInterval);
+    }
+  }, [services]);
 
   // Execute query when run button is clicked
-  const handleRunQuery = useCallback(() => {
+  const handleRunQuery = useCallback(async () => {
     // Start transaction to batch state updates
     dispatch(beginTransaction());
 
@@ -98,46 +161,12 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSe
     // Commit transaction
     dispatch(finishTransaction());
 
-    // Execute query directly with services (since transaction handler isn't connected)
+    // Execute query directly with services (cache keys will be stored in Redux automatically)
     const { executeQueries } = require('../utils/state_management/actions/query_actions');
-    dispatch(executeQueries({ clearCache: true, services }) as any);
+    await dispatch(executeQueries({ clearCache: true, services }) as any);
+    
+    console.log('🔄 QueryPanel - Run button executed, cache keys stored in Redux');
   }, [dispatch, localQuery, services]);
-
-  // Handle dataset selection - simplified approach
-  // Let ConnectedDatasetSelector do the heavy lifting, we just update Redux and execute
-  const handleDatasetSelect = useCallback(
-    (query: any, dateRange?: any) => {
-      // ConnectedDatasetSelector already:
-      // 1. Updates queryStringManager via setQuery()
-      // 2. Sets user language preference
-      // 3. Calls getInitialQuery() (though not getInitialQueryByDataset)
-
-      // We need to generate the proper PPL query since ConnectedDatasetSelector
-      // calls getInitialQuery() instead of getInitialQueryByDataset()
-      if (query.dataset) {
-        const datasetWithPPL = { ...query.dataset, language: 'PPL' };
-        const pplQuery = services.data.query.queryString.getInitialQueryByDataset(datasetWithPPL);
-
-        // Update Redux with the PPL query
-        dispatch(setQuery(pplQuery));
-
-        // Update queryStringManager to stay in sync
-        services.data.query.queryString.setQuery(pplQuery);
-      } else {
-        // No dataset, just use the query as-is
-        dispatch(setQuery(query));
-      }
-
-      // Clear results and execute
-      dispatch(clearResults());
-
-      // Update time range if provided
-      if (dateRange && services?.data?.query?.timefilter?.timefilter) {
-        services.data.query.timefilter.timefilter.setTime(dateRange);
-      }
-    },
-    [dispatch, services]
-  );
 
   // Handle editor mount
   const handleEditorDidMount = useCallback(
@@ -228,36 +257,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSe
     startTime: Date.now(),
   };
 
-  // Language selector
-  const renderLanguageSelector = () => (
-    <EuiButton
-      size="s"
-      onClick={() => {
-        // Toggle between ppl and lucene for demo
-        const newLanguage = queryLanguage === 'PPL' ? 'lucene' : 'PPL';
-        handleLanguageChange(newLanguage);
-      }}
-      data-test-subj="exploreLanguageSelectorButton"
-    >
-      {queryLanguage?.toUpperCase() || 'PPL'}
-    </EuiButton>
-  );
 
   return (
     <>
-      {/* Portal dataset selector to header if ref is provided */}
-      {datasetSelectorRef?.current &&
-        createPortal(
-          <DatasetSelector
-            onSubmit={handleDatasetSelect}
-            appearance={DatasetSelectorAppearance.Button}
-            buttonProps={{
-              'data-test-subj': 'exploreHeaderDatasetSelector',
-            }}
-          />,
-          datasetSelectorRef.current
-        )}
-
       <EuiPanel paddingSize="s" hasBorder>
         <DefaultInput
           languageId={queryLanguage}
@@ -278,16 +280,58 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ datePickerRef, datasetSe
                   style={{ display: 'inline-flex', alignItems: 'center', marginRight: '8px' }}
                 />
               ),
-              // Run button moved to footer
+              // DatePicker using EuiSuperDatePicker directly
+              (() => {
+                console.log('🔍 QueryPanel DatePicker Render Debug:', {
+                  showDatePicker,
+                  timeRange,
+                  refreshInterval,
+                  willRenderDatePicker: Boolean(showDatePicker),
+                  uiSettings: services?.uiSettings ? 'available' : 'missing',
+                  quickRanges: services?.uiSettings?.get(UI_SETTINGS.TIMEPICKER_QUICK_RANGES),
+                });
+                
+                if (!showDatePicker) {
+                  console.log('❌ DatePicker NOT rendering because showDatePicker is false');
+                  return null;
+                }
+                
+                console.log('✅ DatePicker SHOULD render - creating EuiSuperDatePicker');
+                return (
+                  <EuiSuperDatePicker
+                    key="datePicker"
+                    start={timeRange.from}
+                    end={timeRange.to}
+                    isPaused={refreshInterval.pause}
+                    refreshInterval={refreshInterval.value}
+                    onTimeChange={handleTimeChange}
+                    onRefresh={handleRunQuery}
+                    onRefreshChange={handleRefreshChange}
+                    showUpdateButton={false}
+                    commonlyUsedRanges={services?.uiSettings?.get(UI_SETTINGS.TIMEPICKER_QUICK_RANGES)?.map(
+                      ({ from, to, display }: { from: string; to: string; display: string }) => ({
+                        start: from,
+                        end: to,
+                        label: display,
+                      })
+                    )}
+                    dateFormat={services?.uiSettings?.get('dateFormat')}
+                    compressed={true}
+                    data-test-subj="exploreQueryPanelDatePicker"
+                  />
+                );
+              })(),
+              // Run button
               <EuiButton
                 key="runButton"
                 fill
-                size="s"
+                iconType="play"
                 onClick={handleRunQuery}
                 isLoading={isLoading}
-                data-test-subj="exploreQuerySubmitButton"
+                disabled={isLoading}
+                data-test-subj="exploreRunButton"
               >
-                Run
+                Run query
               </EuiButton>,
             ].filter(Boolean),
           }}

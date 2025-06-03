@@ -8,11 +8,7 @@ import { useDispatch } from 'react-redux';
 import { DatasetSelector, DatasetSelectorAppearance, Query } from '../../../../data/public';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
-import { setQuery } from '../utils/state_management/slices/query_slice';
-import {
-  beginTransaction,
-  finishTransaction,
-} from '../utils/state_management/actions/transaction_actions';
+import { updateQueryOnly, updateDatasetOnly, executeHybridQuery } from '../utils/state_management/actions/query_actions';
 import { clearResults } from '../utils/state_management/slices/results_slice';
 
 export interface HeaderDatasetSelectorProps {
@@ -42,9 +38,6 @@ export const HeaderDatasetSelector: React.FC<HeaderDatasetSelectorProps> = ({
     (query: Query, dateRange?: any) => {
       if (!isMounted.current || !query.dataset) return;
 
-      // Start transaction to batch state updates
-      dispatch(beginTransaction());
-
       // IMPORTANT: Ignore the query from ConnectedDatasetSelector since it uses getInitialQuery()
       // instead of getInitialQueryByDataset(). We need to generate our own PPL query.
 
@@ -58,8 +51,9 @@ export const HeaderDatasetSelector: React.FC<HeaderDatasetSelectorProps> = ({
       // Also update the global queryStringManager to keep it in sync
       services.data.query.queryString.setQuery(queryWithDefaults);
 
-      // Update Redux with the complete query (including generated query string)
-      dispatch(setQuery(queryWithDefaults));
+      // Update Redux with separate actions (no transaction needed for single updates)
+      dispatch(updateDatasetOnly(query.dataset));
+      dispatch(updateQueryOnly(queryWithDefaults));
 
       // Clear results cache since dataset changed
       dispatch(clearResults());
@@ -69,8 +63,8 @@ export const HeaderDatasetSelector: React.FC<HeaderDatasetSelectorProps> = ({
         services.data.query.timefilter.timefilter.setTime(dateRange);
       }
 
-      // Commit transaction to trigger query execution
-      dispatch(finishTransaction());
+      // Execute hybrid query strategy after dataset change
+      dispatch(executeHybridQuery({ services }) as any);
     },
     [dispatch, services]
   );

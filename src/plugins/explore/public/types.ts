@@ -113,6 +113,7 @@ export interface ExploreServices {
   theme: ChartsPluginStart['theme'];
   filterManager: FilterManager;
   inspector: InspectorPublicPluginStart;
+  inspectorAdapters: any;
   metadata: { branch: string };
   navigation: NavigationStart;
   share?: SharePluginStart;

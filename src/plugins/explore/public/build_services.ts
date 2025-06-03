@@ -6,6 +6,7 @@
 import { CoreStart, PluginInitializerContext } from 'opensearch-dashboards/public';
 import { SavedObjectOpenSearchDashboardsServices } from 'src/plugins/saved_objects/public';
 import { Storage } from '../../opensearch_dashboards_utils/public';
+import { RequestAdapter } from '../../inspector/public';
 
 import { ExploreStartDependencies, ExploreServices } from './types';
 import { createSavedExploreLoader, SavedExplore } from './saved_explore';
@@ -41,6 +42,9 @@ export function buildServices(
     getSavedExploreUrlById: async (id: string) => savedObjectService.urlFor(id),
     history: getHistory,
     inspector: plugins.inspector,
+    inspectorAdapters: {
+      requests: new RequestAdapter(),
+    },
     metadata: {
       branch: context.env.packageInfo.branch, // From discover - used for version info
     },

@@ -12,12 +12,19 @@ import { SearchData } from '../utils/use_search';
 import { DiscoverChart } from '../../components/chart/chart';
 import { QUERY_ENHANCEMENT_ENABLED_SETTING } from '../../../../../../../common/legacy/discover';
 
-export const DiscoverChartContainer = ({ rows, bucketInterval, chartData }: SearchData) => {
+export const DiscoverChartContainer = ({
+  rows = [],
+  bucketInterval,
+  chartData,
+  cacheKey,
+  status = 'ready' as any
+}: Partial<SearchData> & { cacheKey?: string }) => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const { uiSettings, data } = services;
 
   const indexPatternId = useSelector((state: any) => state.metadata?.indexPattern);
   const dataset = useSelector((state: any) => state.query?.dataset);
+  const results = useSelector((state: any) => cacheKey ? state.results[cacheKey] : null);
 
   const isEnhancementsEnabled = uiSettings.get(QUERY_ENHANCEMENT_ENABLED_SETTING, false);
 
@@ -55,12 +62,38 @@ export const DiscoverChartContainer = ({ rows, bucketInterval, chartData }: Sear
     return indexPattern ? indexPattern.isTimeBased() : false;
   }, [indexPattern]);
 
-  if (!rows || !isTimeBased) return null;
+  console.log('🔍 DiscoverChartContainer - cacheKey:', cacheKey);
+  console.log('🔍 DiscoverChartContainer - isTimeBased:', isTimeBased);
+  console.log('🔍 DiscoverChartContainer - dataset:', dataset);
+  console.log('🔍 DiscoverChartContainer - indexPatternId:', indexPatternId);
+  console.log('🔍 DiscoverChartContainer - indexPattern:', indexPattern);
+  console.log('🔍 DiscoverChartContainer - hasResults:', !!results);
+
+  if (!isTimeBased) {
+    console.log('❌ DiscoverChartContainer: Not time-based, returning null');
+    return null;
+  }
+
+  // Use cached results if available, otherwise fall back to props
+  const finalChartData = results?.chartData || chartData;
+  const finalBucketInterval = results?.bucketInterval || bucketInterval;
+  const finalRows = results?.hits?.hits || rows || [];
+
+  console.log('🔍 DiscoverChartContainer Final Data:', {
+    finalChartData: !!finalChartData,
+    finalBucketInterval: !!finalBucketInterval,
+    finalRowsLength: finalRows.length
+  });
+
+  if (!finalRows.length && !finalChartData) {
+    console.log('❌ DiscoverChartContainer: No data available, returning null');
+    return null;
+  }
 
   return (
     <DiscoverChart
-      bucketInterval={bucketInterval}
-      chartData={chartData}
+      bucketInterval={finalBucketInterval}
+      chartData={finalChartData}
       config={uiSettings}
       data={data}
       services={services}

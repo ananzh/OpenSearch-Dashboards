@@ -6,7 +6,7 @@
 import { Dispatch } from 'redux';
 import { i18n } from '@osd/i18n';
 import { RequestAdapter } from '../../../../../../inspector/public';
-import { setLoading, setError, setAbortController } from '../slices/ui_slice';
+import { setLoading, setError, setAbortController, setExecutionCacheKeys } from '../slices/ui_slice';
 import { setResults, clearResults } from '../slices/results_slice';
 import { createCacheKey } from '../handlers/query_handler';
 
@@ -14,7 +14,7 @@ import { createCacheKey } from '../handlers/query_handler';
  * Default results processor for tabs
  * Processes raw hits to calculate field counts
  */
-export const defaultResultsProcessor = (rawResults: any, indexPattern: any) => {
+export const defaultResultsProcessor = (rawResults: any, indexPattern: any, includeHistogram = false) => {
   const fieldCounts: Record<string, number> = {};
   if (rawResults.hits && rawResults.hits.hits) {
     for (const hit of rawResults.hits.hits) {
@@ -24,10 +24,19 @@ export const defaultResultsProcessor = (rawResults: any, indexPattern: any) => {
       }
     }
   }
-  return {
+  
+  let result: any = {
     hits: rawResults.hits,
     fieldCounts,
   };
+  
+  // Add histogram data if requested and available
+  if (includeHistogram && rawResults.aggregations) {
+    result.chartData = transformAggregationToChartData(rawResults, indexPattern);
+    result.bucketInterval = { interval: 'auto', scale: 1 };
+  }
+  
+  return result;
 };
 
 /**
@@ -39,69 +48,253 @@ export const createTabCacheKey = (query: any, timeRange: any): string => {
 };
 
 /**
- * This is a Redux Thunk for executing tab queries
- * A Redux Thunk is a function that returns another function which receives dispatch and getState
- * This pattern allows for async logic and accessing the Redux store
+ * Separate update actions that don't trigger execution
  */
-export const executeTabQuery = (options: { clearCache?: boolean; services?: any } = {}) => {
-  // This is the thunk function that will be executed by the Redux Thunk middleware
+export const updateQueryOnly = (query: any) => ({ type: 'query/setQuery', payload: query });
+export const updateDatasetOnly = (dataset: any) => ({ type: 'query/setDataset', payload: dataset });
+
+/**
+ * Enhanced executeQueries with reason and cache awareness
+ */
+export const executeQueries = (options: {
+  clearCache?: boolean;
+  services: any;
+  reason?: 'user_action' | 'tab_switch' | 'dataset_change';
+  preparedQueries?: Array<{ query: any, cacheKey: string, tabId: string }>
+} = { services: null }) => {
   return async (dispatch: Dispatch, getState: () => any) => {
-    const state = getState();
-    const query = state.query; // Now query state is flattened
-    const { activeTabId } = state.ui;
-    const services = options.services; // Services now passed as parameter
-
+    const { reason = 'user_action', preparedQueries, services } = options;
+    
     if (!services) {
-      return;
+      console.error('Services required for query execution');
+      return { cacheKeys: [] };
     }
-
-    // Get tab definition
-    const tabDefinition = services.tabRegistry?.getTab?.(activeTabId);
-
-    // Prepare query for the tab (transform if needed)
-    const preparedQuery = tabDefinition?.prepareQuery ? tabDefinition.prepareQuery(query) : query;
-
-    // Get current time range
-    const timeRange = services.data.query.timefilter.timefilter.getTime();
-
-    // Create cache key
-    const cacheKey = createTabCacheKey(preparedQuery, timeRange);
-
-    // Clear cache if requested
+    
+    // Generate cache keys if not provided
+    const state = getState();
+    const finalPreparedQueries = preparedQueries || generatePreparedQueries(state, services);
+    
+    if (reason === 'tab_switch' && finalPreparedQueries) {
+      await dispatch(executeTabSwitchQuery({
+        targetTabId: state.ui.activeTabId,
+        services,
+        preparedQueries: finalPreparedQueries
+      }) as any);
+      
+      // Store cache keys in Redux state for UI components to access
+      const cacheKeys = finalPreparedQueries.map(q => q.cacheKey);
+      dispatch(setExecutionCacheKeys(cacheKeys));
+      
+      return { cacheKeys };
+    }
+    
     if (options.clearCache) {
       dispatch(clearResults());
     }
+    
+    await dispatch(executeHybridQuery({ services, preparedQueries: finalPreparedQueries }) as any);
+    
+    // Store cache keys in Redux state for UI components to access
+    const cacheKeys = finalPreparedQueries.map(q => q.cacheKey);
+    console.log('🔍 executeQueries - Storing cache keys in Redux:', {
+      cacheKeys,
+      preparedQueries: finalPreparedQueries.map(q => ({ tabId: q.tabId, cacheKey: q.cacheKey }))
+    });
+    dispatch(setExecutionCacheKeys(cacheKeys));
+    
+    return { cacheKeys };
+  };
+};
 
-    // Check cache first - if we have results, use them
-    if (state.results[cacheKey] && !options.clearCache) {
-      // Using cached tab results
+/**
+ * Generate prepared queries with cache keys at execution time
+ */
+const generatePreparedQueries = (state: any, services: any) => {
+  const activeTabId = state.ui.activeTabId || 'logs';
+  const queries = [];
+  
+  // Get current time range for cache key generation
+  const timeRange = services.data.query.timefilter.timefilter.getTime();
+  
+  // Always include logs tab for histogram
+  const logsTab = services.tabRegistry?.getTab('logs');
+  if (logsTab) {
+    const logsQuery = logsTab.prepareQuery ? logsTab.prepareQuery(state.query) : state.query;
+    const logsCacheKey = createTabCacheKey(logsQuery, timeRange);
+    queries.push({
+      query: logsQuery,
+      tabId: 'logs',
+      cacheKey: logsCacheKey
+    });
+  }
+  
+  // If active tab is not logs, add it as well (dual query strategy)
+  if (activeTabId !== 'logs') {
+    const activeTab = services.tabRegistry?.getTab(activeTabId);
+    if (activeTab) {
+      const activeQuery = activeTab.prepareQuery ? activeTab.prepareQuery(state.query) : state.query;
+      const activeCacheKey = createTabCacheKey(activeQuery, timeRange);
+      queries.push({
+        query: activeQuery,
+        tabId: activeTabId,
+        cacheKey: activeCacheKey
+      });
+    }
+  }
+  
+  return queries;
+};
+
+/**
+ * Cache-aware tab switching query execution
+ */
+export const executeTabSwitchQuery = (options: { 
+  targetTabId: string, 
+  services: any,
+  preparedQueries: Array<{ query: any, cacheKey: string, tabId: string }>
+}) => {
+  return async (dispatch: Dispatch, getState: () => any) => {
+    const { targetTabId, services, preparedQueries } = options;
+    const state = getState();
+    
+    // Check cache status for all required queries
+    const cacheStatus = preparedQueries.map(({ cacheKey, tabId }) => ({
+      cacheKey,
+      tabId,
+      cached: !!state.results[cacheKey]
+    }));
+    
+    const missingCaches = cacheStatus.filter(item => !item.cached);
+    
+    if (missingCaches.length === 0) {
+      console.log('✅ All caches available for tab switch to:', targetTabId);
+      return; // UI will use cacheKeys to get data
+    }
+    
+    // Determine execution strategy based on missing caches
+    if (targetTabId === 'logs') {
+      // Switching to logs - only need one query with histogram
+      console.log('🔄 Switching to logs - executing single query with histogram');
+      return dispatch(executeTabQueryWithHistogram({ 
+        services, 
+        preparedQuery: preparedQueries[0].query,
+        cacheKey: preparedQueries[0].cacheKey 
+      }) as any);
+    } else {
+      // Switching to other tab - need two queries
+      const histogramMissing = missingCaches.find(item => item.tabId === 'logs');
+      const activeTabMissing = missingCaches.find(item => item.tabId === targetTabId);
+      
+      if (histogramMissing && activeTabMissing) {
+        console.log('🔄 Both caches missing - executing hybrid query');
+        return dispatch(executeHybridQuery({ services, preparedQueries }) as any);
+      } else if (histogramMissing) {
+        console.log('🔄 Histogram cache missing - executing histogram query');
+        const histogramQuery = preparedQueries.find(item => item.tabId === 'logs');
+        if (histogramQuery) {
+          return dispatch(executeTabQueryWithHistogram({ 
+            services, 
+            preparedQuery: histogramQuery.query,
+            cacheKey: histogramQuery.cacheKey 
+          }) as any);
+        }
+      } else if (activeTabMissing) {
+        console.log('🔄 Active tab cache missing - executing tab query');
+        const activeTabQuery = preparedQueries.find(item => item.tabId === targetTabId);
+        if (activeTabQuery) {
+          return dispatch(executeTabQuery({ 
+            services, 
+            tabId: targetTabId,
+            preparedQuery: activeTabQuery.query,
+            cacheKey: activeTabQuery.cacheKey 
+          }) as any);
+        }
+      }
+    }
+  };
+};
+
+/**
+ * Hybrid query strategy - single for logs, dual for others
+ */
+export const executeHybridQuery = (options: { 
+  services: any,
+  preparedQueries?: Array<{ query: any, cacheKey: string, tabId: string }>
+}) => {
+  return async (dispatch: Dispatch, getState: () => any) => {
+    const { services, preparedQueries } = options;
+    const state = getState();
+    const activeTabId = state.ui.activeTabId;
+    
+    if (activeTabId === 'logs') {
+      // Strategy A: Single query with histogram
+      console.log('🔄 Strategy A: Single Query for logs tab');
+      const logsQuery = preparedQueries?.find(item => item.tabId === 'logs');
+      return dispatch(executeTabQueryWithHistogram({ 
+        services,
+        preparedQuery: logsQuery?.query,
+        cacheKey: logsQuery?.cacheKey
+      }) as any);
+    } else {
+      // Strategy B: Dual queries
+      console.log('🔄 Strategy B: Dual Query for non-logs tab');
+      const histogramQuery = preparedQueries?.find(item => item.tabId === 'logs');
+      const activeTabQuery = preparedQueries?.find(item => item.tabId === activeTabId);
+      
+      // Execute both queries
+      await dispatch(executeTabQueryWithHistogram({ 
+        services,
+        preparedQuery: histogramQuery?.query,
+        cacheKey: histogramQuery?.cacheKey
+      }) as any);
+      
+      return dispatch(executeTabQuery({ 
+        services, 
+        tabId: activeTabId,
+        preparedQuery: activeTabQuery?.query,
+        cacheKey: activeTabQuery?.cacheKey
+      }) as any);
+    }
+  };
+};
+
+/**
+ * Execute tab query with histogram aggregations (for logs tab)
+ */
+export const executeTabQueryWithHistogram = (options: { 
+  services: any; 
+  preparedQuery?: any; 
+  cacheKey?: string 
+} = { services: null }) => {
+  return async (dispatch: Dispatch, getState: () => any) => {
+    const state = getState();
+    const query = options.preparedQuery || state.query;
+    const services = options.services;
+    const cacheKey = options.cacheKey || createTabCacheKey(query, { from: 'now-15m', to: 'now' });
+
+    if (!services) {
+      console.error('Services required for query execution');
+      return;
+    }
+
+    // Check cache first
+    if (state.results[cacheKey]) {
+      console.log('✅ Using cached result for logs with histogram');
       return state.results[cacheKey];
     }
 
-    // Abort any in-progress requests
-    if (state.ui.abortController) {
-      state.ui.abortController.abort();
-    }
-
-    // Create new abort controller
-    const abortController = new AbortController();
-    dispatch(setAbortController(abortController));
-
-    // Set loading state
-    dispatch(setLoading(true));
-
     try {
-      // Executing tab query
+      dispatch(setLoading(true));
+      dispatch(setError(null));
 
-      // Create inspector adapter if not already in services
-      if (!services.inspectorAdapters) {
-        services.inspectorAdapters = {
-          requests: new RequestAdapter(),
-        };
+      // Create abort controller
+      const abortController = new AbortController();
+      dispatch(setAbortController(abortController));
+
+      // Reset inspector adapter (with safety check)
+      if (services.inspectorAdapters?.requests) {
+        services.inspectorAdapters.requests.reset();
       }
-
-      // Reset inspector adapter
-      services.inspectorAdapters.requests.reset();
 
       // Create inspector request
       const title = i18n.translate('explore.discover.inspectorRequestDataTitle', {
@@ -110,7 +303,180 @@ export const executeTabQuery = (options: { clearCache?: boolean; services?: any 
       const description = i18n.translate('explore.discover.inspectorRequestDescription', {
         defaultMessage: 'This request queries OpenSearch to fetch the data for the search.',
       });
-      const inspectorRequest = services.inspectorAdapters.requests.start(title, { description });
+      const inspectorRequest = services.inspectorAdapters?.requests?.start(title, { description });
+
+      // Create new SearchSource for this query
+      const searchSource = await services.data.search.searchSource.create();
+
+      // Configure SearchSource - need to get actual IndexPattern, not Dataset
+      let indexPattern;
+      if (query.dataset) {
+        // Convert Dataset to IndexPattern
+        indexPattern = await services.data.indexPatterns.get(
+          query.dataset.id,
+          query.dataset.type !== 'INDEX_PATTERN'
+        );
+      } else {
+        indexPattern = services.data.indexPattern;
+      }
+      
+      if (!indexPattern) {
+        throw new Error('IndexPattern not found for query execution');
+      }
+      
+      const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
+
+      // Add histogram aggregations if time-based
+      const aggConfig: any = {};
+      if (indexPattern.timeFieldName) {
+        const timeRange = services.data.query.timefilter.timefilter.getTime();
+        aggConfig.aggs = {
+          histogram: {
+            date_histogram: {
+              field: indexPattern.timeFieldName,
+              interval: 'auto',
+              min_doc_count: 0,
+              extended_bounds: {
+                min: timeRange.from,
+                max: timeRange.to,
+              },
+            },
+          },
+        };
+        aggConfig.size = 500; // Limit hits for performance
+      }
+
+      searchSource
+        .setField('index', indexPattern)
+        .setField('query', {
+          query: query.query,
+          language: query.language,
+        })
+        .setField('filter', timeRangeFilter ? [timeRangeFilter] : []);
+
+      // Add aggregations if time-based
+      if (indexPattern.timeFieldName && aggConfig.aggs) {
+        searchSource.setField('aggs', aggConfig.aggs);
+        searchSource.setField('size', aggConfig.size);
+      }
+
+      // Add inspector stats
+      if (services.getRequestInspectorStats && inspectorRequest) {
+        inspectorRequest.stats(services.getRequestInspectorStats(searchSource));
+      }
+
+      // Get search request body for inspector
+      if (inspectorRequest) {
+        searchSource.getSearchRequestBody().then((body: object) => {
+          inspectorRequest.json(body);
+        });
+      }
+
+      // Execute query
+      const results = await searchSource.fetch({
+        abortSignal: abortController.signal,
+        withLongNumeralsSupport: await services.uiSettings.get('data:withLongNumerals'),
+      });
+
+      // Add response stats to inspector
+      if (inspectorRequest) {
+        if (services.getResponseInspectorStats) {
+          inspectorRequest
+            .stats(services.getResponseInspectorStats(results, searchSource))
+            .ok({ json: results });
+        } else {
+          inspectorRequest.ok({ json: results });
+        }
+      }
+
+      // Process results with enhanced processor that includes histogram
+      const processedData = defaultResultsProcessor(results, indexPattern, true);
+
+      const tabData = {
+        ...processedData,
+        elapsedMs: inspectorRequest.getTime(),
+      };
+
+      // Store results in cache
+      dispatch(setResults({ cacheKey, results: tabData }));
+
+      return tabData;
+    } catch (error: any) {
+      // Handle abort errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
+      dispatch(setError(error as Error));
+      throw error;
+    } finally {
+      dispatch(setLoading(false));
+      dispatch(setAbortController(null));
+    }
+  };
+};
+
+/**
+ * This is a Redux Thunk for executing tab queries
+ * A Redux Thunk is a function that returns another function which receives dispatch and getState
+ * This pattern allows for async logic and accessing the Redux store
+ */
+export const executeTabQuery = (options: { 
+  clearCache?: boolean; 
+  services?: any; 
+  tabId?: string;
+  preparedQuery?: any;
+  cacheKey?: string;
+} = {}) => {
+  // This is the thunk function that will be executed by the Redux Thunk middleware
+  return async (dispatch: Dispatch, getState: () => any) => {
+    const state = getState();
+    const query = options.preparedQuery || state.query; // Now query state is flattened
+    const services = options.services; // Services now passed as parameter
+
+    if (!services) {
+      return;
+    }
+
+    // Clear cache if requested
+    if (options.clearCache) {
+      dispatch(clearResults());
+    }
+
+    // Prepare query for the tab (transform if needed)
+    const tabDefinition = services.tabRegistry?.getTab?.(options.tabId || state.ui.activeTab || 'logs');
+    const preparedQuery = tabDefinition?.prepareQuery ? tabDefinition.prepareQuery(query) : query;
+
+    // Create cache key for this specific query
+    const timeRange = services.data.query.timefilter.timefilter.getTime();
+    const cacheKey = options.cacheKey || createCacheKey(preparedQuery, timeRange);
+
+    // Check cache first
+    if (state.results[cacheKey]) {
+      return state.results[cacheKey];
+    }
+
+    try {
+      dispatch(setLoading(true));
+      dispatch(setError(null));
+
+      // Create abort controller
+      const abortController = new AbortController();
+      dispatch(setAbortController(abortController));
+
+      // Reset inspector adapter (with safety check)
+      if (services.inspectorAdapters?.requests) {
+        services.inspectorAdapters.requests.reset();
+      }
+
+      // Create inspector request
+      const title = i18n.translate('explore.discover.inspectorRequestDataTitle', {
+        defaultMessage: 'data',
+      });
+      const description = i18n.translate('explore.discover.inspectorRequestDescription', {
+        defaultMessage: 'This request queries OpenSearch to fetch the data for the search.',
+      });
+      const inspectorRequest = services.inspectorAdapters?.requests?.start(title, { description });
 
       // Create new SearchSource for this query
       const searchSource = await services.data.search.searchSource.create();
@@ -126,11 +492,11 @@ export const executeTabQuery = (options: { clearCache?: boolean; services?: any 
       } else {
         indexPattern = services.data.indexPattern;
       }
-
+      
       if (!indexPattern) {
         throw new Error('IndexPattern not found for query execution');
       }
-
+      
       const timeRangeFilter = services.data.query.timefilter.timefilter.createFilter(indexPattern);
 
       searchSource
@@ -142,14 +508,16 @@ export const executeTabQuery = (options: { clearCache?: boolean; services?: any 
         .setField('filter', timeRangeFilter ? [timeRangeFilter] : []);
 
       // Add inspector stats
-      if (services.getRequestInspectorStats) {
+      if (services.getRequestInspectorStats && inspectorRequest) {
         inspectorRequest.stats(services.getRequestInspectorStats(searchSource));
       }
 
       // Get search request body for inspector
-      searchSource.getSearchRequestBody().then((body: object) => {
-        inspectorRequest.json(body);
-      });
+      if (inspectorRequest) {
+        searchSource.getSearchRequestBody().then((body: object) => {
+          inspectorRequest.json(body);
+        });
+      }
 
       // Execute query
       const results = await searchSource.fetch({
@@ -158,12 +526,14 @@ export const executeTabQuery = (options: { clearCache?: boolean; services?: any 
       });
 
       // Add response stats to inspector
-      if (services.getResponseInspectorStats) {
-        inspectorRequest
-          .stats(services.getResponseInspectorStats(results, searchSource))
-          .ok({ json: results });
-      } else {
-        inspectorRequest.ok({ json: results });
+      if (inspectorRequest) {
+        if (services.getResponseInspectorStats) {
+          inspectorRequest
+            .stats(services.getResponseInspectorStats(results, searchSource))
+            .ok({ json: results });
+        } else {
+          inspectorRequest.ok({ json: results });
+        }
       }
 
       // Get current tab definition to use its data processor
@@ -279,21 +649,6 @@ export const executeHistogramQuery = (options: { services?: any } = {}) => {
       // Error executing histogram query
       return null;
     }
-  };
-};
-
-/**
- * This is a composed thunk that calls other thunks
- * It demonstrates how thunks can be composed together
- */
-export const executeQueries = (options: { clearCache?: boolean; services?: any } = {}) => {
-  // Return a thunk function
-  return async (dispatch: Dispatch) => {
-    // Execute tab query first - note how we're dispatching another thunk
-    await dispatch(executeTabQuery(options) as any);
-
-    // Then execute histogram query - again dispatching another thunk
-    return dispatch(executeHistogramQuery({ services: options.services }) as any);
   };
 };
 
