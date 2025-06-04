@@ -3,20 +3,20 @@ package.OpenSearch-Dashboards = {
     build-system = container-build;
 
     build-environment = {
-        network-access = internal;
+        network-access = open;
     };
- 
+
     libfarm = {
         components = ("opensearch-dashboards-core");
     };
- 
+
     build-tools = {
         neo_3.x = {
             ContainerBuild = 1.2;
             AWSOpenSearchNeoContainerBuildCredentialsProvider = 1.0;
         };
     };
- 
+
     # Use runtime-dependencies for when you want to bring in additional
     # packages when deploying.
     # Use dependencies instead if you intend for these dependencies to
@@ -25,7 +25,7 @@ package.OpenSearch-Dashboards = {
         neo_3.x = {
         };
     };
- 
+
     runtime-dependencies = {
         neo_3.x = {
         };

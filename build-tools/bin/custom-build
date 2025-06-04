@@ -6,9 +6,9 @@ test_path="/home/opensearch-dashboards"
 
 echo "Copy OSD Core source code to bootstrap + test folder"
 mkdir -p build/opensearch-dashboards-core
-rsync -arvL /opt/src/ build/opensearch-dashboards-core --exclude=".git" --exclude="/plugins" --exclude="node_modules" --exclude="/build"
+rsync -arL /opt/src/ build/opensearch-dashboards-core --exclude=".git" --exclude="/plugins" --exclude="node_modules" --exclude="/build"
 
-rsync -arvL /opt/src/ $test_path --exclude=".git" --exclude="/plugins" --exclude="node_modules" --exclude="/build"
+rsync -arL /opt/src/ $test_path --exclude=".git" --exclude="/plugins" --exclude="node_modules" --exclude="/build"
 
 current_path=$(pwd)
 osd_user="opensearch-dashboards"
@@ -17,8 +17,7 @@ osd_group=$osd_user
 chown -R $osd_user:$osd_group $test_path
 
 echo "Begin bootstrap as: $osd_user"
-node_version="v20.18.3"
-node_path="/usr/local/nvm/versions/node/$node_version/bin"
+node_path="/usr/local/nvm/versions/node/v$NODE_VERSION/bin"
 su - $osd_user -c "cd $test_path && $node_path/node $node_path/yarn osd bootstrap"
 
 echo "Remove all files from $test_path..."
