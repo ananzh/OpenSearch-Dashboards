@@ -18,6 +18,7 @@ server.host: 0.0.0.0
 
 # The maximum payload size in bytes for incoming server requests.
 #server.maxPayloadBytes: 1048576
+server.maxPayloadBytes: 5242880
 
 # The OpenSearch Dashboards server's name.  This is used for display purposes.
 server.name: aosa
