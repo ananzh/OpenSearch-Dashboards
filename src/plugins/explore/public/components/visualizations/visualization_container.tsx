@@ -38,8 +38,11 @@ export const VisualizationContainer = () => {
   // Use tab-specific cache key consistently
   const executionCacheKeys = useSelector((state: RootState) => state.ui.executionCacheKeys);
   const results = useSelector((state: RootState) => state.results);
-  const cacheKey = executionCacheKeys[1];
-  const rawResults = results[cacheKey];
+
+  // Safety check: ensure executionCacheKeys has at least 2 elements
+  const cacheKey =
+    executionCacheKeys && executionCacheKeys.length >= 2 ? executionCacheKeys[1] : null;
+  const rawResults = cacheKey ? results[cacheKey] : null;
 
   // TODO: Register custom processor for visualization tab
   // const tabDefinition = services.tabRegistry?.getTab?.('explore_visualization_tab');

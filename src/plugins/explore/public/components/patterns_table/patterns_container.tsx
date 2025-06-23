@@ -16,9 +16,10 @@ export const PatternsContainer = () => {
   const executionCacheKeys = useSelector((state: RootState) => state.ui.executionCacheKeys);
   const results = useSelector((state: RootState) => state.results);
 
-  // Use tab-specific cache key
-  const cacheKey = executionCacheKeys[1];
-  const rawResults = results[cacheKey];
+  // Use tab-specific cache key with safety check
+  const cacheKey =
+    executionCacheKeys && executionCacheKeys.length >= 2 ? executionCacheKeys[1] : null;
+  const rawResults = cacheKey ? results[cacheKey] : null;
 
   // TODO: Register custom processor for patterns tab if needed
   //       If no need, feel free to remove this comment

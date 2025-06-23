@@ -4,6 +4,22 @@
 
 This document provides a comprehensive guide to the Explore plugin's state management and query processing architecture, including multi-tab optimization, result access patterns, and best practices for tab owners and developers.
 
+## Documentation Structure
+
+- **[State Management](docs/state_management.md)** - Redux architecture, slices, and middleware
+- **[Query Processing](docs/query_processing.md)** - Execution flow, optimization, and cache management
+- **[Result Access](docs/result_access.md)** - Cache patterns and component integration
+- **[Tab Development](docs/tab_development.md)** - Creating and registering custom tabs
+
+## Quick Start
+
+For developers new to the Explore plugin:
+
+1. **Understanding State**: Read [State Management](docs/state_management.md) to understand the Redux architecture
+2. **Query Flow**: Review [Query Processing](docs/query_processing.md) to understand how queries are executed
+3. **Accessing Results**: Learn [Result Access](docs/result_access.md) patterns for components
+4. **Building Tabs**: Follow [Tab Development](docs/tab_development.md) to create custom tabs
+
 ## Architecture Overview
 
 ### Query Execution Flow

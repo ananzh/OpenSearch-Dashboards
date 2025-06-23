@@ -53,8 +53,11 @@ const ExploreDataTableComponent = () => {
   // Access rows using new pattern (logs tab uses executionCacheKeys[1])
   const executionCacheKeys = useSelector((state: RootState) => state.ui.executionCacheKeys);
   const results = useSelector((state: RootState) => state.results);
-  const cacheKey = executionCacheKeys[1]; // Logs tab uses tab-specific cache key
-  const rawResults = results[cacheKey];
+
+  // Safety check: ensure executionCacheKeys has at least 2 elements
+  const cacheKey =
+    executionCacheKeys && executionCacheKeys.length >= 2 ? executionCacheKeys[1] : null;
+  const rawResults = cacheKey ? results[cacheKey] : null;
   const rows = rawResults?.hits?.hits || [];
 
   const tableColumns = useMemo(() => {

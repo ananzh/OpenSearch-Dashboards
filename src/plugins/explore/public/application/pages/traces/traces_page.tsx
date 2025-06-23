@@ -66,9 +66,10 @@ export const TracesPage: React.FC<Partial<Pick<AppMountParameters, 'setHeaderAct
       return [];
     }
 
-    // Use default query cacheKey
-    const cacheKey = executionCacheKeys[0];
-    const results = state.results[cacheKey];
+    // Use default query cacheKey with safety check
+    const cacheKey =
+      executionCacheKeys && executionCacheKeys.length >= 1 ? executionCacheKeys[0] : null;
+    const results = cacheKey ? state.results[cacheKey] : null;
     if (results) {
       const hits = results.hits?.hits || [];
       return hits;

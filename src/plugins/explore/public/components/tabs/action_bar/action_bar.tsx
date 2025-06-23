@@ -22,11 +22,13 @@ const ActionBarComponent = () => {
 
   const savedSearch = useSelector(selectSavedSearch);
 
-  // Use tab-specific cache key (action bar is part of logs tab)
   const executionCacheKeys = useSelector((state: RootState) => state.ui.executionCacheKeys);
   const results = useSelector((state: RootState) => state.results);
-  const cacheKey = executionCacheKeys[1];
-  const rawResults = results[cacheKey];
+
+  // Safety check: ensure executionCacheKeys has at least 2 elements
+  const cacheKey =
+    executionCacheKeys && executionCacheKeys.length >= 2 ? executionCacheKeys[1] : null;
+  const rawResults = cacheKey ? results[cacheKey] : null;
 
   const rows = rawResults?.hits?.hits || [];
   const totalHits = (rawResults?.hits?.total as any)?.value || rawResults?.hits?.total || 0;

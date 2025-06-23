@@ -189,10 +189,8 @@ export const executeQueries = createAsyncThunk<
   }
   await Promise.all(promises);
 
-  // Always return length 2 array: [defaultCacheKey, tabCacheKey]
   const cacheKeys = [defaultCacheKey, queriesEqual ? defaultCacheKey : activeTabCacheKey];
 
-  // Store appropriate cache keys for UI components
   dispatch(setExecutionCacheKeys(cacheKeys));
   return { cacheKeys };
 });
