@@ -19,11 +19,8 @@ import {
 } from '../../../../../utils/state_management/slices/legacy_slice';
 import {
   selectColumns,
-  selectFieldCounts,
-  selectRows,
   selectIndexPattern,
   selectQuery,
-  selectResults,
 } from '../../../../../utils/state_management/selectors';
 import { DiscoverSidebar } from '../../components/sidebar';
 import { ExploreServices } from '../../../../../../types';
@@ -70,12 +67,6 @@ export function DiscoverPanel() {
   // Get fieldCounts and rows from processed results
   const fieldCounts = processedResults?.fieldCounts || {};
   const rows = (processedResults as any)?.hits?.hits || [];
-
-  // Add debug for services.data.query.queryString
-  const queryStringManager = services.data?.query?.queryString;
-  if (queryStringManager) {
-    const currentQuery = queryStringManager.getQuery();
-  }
 
   const prevColumns = useRef(columns);
   const dispatch = useDispatch();

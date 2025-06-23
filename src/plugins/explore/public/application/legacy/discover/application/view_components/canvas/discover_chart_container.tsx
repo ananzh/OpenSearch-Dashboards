@@ -37,7 +37,6 @@ export const DiscoverChartContainer = () => {
       return null;
     }
 
-    // Use defaultResultsProcessor with histogram enabled
     const processed = histogramResultsProcessor(rawResults, indexPattern, data, interval);
     return processed;
   }, [rawResults, indexPattern, data, interval]);

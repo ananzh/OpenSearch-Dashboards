@@ -26,9 +26,9 @@ import { getDocViewsRegistry } from '../../application/legacy/discover/opensearc
 import { ExploreServices } from '../../types';
 import {
   selectColumns,
-  selectRows,
   selectSavedSearch,
 } from '../../application/utils/state_management/selectors';
+import { RootState } from '../../application/utils/state_management/store';
 import { useIndexPatternContext } from '../../application/components/index_pattern_context';
 import {
   addColumn,
@@ -47,9 +47,15 @@ const ExploreDataTableComponent = () => {
   } = services;
 
   const savedSearch = useSelector(selectSavedSearch);
-  const rows = useSelector(selectRows);
   const columns = useSelector(selectColumns);
   const { indexPattern } = useIndexPatternContext();
+
+  // Access rows using new pattern (logs tab uses executionCacheKeys[1])
+  const executionCacheKeys = useSelector((state: RootState) => state.ui.executionCacheKeys);
+  const results = useSelector((state: RootState) => state.results);
+  const cacheKey = executionCacheKeys[1]; // Logs tab uses tab-specific cache key
+  const rawResults = results[cacheKey];
+  const rows = rawResults?.hits?.hits || [];
 
   const tableColumns = useMemo(() => {
     if (indexPattern == null) {
@@ -127,6 +133,10 @@ const ExploreDataTableComponent = () => {
     },
     [filterManager, indexPattern]
   );
+
+  if (!indexPattern) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div

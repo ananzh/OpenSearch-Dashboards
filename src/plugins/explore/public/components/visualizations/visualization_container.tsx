@@ -24,7 +24,6 @@ import { toExpression } from './utils/to_expression';
 import { useIndexPatternContext } from '../../application/components/index_pattern_context';
 import { ExploreServices } from '../../types';
 import { RootState } from '../../application/utils/state_management/store';
-import { selectRows } from '../../application/utils/state_management/selectors';
 
 export const VisualizationContainer = () => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
@@ -36,22 +35,18 @@ export const VisualizationContainer = () => {
   } = services;
   const { indexPattern } = useIndexPatternContext();
 
-  const rows = useSelector(selectRows);
-  const fieldSchema = useSelector((state: RootState) => {
-    const executionCacheKeys = state.ui?.executionCacheKeys || [];
-    if (executionCacheKeys.length === 0) {
-      return [];
-    }
+  // Use tab-specific cache key consistently
+  const executionCacheKeys = useSelector((state: RootState) => state.ui.executionCacheKeys);
+  const results = useSelector((state: RootState) => state.results);
+  const cacheKey = executionCacheKeys[1];
+  const rawResults = results[cacheKey];
 
-    // Use tab specific cacheKey
-    const cacheKey = executionCacheKeys[1];
-    const results = state.results[cacheKey];
-    if (results && results.fieldSchema) {
-      return results.fieldSchema;
-    }
+  // TODO: Register custom processor for visualization tab
+  // const tabDefinition = services.tabRegistry?.getTab?.('explore_visualization_tab');
+  // const processor = tabDefinition?.resultsProcessor || defaultResultsProcessor;
 
-    return [];
-  });
+  const rows = useMemo(() => rawResults?.hits?.hits || [], [rawResults]);
+  const fieldSchema = useMemo(() => rawResults?.fieldSchema || [], [rawResults]);
 
   const visualizationData = useMemo(() => {
     if (fieldSchema.length === 0 || rows.length === 0) {

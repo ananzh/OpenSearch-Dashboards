@@ -139,10 +139,9 @@ export const executeQueries = createAsyncThunk<
   const query = state.query;
   const activeTabId = state.ui.activeTabId || 'logs';
   const results = state.results;
-  const cacheKeys = state.ui.executionCacheKeys ? [...state.ui.executionCacheKeys] : [];
 
   if (!services) {
-    return { cacheKeys };
+    return { cacheKeys: ['', ''] };
   }
 
   const {
@@ -174,7 +173,6 @@ export const executeQueries = createAsyncThunk<
         })
       )
     );
-    cacheKeys[0] = defaultCacheKey;
   }
 
   // CONDITIONALLY execute tab query (only if queries are different and needed)
@@ -188,10 +186,11 @@ export const executeQueries = createAsyncThunk<
         })
       )
     );
-
-    cacheKeys[1] = defaultCacheKey;
   }
   await Promise.all(promises);
+
+  // Always return length 2 array: [defaultCacheKey, tabCacheKey]
+  const cacheKeys = [defaultCacheKey, queriesEqual ? defaultCacheKey : activeTabCacheKey];
 
   // Store appropriate cache keys for UI components
   dispatch(setExecutionCacheKeys(cacheKeys));
@@ -201,7 +200,7 @@ export const executeQueries = createAsyncThunk<
 /**
  * Helper function to create SearchSource with common configuration
  */
-const createSearchSourceWithQuery = async (
+export const updateSearchSource = async (
   preparedQuery: any,
   indexPattern: any,
   services: ExploreServices,
@@ -311,7 +310,7 @@ export const executeHistogramQuery = createAsyncThunk<
       const effectiveInterval = interval || state.legacy?.interval || 'auto';
 
       // Create SearchSource with histogram aggregations
-      const searchSource = await createSearchSourceWithQuery(
+      const searchSource = await updateSearchSource(
         preparedQuery,
         indexPattern,
         services,
@@ -434,7 +433,7 @@ export const executeTabQuery = createAsyncThunk<
     }
 
     // Create SearchSource without histogram aggregations
-    const searchSource = await createSearchSourceWithQuery(
+    const searchSource = await updateSearchSource(
       preparedQuery,
       indexPattern,
       services,
