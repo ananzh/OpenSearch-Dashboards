@@ -259,6 +259,7 @@ describe('DataSourceManagement: Utils.ts', () => {
       http.post.mockResolvedValue(mockSuccess);
     });
     test('Success:  Test Connection to the endpoint while creating a new data source', async () => {
+      // @ts-expect-error TS2345 TODO(ts-error): fixme
       await testConnection(http, getDataSourceByIdWithoutCredential.attributes);
       expect(http.post.mock.calls).toMatchInlineSnapshot(`
         Array [
@@ -273,6 +274,7 @@ describe('DataSourceManagement: Utils.ts', () => {
     });
 
     test('Success: Test Connection to the endpoint while existing data source is updated', async () => {
+      // @ts-expect-error TS2345 TODO(ts-error): fixme
       await testConnection(http, getDataSourceByIdWithoutCredential.attributes, 'test1234');
       expect(http.post.mock.calls).toMatchInlineSnapshot(`
         Array [
@@ -288,6 +290,7 @@ describe('DataSourceManagement: Utils.ts', () => {
     test('failure:  Test Connection to the endpoint while creating/updating a data source', async () => {
       try {
         http.post.mockRejectedValue(mockError);
+        // @ts-expect-error TS2345 TODO(ts-error): fixme
         await testConnection(http, getDataSourceByIdWithoutCredential.attributes, 'test1234');
       } catch (e) {
         expect(e).toBeTruthy();
@@ -299,6 +302,7 @@ describe('DataSourceManagement: Utils.ts', () => {
     test('Success: deleting multiple data source', async () => {
       try {
         mockResponseForSavedObjectsCalls(savedObjects.client, 'delete', {});
+        // @ts-expect-error TS2345 TODO(ts-error): fixme
         await deleteMultipleDataSources(savedObjects.client, getMappedDataSources);
         expect(true).toBe(true); // This will be executed if multiple delete call is successful.
       } catch (e) {
@@ -309,6 +313,7 @@ describe('DataSourceManagement: Utils.ts', () => {
     test('failure: deleting multiple data sources', async () => {
       try {
         mockErrorResponseForSavedObjectsCalls(savedObjects.client, 'delete');
+        // @ts-expect-error TS2345 TODO(ts-error): fixme
         await deleteMultipleDataSources(savedObjects.client, getMappedDataSources);
       } catch (e) {
         expect(e).toBeTruthy();
@@ -604,6 +609,7 @@ describe('DataSourceManagement: Utils.ts', () => {
           id: '1',
           type: '',
           references: [],
+          // @ts-expect-error TS2741 TODO(ts-error): fixme
           attributes: {
             title: 'DataSource 1',
             endpoint: '',

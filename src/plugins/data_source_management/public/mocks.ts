@@ -640,6 +640,7 @@ export const createAuthenticationMethod = (
   authMethod: Partial<AuthenticationMethod>
 ): AuthenticationMethod => ({
   name: 'unknown',
+  // @ts-expect-error TS2322 TODO(ts-error): fixme
   credentialForm: React.createElement('div', {}, 'Hello, world!'),
   credentialSourceOption: {
     value: 'unknown',
@@ -1117,6 +1118,7 @@ export const mockDatasourcesQuery = {
 
 // direct query data source integration mocks
 export const mockHttp: Partial<HttpStart> = {
+  // @ts-expect-error TS2739 TODO(ts-error): fixme
   basePath: {
     prepend: (url: string) => url,
   },
@@ -1187,6 +1189,7 @@ export const TEST_INTEGRATION_CONFIG: IntegrationConfig = {
   ],
 };
 
+// @ts-expect-error TS2304 TODO(ts-error): fixme
 export const TEST_INTEGRATION_SETUP_INPUTS: IntegrationSetupInputs = {
   displayName: 'Test Instance Name',
   connectionType: 'index',

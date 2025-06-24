@@ -112,6 +112,7 @@ export class DataSourceMultiSelectable extends React.Component<
           changeState: this.onEmptyState.bind(this, !!fetchedDataSources?.length),
           notifications: this.props.notifications,
           application: this.props.application,
+          // @ts-expect-error TS2322 TODO(ts-error): fixme
           callback: this.onSelectedDataSources.bind(this),
           incompatibleDataSourcesExist: !!fetchedDataSources?.length,
         });
@@ -129,6 +130,7 @@ export class DataSourceMultiSelectable extends React.Component<
       handleDataSourceFetchError(
         this.onError.bind(this),
         this.props.notifications,
+        // @ts-expect-error TS2345 TODO(ts-error): fixme
         this.onSelectedDataSources.bind(this)
       );
     }
@@ -152,6 +154,7 @@ export class DataSourceMultiSelectable extends React.Component<
 
   render() {
     if (this.state.showEmptyState) {
+      // @ts-expect-error TS2741 TODO(ts-error): fixme
       return <NoDataSource application={this.props.application} />;
     }
     if (this.state.showError) {
