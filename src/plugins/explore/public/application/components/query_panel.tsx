@@ -15,12 +15,7 @@ import {
 } from '../../../../data/public';
 import { IndexPattern } from '../../../../data/common/index_patterns';
 import { setQuery } from '../utils/state_management/slices/query_slice';
-
 import { RecentQuerySelector } from './recent_query_selector';
-import {
-  beginTransaction,
-  finishTransaction,
-} from '../utils/state_management/actions/transaction_actions';
 import { clearResults } from '../utils/state_management/slices/results_slice';
 import { selectIsLoading, selectDataset, selectQuery } from '../utils/state_management/selectors';
 import { ResultStatus, QueryStatus } from '../utils/state_management/types';
@@ -98,14 +93,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
   // Execute query when run button is clicked
   const handleRunQuery = useCallback(async () => {
-    dispatch(beginTransaction());
-    try {
-      dispatch(setQuery({ ...query, query: localQuery }));
-      dispatch(clearResults());
-      dispatch(executeQueries({ services }));
-    } finally {
-      dispatch(finishTransaction());
-    }
+    dispatch(setQuery({ ...query, query: localQuery }));
+    dispatch(clearResults());
+    dispatch(executeQueries({ services }));
   }, [dispatch, localQuery, query, services]);
 
   // Handle editor mount

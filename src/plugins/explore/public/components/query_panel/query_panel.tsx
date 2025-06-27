@@ -16,7 +16,6 @@ import { RecentQueriesTable } from './components/footer/recent_query/table';
 import { useEditorMode } from './hooks/useEditorMode';
 import { QueryTypeDetector } from './utils/type_detection';
 import { Query, TimeRange, LanguageType } from './types';
-
 import {
   selectIsLoading,
   selectDataset,
@@ -28,10 +27,7 @@ import { getEffectiveLanguageForAutoComplete } from '../../../../data/public';
 import { setQuery } from '../../application/utils/state_management/slices/query_slice';
 import { setShowDatasetFields } from '../../application/utils/state_management/slices/ui_slice';
 import { clearResults } from '../../application/utils/state_management/slices/results_slice';
-import {
-  beginTransaction,
-  finishTransaction,
-} from '../../application/utils/state_management/actions/transaction_actions';
+
 import { ResultStatus, QueryStatus } from '../../application/utils/state_management/types';
 import { executeQueries } from '../../application/utils/state_management/actions/query_actions';
 
@@ -100,19 +96,14 @@ const QueryPanel: React.FC<QueryPanelProps> = ({ services, indexPattern }) => {
 
   // Execute query when run button is clicked
   const handleRun = useCallback(async () => {
-    dispatch(beginTransaction());
-    try {
-      // Update query string in Redux
-      dispatch(setQuery({ ...query, query: localQuery }));
+    // Update query string in Redux
+    dispatch(setQuery({ ...query, query: localQuery }));
 
-      // EXPLICIT cache clear - separate cache logic
-      dispatch(clearResults());
+    // EXPLICIT cache clear - separate cache logic
+    dispatch(clearResults());
 
-      // Execute queries - cache already cleared
-      await dispatch(executeQueries({ services }));
-    } finally {
-      dispatch(finishTransaction());
-    }
+    // Execute queries - cache already cleared
+    await dispatch(executeQueries({ services }));
   }, [dispatch, localQuery, query, services]);
 
   // Real autocomplete implementation using the data plugin's autocomplete service

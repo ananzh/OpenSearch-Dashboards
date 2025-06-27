@@ -6,7 +6,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { i18n } from '@osd/i18n';
 import moment from 'moment';
-import { setStatus } from '../slices/ui_slice';
+import { setStatus } from '../slices/system_slice';
 import { ResultStatus } from '../types';
 import { setResults, ISearchResult } from '../slices/results_slice';
 import { ExploreServices } from '../../../../types';

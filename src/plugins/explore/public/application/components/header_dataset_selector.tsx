@@ -10,10 +10,6 @@ import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react
 import { ExploreServices } from '../../types';
 import { executeQueries } from '../utils/state_management/actions/query_actions';
 import { clearResults } from '../utils/state_management/slices/results_slice';
-import {
-  beginTransaction,
-  finishTransaction,
-} from '../utils/state_management/actions/transaction_actions';
 import { setQuery } from '../utils/state_management/slices/query_slice';
 
 /**
@@ -38,14 +34,9 @@ export const HeaderDatasetSelector: React.FC = () => {
       if (!isMounted.current || !query.dataset) return;
       const queryStringState = services.data.query.queryString.getQuery();
 
-      dispatch(beginTransaction());
-      try {
-        dispatch(clearResults());
-        dispatch(setQuery(queryStringState));
-        dispatch(executeQueries({ services }));
-      } finally {
-        dispatch(finishTransaction());
-      }
+      dispatch(clearResults());
+      dispatch(setQuery(queryStringState));
+      dispatch(executeQueries({ services }));
     },
     [dispatch, services]
   );

@@ -24,13 +24,13 @@ import { useIndexPatternContext } from '../../application/components/index_patte
 import { ExploreServices } from '../../types';
 import { RootState } from '../../application/utils/state_management/store';
 import {
-  selectStyleOptions,
-  selectChartType,
+  selectVisualizationStyleOptions,
+  selectVisualizationChartType,
 } from '../../application/utils/state_management/selectors';
 import {
-  setStyleOptions,
-  setChartType as setSelectedChartType,
-} from '../../application/utils/state_management/slices/ui_slice';
+  setVisualizationStyleOptions,
+  setVisualizationChartType,
+} from '../../application/utils/state_management/slices/tab_slice';
 import { defaultPrepareQuery } from '../../application/utils/state_management/actions/query_actions';
 
 export const VisualizationContainer = () => {
@@ -61,8 +61,8 @@ export const VisualizationContainer = () => {
   // const processor = tabDefinition?.resultsProcessor || defaultResultsProcessor;
 
   const rows = useMemo(() => rawResults?.hits?.hits || [], [rawResults]);
-  const styleOptions = useSelector(selectStyleOptions);
-  const selectedChartType = useSelector(selectChartType);
+  const styleOptions = useSelector(selectVisualizationStyleOptions);
+  const selectedChartType = useSelector(selectVisualizationChartType);
   const fieldSchema = useMemo(() => rawResults?.fieldSchema || [], [rawResults]);
 
   const visualizationData = useMemo(() => {
@@ -84,7 +84,9 @@ export const VisualizationContainer = () => {
   useEffect(() => {
     if (visualizationData) {
       // TODO: everytime the fields change, do we reset the chart type and its style options? P1: we will implement chart type selection persistence
-      dispatch(setStyleOptions(visualizationData.visualizationType?.ui.style.defaults));
+      dispatch(
+        setVisualizationStyleOptions(visualizationData.visualizationType?.ui.style.defaults)
+      );
     }
   }, [visualizationData, dispatch]);
 
@@ -93,7 +95,7 @@ export const VisualizationContainer = () => {
   // Initialize selectedChartType when visualizationData changes
   useEffect(() => {
     if (visualizationData && visualizationData.visualizationType) {
-      dispatch(setSelectedChartType(visualizationData.visualizationType.type));
+      dispatch(setVisualizationChartType(visualizationData.visualizationType.type));
     }
   }, [visualizationData, dispatch]);
 
@@ -174,20 +176,23 @@ export const VisualizationContainer = () => {
   const handleStyleChange = (newOptions: Partial<ChartStyleControlMap[ChartType]>) => {
     if (styleOptions) {
       dispatch(
-        setStyleOptions({ ...styleOptions, ...newOptions } as ChartStyleControlMap[ChartType])
+        setVisualizationStyleOptions({
+          ...styleOptions,
+          ...newOptions,
+        } as ChartStyleControlMap[ChartType])
       );
     }
   };
 
   const handleChartTypeChange = (chartType: ChartType) => {
-    dispatch(setSelectedChartType(chartType));
+    dispatch(setVisualizationChartType(chartType));
 
     // Get the visualization configuration for the selected chart type
     const chartConfig = visualizationRegistry.getVisualizationConfig(chartType);
 
     // Update the style options with the defaults for the selected chart type
     if (chartConfig && chartConfig.ui && chartConfig.ui.style) {
-      setStyleOptions(chartConfig.ui.style.defaults);
+      setVisualizationStyleOptions(chartConfig.ui.style.defaults);
 
       // Update the visualizationData with the new visualization type
       if (visualizationData) {
