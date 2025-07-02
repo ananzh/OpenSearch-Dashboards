@@ -439,10 +439,10 @@ csp.rules: ["base-uri 'self'","connect-src 'self' ${CSP_RULE_CONNECT_SRC};","def
 #vis_type_timeline.enabled: false
 
 # Settings to enable ultrawarm and leviathan so that storage plugin can work.
-opensearch_index_management.leviathan_enabled: true
-opensearch_index_management.ultrawarm_enabled: true
-storage.leviathan_enabled: true
-storage.ultrawarm_enabled: true
+# opensearch_index_management.leviathan_enabled: true
+# opensearch_index_management.ultrawarm_enabled: true
+# storage.leviathan_enabled: true
+# storage.ultrawarm_enabled: true
 
 # Server timeout setting
 server.keepaliveTimeout: 300000
