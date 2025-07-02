@@ -11,7 +11,7 @@ package.OpenSearch-Dashboards = {
     };
 
     build-tools = {
-        neo_3.x = {
+        devstack_platform_3.x = {
             ContainerBuild = 1.2;
             AWSOpenSearchNeoContainerBuildCredentialsProvider = 1.0;
         };
