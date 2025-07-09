@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { ExploreServices } from '../../../types';
 import { RootState } from '../state_management/store';
 import { executeQueries } from '../state_management/actions/query_actions';
-import { clearResults } from '../state_management/slices';
+import { clearResults, setActiveTab } from '../state_management/slices';
 
 /**
  * Hook to handle initial query execution on page load
@@ -30,7 +30,8 @@ export const useInitialQueryExecution = (services: ExploreServices) => {
         services.data.query.queryString.addToQueryHistory(queryState, timefilter.getTime());
       }
 
-      // Execute the initial query
+      // Set activeTabId to empty string to signal auto-detection needed
+      // dispatch(setActiveTab(''));
       dispatch(clearResults());
       dispatch(executeQueries({ services }) as unknown);
       setIsInitialized(true);

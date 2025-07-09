@@ -200,7 +200,7 @@ const getPreloadedQueryState = async (services: ExploreServices): Promise<QueryS
  */
 const getPreloadedUIState = (services: ExploreServices): UIState => {
   return {
-    activeTabId: 'logs',
+    activeTabId: '', // Empty string signals auto-detection needed
     showDatasetFields: true,
     showHistogram: true,
     prompt: '',

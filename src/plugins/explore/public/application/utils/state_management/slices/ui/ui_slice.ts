@@ -13,7 +13,7 @@ export interface UIState {
 }
 
 const initialState: UIState = {
-  activeTabId: 'logs',
+  activeTabId: '', // Empty string signals auto-detection needed
   showDatasetFields: true,
   prompt: '', // Initialize prompt as empty string
   showHistogram: true,

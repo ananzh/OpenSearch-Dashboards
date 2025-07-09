@@ -155,13 +155,19 @@ export const executeQueries = createAsyncThunk<
   const activeTabCacheKey = activeTabPrepareQuery(query);
   const queriesEqual = defaultCacheKey === activeTabCacheKey;
 
-  // Check what needs execution (for tab switching case)
+  // ALWAYS include visualization tab for dynamic selection
+  const visualizationTab = services.tabRegistry?.getTab('explore_visualization_tab');
+  const visualizationTabPrepareQuery = visualizationTab?.prepareQuery || defaultPrepareQuery;
+  const visualizationTabCacheKey = visualizationTabPrepareQuery(queryString);
+
+  // Check what needs execution
   const needsDefaultQuery = !results[defaultCacheKey];
   const needsActiveTabQuery = !results[activeTabCacheKey];
+  const needsVisualizationTabQuery = !results[visualizationTabCacheKey];
 
   const promises = [];
 
-  // ALWAYS execute default query
+  // ALWAYS execute default query for histogram/sidebar
   if (needsDefaultQuery) {
     const interval = state.legacy?.interval;
     promises.push(
@@ -175,7 +181,7 @@ export const executeQueries = createAsyncThunk<
     );
   }
 
-  // CONDITIONALLY execute tab query (only if queries are different and needed)
+  // Execute active tab query if needed and different from default
   if (!queriesEqual && needsActiveTabQuery) {
     promises.push(
       dispatch(
@@ -186,6 +192,24 @@ export const executeQueries = createAsyncThunk<
       )
     );
   }
+
+  // ALWAYS execute visualization tab query for dynamic tab selection
+  if (
+    needsVisualizationTabQuery &&
+    visualizationTabCacheKey !== defaultCacheKey &&
+    visualizationTabCacheKey !== activeTabCacheKey
+  ) {
+    promises.push(
+      dispatch(
+        executeTabQuery({
+          services,
+          cacheKey: visualizationTabCacheKey,
+        })
+      )
+    );
+  }
+
+  // Wait for all queries to complete
   await Promise.all(promises);
 });
 

@@ -4,14 +4,16 @@
  */
 
 import './tabs.scss';
-import React, { useCallback, memo } from 'react';
+import React, { useCallback, memo, useEffect } from 'react';
 import { EuiTabbedContent, EuiTabbedContentTab } from '@elastic/eui';
 import { useDispatch, useSelector } from 'react-redux';
 import { setActiveTab } from '../../application/utils/state_management/slices';
 import { executeQueries } from '../../application/utils/state_management/actions/query_actions';
+import { detectAndSetOptimalTab } from '../../application/utils/state_management/actions/detect_optimal_tab';
 import { selectActiveTab } from '../../application/utils/state_management/selectors';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../../types';
+import { RootState } from '../../application/utils/state_management/store';
 
 /**
  * Rendering tabs with different views of 1 OpenSearch hit in Discover.
@@ -24,8 +26,16 @@ export const ExploreTabsComponent = () => {
   // Get services from context
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const registryTabs = services.tabRegistry.getAllTabs();
+  const results = useSelector((state: RootState) => state.results);
 
   const activeTabId = useSelector(selectActiveTab);
+
+  // Auto-detection logic: only run when activeTabId is empty (signals auto-detection needed)
+  useEffect(() => {
+    if (activeTabId === '' && results && Object.keys(results).length > 0) {
+      dispatch(detectAndSetOptimalTab({ services }));
+    }
+  }, [activeTabId, results, services, dispatch]);
 
   const onTabsClick = useCallback(
     (selectedTab: EuiTabbedContentTab) => {
@@ -43,9 +53,10 @@ export const ExploreTabsComponent = () => {
     };
   });
 
-  const activeTab = tabs.find((tab) => {
-    return tab.id === activeTabId;
-  });
+  const activeTab =
+    tabs.find((tab) => {
+      return tab.id === activeTabId;
+    }) || tabs.find((tab) => tab.id === 'logs'); // Fallback to logs if activeTabId is empty
 
   return (
     <EuiTabbedContent
