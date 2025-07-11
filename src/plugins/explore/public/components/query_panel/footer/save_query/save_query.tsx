@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './save_query.scss';
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { i18n } from '@osd/i18n';
@@ -14,16 +16,14 @@ import {
   SavedQuery,
 } from '../../../../../../data/public';
 import { selectQuery } from '../../../../application/utils/state_management/selectors';
-import { clearResults, setSavedQuery } from '../../../../application/utils/state_management/slices';
+import { setSavedQuery } from '../../../../application/utils/state_management/slices';
 import { ExploreServices } from '../../../../types';
 import { setQueryState } from '../../../../application/utils/state_management/slices';
 import { loadQueryActionCreator } from '../../../../application/utils/state_management/actions/query_editor';
 import { useTimeFilter } from '../../utils';
 import { useOpenSearchDashboards } from '../../../../../../opensearch_dashboards_react/public';
 import { RootState } from '../../../../application/utils/state_management/store';
-import { executeQueries } from '../../../../application/utils/state_management/actions/query_actions';
 import { useClearEditorsAndSetText } from '../../../../application/hooks';
-import './save_query.scss';
 
 export const SaveQueryButton = () => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
@@ -115,7 +115,6 @@ export const SaveQueryButton = () => {
 
   const handleLoadSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
-      // 1. Update Redux state with saved query ID
       dispatch(setSavedQuery(savedQuery.id));
       dispatch(setQueryState(savedQuery.attributes.query));
       dispatch(
@@ -126,7 +125,6 @@ export const SaveQueryButton = () => {
         )
       );
 
-      // 3. Update timefilter if present
       if (savedQuery.attributes.timefilter && timeFilter) {
         timeFilter.setTime({
           from: savedQuery.attributes.timefilter.from,
@@ -137,10 +135,7 @@ export const SaveQueryButton = () => {
         }
       }
 
-      // 4. Auto-close panel and execute
       setIsPopoverOpen(false);
-      dispatch(clearResults());
-      dispatch(executeQueries({ services }));
     },
     [dispatch, services, clearEditorsAndSetText, timeFilter]
   );

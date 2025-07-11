@@ -40,19 +40,13 @@ const determineOptimalTab = (results: any): string => {
 
 /**
  * Detect the optimal tab based on results and sets it as active.
- * @param savedTabId - Optional tab ID from saved explore (when provided, skips detection)
  */
 export const detectAndSetOptimalTab = createAsyncThunk<
   void,
   { services: ExploreServices; savedTabId?: string },
   { state: RootState }
->('ui/detectAndSetOptimalTab', async ({ services, savedTabId }, { getState, dispatch }) => {
+>('ui/detectAndSetOptimalTab', async ({ services }, { getState, dispatch }) => {
   const state = getState();
-  if (savedTabId) {
-    dispatch(setActiveTab(savedTabId));
-    return;
-  }
-
   const query = state.query;
   const results = state.results;
 

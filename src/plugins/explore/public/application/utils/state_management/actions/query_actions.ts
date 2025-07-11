@@ -8,7 +8,8 @@ import { i18n } from '@osd/i18n';
 import moment from 'moment';
 import { IBucketDateHistogramAggConfig, Query, DataView as Dataset } from 'src/plugins/data/common';
 import { QueryExecutionStatus } from '../types';
-import { ISearchResult, setQueryStatus, setResults, updateQueryStatus } from '../slices';
+import { setResults, ISearchResult } from '../slices';
+import { setIndividualQueryStatus } from '../slices/query_editor/query_editor_slice';
 import { ExploreServices } from '../../../../types';
 import {
   DataPublicPluginStart,
@@ -212,13 +213,20 @@ const executeQueryBase = async (
 
   const query = getState().query;
 
+  const queryStartTime = Date.now();
+
   try {
+    // Set loading status for THIS SPECIFIC QUERY using cacheKey
+    // This triggers middleware → computeOverallStatus → setOverallQueryStatus
     dispatch(
-      setQueryStatus({
-        status: QueryExecutionStatus.LOADING,
-        startTime: Date.now(),
-        elapsedMs: undefined,
-        body: undefined,
+      setIndividualQueryStatus({
+        cacheKey,
+        status: {
+          status: QueryExecutionStatus.LOADING,
+          startTime: queryStartTime,
+          elapsedMs: undefined,
+          body: undefined,
+        },
       })
     );
 
@@ -331,14 +339,18 @@ const executeQueryBase = async (
 
     dispatch(setResults({ cacheKey, results: rawResultsWithMeta }));
 
-    // Set completion status with timing
     dispatch(
-      updateQueryStatus({
-        status:
-          rawResults.hits?.hits?.length > 0
-            ? QueryExecutionStatus.READY
-            : QueryExecutionStatus.NO_RESULTS,
-        elapsedMs: inspectorRequest.getTime()!,
+      setIndividualQueryStatus({
+        cacheKey,
+        status: {
+          status:
+            rawResults.hits?.hits?.length > 0
+              ? QueryExecutionStatus.READY
+              : QueryExecutionStatus.NO_RESULTS,
+          startTime: queryStartTime,
+          elapsedMs: inspectorRequest.getTime()!,
+          body: undefined,
+        },
       })
     );
 
@@ -352,19 +364,26 @@ const executeQueryBase = async (
     // Use search service to show error (like Discover does)
     services.data.search.showError(error as Error);
 
-    // Set error status with data plugin's error format
+    // Update individual query status for this specific error
+    // This triggers middleware → setOverallQueryStatus (since it's an error)
     dispatch(
-      updateQueryStatus({
-        status: QueryExecutionStatus.ERROR,
-        body: {
-          error: {
-            error: error.message || 'Unknown error',
-            message: { error: error.message },
-            statusCode: error.statusCode,
+      setIndividualQueryStatus({
+        cacheKey,
+        status: {
+          status: QueryExecutionStatus.ERROR,
+          startTime: queryStartTime,
+          elapsedMs: undefined,
+          body: {
+            error: {
+              error: error.message || 'Unknown error',
+              message: { error: error.message },
+              statusCode: error.statusCode,
+            },
           },
         },
       })
     );
+
     throw error;
   }
 };
