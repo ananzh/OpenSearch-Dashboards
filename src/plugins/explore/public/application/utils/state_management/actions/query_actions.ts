@@ -216,8 +216,6 @@ const executeQueryBase = async (
   const queryStartTime = Date.now();
 
   try {
-    // Set loading status for THIS SPECIFIC QUERY using cacheKey
-    // This triggers middleware → computeOverallStatus → setOverallQueryStatus
     dispatch(
       setIndividualQueryStatus({
         cacheKey,

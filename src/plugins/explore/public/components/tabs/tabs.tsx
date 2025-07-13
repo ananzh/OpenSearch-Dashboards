@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setActiveTab } from '../../application/utils/state_management/slices';
 import { clearQueryStatusMapByKey } from '../../application/utils/state_management/slices';
 import {
-  defaultPrepareQuery,
+  defaultPrepareQueryString,
   executeTabQuery,
 } from '../../application/utils/state_management/actions/query_actions';
 import { selectActiveTab } from '../../application/utils/state_management/selectors';
@@ -43,7 +43,7 @@ export const ExploreTabsComponent = () => {
       dispatch(setActiveTab(selectedTab.id));
 
       const activeTab = services.tabRegistry?.getTab(selectedTab.id);
-      const prepareQuery = activeTab?.prepareQuery || defaultPrepareQuery;
+      const prepareQuery = activeTab?.prepareQuery || defaultPrepareQueryString;
       const newTabCacheKey = prepareQuery(query);
 
       const needsExecution = !results[newTabCacheKey];
