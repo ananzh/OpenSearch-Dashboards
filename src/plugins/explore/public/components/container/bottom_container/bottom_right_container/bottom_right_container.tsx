@@ -70,7 +70,7 @@ export const BottomRightContainer = () => {
     );
   }
 
-  if (status === QueryExecutionStatus.LOADING) {  
+  if (status === QueryExecutionStatus.LOADING) {
     return (
       <CanvasPanel>
         <LoadingSpinner />
@@ -78,7 +78,7 @@ export const BottomRightContainer = () => {
     );
   }
 
-  if (status === QueryExecutionStatus.ERROR) {  
+  if (status === QueryExecutionStatus.ERROR) {
     return (
       <CanvasPanel>
         <DiscoverUninitialized onRefresh={onRefresh} />
@@ -86,7 +86,7 @@ export const BottomRightContainer = () => {
     );
   }
 
-  if ( status === QueryExecutionStatus.READY ) {
+  if (status === QueryExecutionStatus.READY) {
     return (
       <>
         <ResultsSummaryPanel />
