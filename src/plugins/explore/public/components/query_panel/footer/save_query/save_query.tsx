@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import './save_query.scss';
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { i18n } from '@osd/i18n';
@@ -16,19 +14,22 @@ import {
   SavedQuery,
 } from '../../../../../../data/public';
 import { selectQuery } from '../../../../application/utils/state_management/selectors';
-import { setSavedQuery } from '../../../../application/utils/state_management/slices';
+import { clearResults, setSavedQuery } from '../../../../application/utils/state_management/slices';
 import { ExploreServices } from '../../../../types';
 import { setQueryState } from '../../../../application/utils/state_management/slices';
 import { loadQueryActionCreator } from '../../../../application/utils/state_management/actions/query_editor';
 import { useTimeFilter } from '../../utils';
 import { useOpenSearchDashboards } from '../../../../../../opensearch_dashboards_react/public';
 import { RootState } from '../../../../application/utils/state_management/store';
-import { useClearEditorsAndSetText } from '../../../../application/hooks';
+import { executeQueries } from '../../../../application/utils/state_management/actions/query_actions';
+import { useClearEditorsAndSetText, useEditorText } from '../../../../application/hooks';
+import './save_query.scss';
 
 export const SaveQueryButton = () => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const { timeFilter } = useTimeFilter();
   const query = useSelector(selectQuery);
+  const userInputText = useEditorText();
   const savedQueryService = services.data.query.savedQueries;
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const dispatch = useDispatch();
@@ -59,18 +60,21 @@ export const SaveQueryButton = () => {
   const onButtonClick = () => setIsPopoverOpen(!isPopoverOpen);
   const closePopover = () => setIsPopoverOpen(false);
 
-  // Handle save query with Redux state management
   const handleSaveQuery = async (meta: SavedQueryMeta, saveAsNew?: boolean) => {
     try {
       if (!query) return;
       const clonedQuery = cloneDeep(query);
       delete clonedQuery.dataset;
 
-      // Compose the SavedQueryAttributes object
+      const queryToSave = {
+        ...clonedQuery,
+        query: userInputText,
+      };
+
       const attributes: any = {
         title: meta.title,
         description: meta.description,
-        query: { ...clonedQuery },
+        query: queryToSave,
       };
 
       if (meta.shouldIncludeTimeFilter && timeFilter && typeof timeFilter.getTime === 'function') {
@@ -79,7 +83,7 @@ export const SaveQueryButton = () => {
           tf &&
           tf.from !== undefined &&
           tf.to !== undefined &&
-          typeof timeFilter.getRefreshInterval === 'function'
+          typeof timeFilter.setRefreshInterval === 'function'
         ) {
           const refresh = timeFilter.getRefreshInterval();
           attributes.timefilter = {
@@ -100,7 +104,6 @@ export const SaveQueryButton = () => {
 
       services.notifications.toasts.addSuccess(`Your query "${attributes.title}" was saved`);
 
-      // Auto-close panel and execute current query
       setIsPopoverOpen(false);
     } catch (error) {
       services.notifications.toasts.addDanger(
@@ -136,6 +139,8 @@ export const SaveQueryButton = () => {
       }
 
       setIsPopoverOpen(false);
+      dispatch(clearResults());
+      dispatch(executeQueries({ services }));
     },
     [dispatch, services, clearEditorsAndSetText, timeFilter]
   );
