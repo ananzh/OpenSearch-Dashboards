@@ -382,3 +382,8 @@
 
 # Set the value to true to enable the banner plugin
 # banner.enabled: true
+
+workspace.enabled: true
+opensearch.ignoreVersionMismatch: true
+data_source.enabled: true
+data.savedQueriesNewUI.enabled: true
