@@ -12,14 +12,16 @@ import { runQueryActionCreator } from '../run_query';
 import { clearLastExecutedData } from '../../../slices';
 
 // This is used when user submits a query or a prompt. This called runQueryActionCreator under the hood
-export const onEditorRunActionCreator = (services: ExploreServices, editorText: string) => (
-  dispatch: AppDispatch,
-  getState: () => RootState
-) => {
+export const onEditorRunActionCreator = (
+  services: ExploreServices,
+  editorText: string,
+  isUpdate?: boolean
+) => (dispatch: AppDispatch, getState: () => RootState) => {
   const {
-    queryEditor: { editorMode, promptModeIsAvailable },
+    queryEditor: { editorMode, promptModeIsAvailable, isQueryExecutionDisabled },
   } = getState();
 
+  if (isQueryExecutionDisabled) return;
   dispatch(clearLastExecutedData());
 
   if (editorMode === EditorMode.Prompt) {
@@ -37,8 +39,8 @@ export const onEditorRunActionCreator = (services: ExploreServices, editorText: 
       return;
     }
 
-    dispatch(callAgentActionCreator({ services, editorText }));
+    dispatch(callAgentActionCreator({ services, editorText, isUpdate }));
   } else {
-    dispatch(runQueryActionCreator(services, editorText));
+    dispatch(runQueryActionCreator({ services, query: editorText, isUpdate }));
   }
 };

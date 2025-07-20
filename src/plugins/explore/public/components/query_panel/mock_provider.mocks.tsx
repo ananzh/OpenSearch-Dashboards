@@ -195,6 +195,7 @@ const createMockStore = (
         promptToQueryIsLoading: false,
         lastExecutedPrompt: '',
         lastExecutedTranslatedQuery,
+        isQueryExecutionDisabled: false,
       },
     },
   });

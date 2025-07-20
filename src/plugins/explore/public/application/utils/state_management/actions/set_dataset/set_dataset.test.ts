@@ -69,6 +69,7 @@ describe('setDatasetActionCreator', () => {
       promptToQueryIsLoading: false,
       lastExecutedPrompt: '',
       lastExecutedTranslatedQuery: '',
+      isQueryExecutionDisabled: false,
     },
     query: {
       query: 'SELECT * FROM test',
@@ -201,6 +202,7 @@ describe('setDatasetActionCreator', () => {
         promptToQueryIsLoading: false,
         lastExecutedPrompt: '',
         lastExecutedTranslatedQuery: '',
+        isQueryExecutionDisabled: false,
       },
       query: {
         query: 'SELECT * FROM test',

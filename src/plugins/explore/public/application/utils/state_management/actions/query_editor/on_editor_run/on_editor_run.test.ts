@@ -175,7 +175,11 @@ describe('onEditorRunActionCreator', () => {
 
       actionCreator(mockDispatch, mockGetState);
 
-      expect(mockRunQueryActionCreator).toHaveBeenCalledWith(mockServices, testEditorText);
+      expect(mockRunQueryActionCreator).toHaveBeenCalledWith({
+        services: mockServices,
+        query: testEditorText,
+        isUpdate: undefined,
+      });
       expect(mockDispatch).toHaveBeenCalledWith(mockRunQueryThunk);
     });
 
@@ -185,7 +189,11 @@ describe('onEditorRunActionCreator', () => {
 
       actionCreator(mockDispatch, mockGetState);
 
-      expect(mockRunQueryActionCreator).toHaveBeenCalledWith(mockServices, queryText);
+      expect(mockRunQueryActionCreator).toHaveBeenCalledWith({
+        services: mockServices,
+        query: queryText,
+        isUpdate: undefined,
+      });
     });
 
     it('should work with empty query text', () => {
@@ -193,7 +201,11 @@ describe('onEditorRunActionCreator', () => {
 
       actionCreator(mockDispatch, mockGetState);
 
-      expect(mockRunQueryActionCreator).toHaveBeenCalledWith(mockServices, '');
+      expect(mockRunQueryActionCreator).toHaveBeenCalledWith({
+        services: mockServices,
+        query: '',
+        isUpdate: undefined,
+      });
     });
 
     it('should work regardless of promptModeIsAvailable value', () => {
@@ -207,7 +219,11 @@ describe('onEditorRunActionCreator', () => {
       const actionCreator = onEditorRunActionCreator(mockServices, testEditorText);
       actionCreator(mockDispatch, mockGetState);
 
-      expect(mockRunQueryActionCreator).toHaveBeenCalledWith(mockServices, testEditorText);
+      expect(mockRunQueryActionCreator).toHaveBeenCalledWith({
+        services: mockServices,
+        query: testEditorText,
+        isUpdate: undefined,
+      });
     });
   });
 

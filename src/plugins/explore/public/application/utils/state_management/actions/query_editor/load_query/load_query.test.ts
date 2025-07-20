@@ -78,7 +78,10 @@ describe('loadQueryActionCreator', () => {
 
     actionCreator(mockDispatch);
 
-    expect(mockRunQueryActionCreator).toHaveBeenCalledWith(mockServices, testQuery);
+    expect(mockRunQueryActionCreator).toHaveBeenCalledWith({
+      services: mockServices,
+      query: testQuery,
+    });
     expect(mockDispatch).toHaveBeenCalledWith(mockRunAction);
   });
 
@@ -121,6 +124,9 @@ describe('loadQueryActionCreator', () => {
 
     expect(calls).toEqual(['clearLastExecutedData', 'setEditorTextWithQuery', 'runQuery']);
     expect(mockSetEditorTextWithQuery).toHaveBeenCalledWith(testQuery);
-    expect(mockRunQueryActionCreator).toHaveBeenCalledWith(mockServices, testQuery);
+    expect(mockRunQueryActionCreator).toHaveBeenCalledWith({
+      services: mockServices,
+      query: testQuery,
+    });
   });
 });

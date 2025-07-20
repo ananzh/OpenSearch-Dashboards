@@ -108,6 +108,7 @@ describe('export_actions', () => {
         promptToQueryIsLoading: false,
         lastExecutedPrompt: '',
         lastExecutedTranslatedQuery: '',
+        isQueryExecutionDisabled: false,
       },
     };
 

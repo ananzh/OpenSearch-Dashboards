@@ -7,14 +7,16 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { i18n } from '@osd/i18n';
 import { AppMountParameters } from 'opensearch-dashboards/public';
 import { useSelector as useNewStateSelector, useDispatch } from 'react-redux';
+import { isEqual } from 'lodash';
 import { DataView } from '../../../../data/common';
 import { useSyncQueryStateWithUrl } from '../../../../data/public';
+import { isTimeRangeInvalid } from './utils/validate_time_range';
 import { createOsdUrlStateStorage } from '../../../../opensearch_dashboards_utils/public';
 import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { TopNavMenuItemRenderType } from '../../../../navigation/public';
 import { PLUGIN_ID } from '../../../common';
 import { ExploreServices } from '../../types';
 import { useDatasetContext } from '../../application/context';
-import { TopNavMenuItemRenderType } from '../../../../navigation/public';
 import { ExecutionContextSearch } from '../../../../expressions/common';
 import {
   selectTabState,
@@ -25,8 +27,13 @@ import { useFlavorId } from '../../helpers/use_flavor_id';
 import { getTopNavLinks } from './top_nav_links';
 import { SavedExplore } from '../../saved_explore';
 import { setQueryState } from '../../application/utils/state_management/slices';
+import { setQueryExecutionDisabled } from '../../application/utils/state_management/slices/query_editor/query_editor_slice';
 import { setDatasetActionCreator } from '../../application/utils/state_management/actions/set_dataset';
 import { useClearEditors } from '../../application/hooks';
+import { useEditorText } from '../../application/hooks';
+import { onEditorRunActionCreator } from '../../application/utils/state_management/actions/query_editor/on_editor_run/on_editor_run';
+import { QueryExecutionButton } from './query_execution_button';
+import { Query } from '../../../../data/common';
 
 export interface TopNavProps {
   savedExplore?: SavedExplore;
@@ -36,6 +43,7 @@ export interface TopNavProps {
 export const TopNav = ({ setHeaderActionMenu = () => {}, savedExplore }: TopNavProps) => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const clearEditors = useClearEditors();
+  const editorText = useEditorText();
 
   const flavorId = useFlavorId();
   const {
@@ -66,6 +74,11 @@ export const TopNav = ({ setHeaderActionMenu = () => {}, savedExplore }: TopNavP
   const [datasets, setDatasets] = useState<DataView[] | undefined>(undefined);
   const [screenTitle, setScreenTitle] = useState<string>('');
 
+  const [localDateRange, setLocalDateRange] = useState<{ from: string; to: string } | null>(
+    services.data.query.timefilter.timefilter.getTime()
+  );
+  const [isDateRangeInvalid, setIsDateRangeInvalid] = useState(false);
+
   useEffect(() => {
     const subscription = data.query.state$.subscribe(({ state }) => {
       setSearchContext({
@@ -92,6 +105,8 @@ export const TopNav = ({ setHeaderActionMenu = () => {}, savedExplore }: TopNavP
     data.query,
     osdUrlStateStorage
   );
+
+  const dispatch = useDispatch();
 
   const topNavLinks = useMemo(() => {
     return getTopNavLinks(
@@ -148,9 +163,9 @@ export const TopNav = ({ setHeaderActionMenu = () => {}, savedExplore }: TopNavP
     );
   }, [flavorId, savedExplore?.title]);
 
-  const showDatePicker = useMemo(() => dataset?.isTimeBased() ?? false, [dataset]);
-
-  const dispatch = useDispatch();
+  const showDatePicker = useMemo(() => {
+    return dataset?.isTimeBased() ?? false;
+  }, [dataset]);
 
   const handleDatasetSelect = useCallback(
     async (view: DataView) => {
@@ -171,27 +186,76 @@ export const TopNav = ({ setHeaderActionMenu = () => {}, savedExplore }: TopNavP
     [queryString, data.dataViews, dispatch, services, clearEditors]
   );
 
+  // Custom onChange handler to track local date range changes (mirrors SearchBar behavior)
+  const handleQueryChange = useCallback(
+    (queryAndDateRange: { dateRange: any; query?: any }) => {
+      if (queryAndDateRange.dateRange) {
+        setLocalDateRange(queryAndDateRange.dateRange);
+        const isInvalid = isTimeRangeInvalid(queryAndDateRange.dateRange);
+
+        setIsDateRangeInvalid(isInvalid);
+        dispatch(setQueryExecutionDisabled(isInvalid));
+      }
+    },
+    [dispatch]
+  );
+
+  const handleQuerySubmit = useCallback(
+    (payload: { dateRange: any; query?: Query }, isUpdate?: boolean) => {
+      const { timefilter: timefilterService } = services.data.query.timefilter;
+      const isTimefilterUpdate = !isEqual(timefilterService.getTime(), payload.dateRange);
+      const isQueryUpdate = payload.query?.query !== editorText;
+      const isActualUpdate = isTimefilterUpdate || isQueryUpdate;
+      if (isTimefilterUpdate) {
+        timefilterService.setTime(payload.dateRange);
+      }
+
+      dispatch(onEditorRunActionCreator(services, editorText, isActualUpdate));
+      setLocalDateRange(services.data.query.timefilter.timefilter.getTime());
+      setIsDateRangeInvalid(false);
+      dispatch(setQueryExecutionDisabled(false));
+    },
+    [dispatch, services, editorText]
+  );
+
+  const customSubmitButton = useMemo(
+    () => (
+      <QueryExecutionButton
+        isDisabled={isDateRangeInvalid}
+        editorText={editorText}
+        services={services}
+        localDateRange={localDateRange}
+      />
+    ),
+    [editorText, isDateRangeInvalid, services, localDateRange]
+  );
+
   return (
     <TopNavMenu
       appName={PLUGIN_ID}
       config={topNavLinks}
       data={data}
-      showSearchBar={false}
+      showSearchBar={TopNavMenuItemRenderType.IN_PLACE}
       showDatePicker={showDatePicker && TopNavMenuItemRenderType.IN_PORTAL}
       showSaveQuery={false}
       showDatasetSelect={true}
       datasetSelectProps={{
         onSelect: handleDatasetSelect,
       }}
-      useDefaultBehaviors
+      useDefaultBehaviors={false}
       setMenuMountPoint={setHeaderActionMenu}
       indexPatterns={dataset ? [dataset] : datasets}
       savedQueryId={undefined}
       onSavedQueryIdChange={() => {}}
+      onQuerySubmit={handleQuerySubmit}
+      onQueryChange={handleQueryChange}
+      customSubmitButton={customSubmitButton}
       groupActions={true}
       screenTitle={screenTitle}
       queryStatus={queryStatus}
-      showQueryBar={false}
+      showQueryBar={true}
+      showQueryInput={false}
+      showFilterBar={false}
     />
   );
 };

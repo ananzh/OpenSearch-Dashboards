@@ -232,11 +232,11 @@ cy.explore.add('setRelativeTopNavDate', (time, timeUnit) => {
 
   cy.getElementByTestId('superDatePickerRelativeDateInputNumber').clear().type(time);
   cy.getElementByTestId('superDatePickerRelativeDateInputUnitSelector').select(timeUnit);
-  cy.getElementByTestId('queryPanelFooterRunQueryButton').click();
+  cy.getElementByTestId('exploreSmartUpdateButton').click();
 });
 
 cy.explore.add('updateTopNav', (options) => {
-  cy.getElementByTestId('queryPanelFooterRunQueryButton', options).click({ force: true });
+  cy.getElementByTestId('exploreSmartUpdateButton', options).click({ force: true });
 });
 
 cy.explore.add(

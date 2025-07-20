@@ -132,6 +132,7 @@ describe('DiscoverChart', () => {
         lastExecutedPrompt: '',
         promptToQueryIsLoading: false,
         lastExecutedTranslatedQuery: '',
+        isQueryExecutionDisabled: false,
       },
       results: {},
       tab: {

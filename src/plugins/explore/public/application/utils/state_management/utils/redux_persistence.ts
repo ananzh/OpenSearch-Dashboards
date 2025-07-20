@@ -263,6 +263,7 @@ const getPreloadedQueryEditorState = async (
     editorMode: DEFAULT_EDITOR_MODE,
     lastExecutedTranslatedQuery: '',
     lastExecutedPrompt: '',
+    isQueryExecutionDisabled: false,
   };
 };
 

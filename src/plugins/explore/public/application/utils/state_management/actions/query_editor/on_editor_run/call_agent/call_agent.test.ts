@@ -138,7 +138,11 @@ describe('callAgentActionCreator', () => {
 
       await thunk(mockDispatch, jest.fn(), undefined);
 
-      expect(mockRunQueryActionCreator).toHaveBeenCalledWith(mockServices, mockResponse.query);
+      expect(mockRunQueryActionCreator).toHaveBeenCalledWith({
+        services: mockServices,
+        query: mockResponse.query,
+        isUpdate: undefined,
+      });
       expect(mockDispatch).toHaveBeenCalledWith(mockRunAction);
     });
 

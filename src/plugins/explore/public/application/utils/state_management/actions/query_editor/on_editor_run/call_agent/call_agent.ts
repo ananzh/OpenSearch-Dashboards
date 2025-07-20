@@ -27,9 +27,10 @@ export const callAgentActionCreator = createAsyncThunk<
   {
     services: ExploreServices;
     editorText: string;
+    isUpdate?: boolean;
   },
   { dispatch: AppDispatch }
->('queryEditor/callAgent', async ({ services, editorText }, { dispatch }) => {
+>('queryEditor/callAgent', async ({ services, editorText, isUpdate }, { dispatch }) => {
   const dataset = services.data.query.queryString.getQuery().dataset;
 
   if (!editorText.length) {
@@ -75,8 +76,7 @@ export const callAgentActionCreator = createAsyncThunk<
     if (response.timeRange) {
       services.data.query.timefilter.timefilter.setTime(response.timeRange);
     }
-
-    dispatch(runQueryActionCreator(services, response.query));
+    dispatch(runQueryActionCreator({ services, query: response.query, isUpdate }));
 
     // update the lastExecutedPrompt and lastExecutedTranslatedQuery
     dispatch(setLastExecutedTranslatedQuery(response.query));

@@ -19,6 +19,7 @@ export interface QueryEditorSliceState {
   promptToQueryIsLoading: boolean;
   lastExecutedPrompt: string;
   lastExecutedTranslatedQuery: string;
+  isQueryExecutionDisabled: boolean;
 }
 
 const initialState: QueryEditorSliceState = {
@@ -33,6 +34,7 @@ const initialState: QueryEditorSliceState = {
   promptToQueryIsLoading: false,
   lastExecutedPrompt: '',
   lastExecutedTranslatedQuery: '',
+  isQueryExecutionDisabled: false,
 };
 
 const queryEditorSlice = createSlice({
@@ -113,6 +115,9 @@ const queryEditorSlice = createSlice({
       state.lastExecutedPrompt = '';
       state.lastExecutedTranslatedQuery = '';
     },
+    setQueryExecutionDisabled: (state, action: PayloadAction<boolean>) => {
+      state.isQueryExecutionDisabled = action.payload;
+    },
   },
 });
 
@@ -132,6 +137,7 @@ export const {
   setPromptModeIsAvailable,
   setPromptToQueryIsLoading,
   clearLastExecutedData,
+  setQueryExecutionDisabled,
 } = queryEditorSlice.actions;
 export const queryEditorReducer = queryEditorSlice.reducer;
 export const queryEditorInitialState = initialState;

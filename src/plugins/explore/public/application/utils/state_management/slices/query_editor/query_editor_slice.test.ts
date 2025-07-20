@@ -22,6 +22,7 @@ import {
   setLastExecutedPrompt,
   setLastExecutedTranslatedQuery,
   clearLastExecutedData,
+  setQueryExecutionDisabled,
 } from './query_editor_slice';
 import { EditorMode, QueryExecutionStatus, QueryResultStatus } from '../../types';
 import { DEFAULT_EDITOR_MODE } from '../../constants';
@@ -33,13 +34,13 @@ describe('QueryEditor Slice', () => {
       status: QueryExecutionStatus.UNINITIALIZED,
       elapsedMs: undefined,
       startTime: undefined,
-      error: undefined,
     },
     editorMode: DEFAULT_EDITOR_MODE,
     promptModeIsAvailable: false,
     promptToQueryIsLoading: false,
     lastExecutedPrompt: '',
     lastExecutedTranslatedQuery: '',
+    isQueryExecutionDisabled: false,
   };
 
   it('should return the initial state', () => {
@@ -73,6 +74,7 @@ describe('QueryEditor Slice', () => {
         promptToQueryIsLoading: false,
         lastExecutedPrompt: 'test prompt',
         lastExecutedTranslatedQuery: 'test translated query',
+        isQueryExecutionDisabled: true,
       };
 
       const action = setQueryEditorState(newState);
@@ -553,6 +555,33 @@ describe('QueryEditor Slice', () => {
       expect(action.type).toBe('queryEditor/clearLastExecutedData');
       expect(result.lastExecutedPrompt).toBe('');
       expect(result.lastExecutedTranslatedQuery).toBe('');
+    });
+  });
+
+  describe('setQueryExecutionDisabled', () => {
+    it('should handle setQueryExecutionDisabled action', () => {
+      const action = setQueryExecutionDisabled(true);
+
+      expect(action.type).toBe('queryEditor/setQueryExecutionDisabled');
+      expect(action.payload).toBe(true);
+
+      const newState = queryEditorReducer(initialState, action);
+      expect(newState.isQueryExecutionDisabled).toBe(true);
+      expect(newState.overallQueryStatus).toEqual(initialState.overallQueryStatus);
+      expect(newState.editorMode).toBe(initialState.editorMode);
+      expect(newState.promptModeIsAvailable).toBe(initialState.promptModeIsAvailable);
+    });
+
+    it('should set query execution disabled to false', () => {
+      const existingState: QueryEditorSliceState = {
+        ...initialState,
+        isQueryExecutionDisabled: true,
+      };
+
+      const action = setQueryExecutionDisabled(false);
+      const result = queryEditorReducer(existingState, action);
+
+      expect(result.isQueryExecutionDisabled).toBe(false);
     });
   });
 });

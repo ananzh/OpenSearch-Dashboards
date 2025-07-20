@@ -35,6 +35,7 @@ describe('query_editor selectors', () => {
       promptToQueryIsLoading: false,
       lastExecutedPrompt: '',
       lastExecutedTranslatedQuery: '',
+      isQueryExecutionDisabled: false,
       ...queryEditorState,
     },
     // Add other required state slices as minimal mocks
