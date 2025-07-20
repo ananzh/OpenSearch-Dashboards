@@ -11,6 +11,7 @@ import {
   AnyAction,
   Reducer,
 } from '@reduxjs/toolkit';
+import { isEqual } from 'lodash';
 import {
   queryReducer,
   uiReducer,
@@ -21,12 +22,14 @@ import {
 } from './slices';
 import { loadReduxState } from './utils/redux_persistence';
 import { createQuerySyncMiddleware } from './middleware/query_sync_middleware';
+import { createTimefilterSyncMiddleware } from './middleware/timefilter_sync_middleware';
 import { createPersistenceMiddleware } from './middleware/persistence_middleware';
 import { createOverallStatusMiddleware } from './middleware/overall_status_middleware';
 import { createDatasetChangeMiddleware } from './middleware/dataset_change_middleware';
 import { ExploreServices } from '../../../types';
 
 const resetState = createAction<RootState>('app/resetState');
+const hydrateState = createAction<RootState>('app/hydrateState');
 
 const baseRootReducer = combineReducers({
   query: queryReducer,
@@ -39,6 +42,9 @@ const baseRootReducer = combineReducers({
 
 export const rootReducer: Reducer<RootState, AnyAction> = (state, action) => {
   if (resetState.match(action)) {
+    return action.payload;
+  }
+  if (hydrateState.match(action)) {
     return action.payload;
   }
   return baseRootReducer(state, action);
@@ -61,6 +67,7 @@ export const configurePreloadedStore = (
             .concat(createPersistenceMiddleware(services))
             .concat(createQuerySyncMiddleware(services))
             .concat(createDatasetChangeMiddleware(services))
+            .concat(createTimefilterSyncMiddleware(services))
             .concat(createOverallStatusMiddleware())
         : getDefaultMiddleware(),
   });

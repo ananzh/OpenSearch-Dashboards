@@ -108,6 +108,8 @@ describe('export_actions', () => {
         lastExecutedPrompt: '',
         lastExecutedTranslatedQuery: '',
         summaryAgentIsAvailable: false,
+        queryExecutionButtonStatus: 'REFRESH',
+        isQueryEditorDirty: false,
       },
     };
 

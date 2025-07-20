@@ -117,6 +117,8 @@ describe('redux_persistence', () => {
           summaryAgentIsAvailable: false,
           lastExecutedPrompt: '',
           lastExecutedTranslatedQuery: '',
+          queryExecutionButtonStatus: 'REFRESH',
+          isQueryEditorDirty: false,
         },
       };
 

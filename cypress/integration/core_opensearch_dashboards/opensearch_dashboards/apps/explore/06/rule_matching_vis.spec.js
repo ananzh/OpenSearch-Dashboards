@@ -51,7 +51,7 @@ export const runCreateVisTests = () => {
       cy.explore.setQueryEditor(query);
 
       // Run the query
-      cy.getElementByTestId('queryPanelFooterRunQueryButton').click();
+      cy.getElementByTestId('exploreQueryExecutionButton').click();
       cy.osd.waitForLoader(true);
       cy.wait(1000);
 
@@ -84,7 +84,7 @@ export const runCreateVisTests = () => {
       cy.explore.setQueryEditor(query);
 
       // Run the query
-      cy.getElementByTestId('queryPanelFooterRunQueryButton').click();
+      cy.getElementByTestId('exploreQueryExecutionButton').click();
       cy.osd.waitForLoader(true);
       cy.wait(1000);
 
@@ -117,7 +117,7 @@ export const runCreateVisTests = () => {
       cy.explore.setQueryEditor(query);
 
       // Run the query
-      cy.getElementByTestId('queryPanelFooterRunQueryButton').click();
+      cy.getElementByTestId('exploreQueryExecutionButton').click();
       cy.osd.waitForLoader(true);
       cy.wait(1000);
 
@@ -150,7 +150,7 @@ export const runCreateVisTests = () => {
       cy.explore.setQueryEditor(query);
 
       // Run the query
-      cy.getElementByTestId('queryPanelFooterRunQueryButton').click();
+      cy.getElementByTestId('exploreQueryExecutionButton').click();
       cy.osd.waitForLoader(true);
       cy.get('button[class*="euiSuperSelect"]').should('be.visible').click();
 
@@ -173,7 +173,7 @@ export const runCreateVisTests = () => {
       cy.explore.setQueryEditor(query);
 
       // Run the query
-      cy.getElementByTestId('queryPanelFooterRunQueryButton').click();
+      cy.getElementByTestId('exploreQueryExecutionButton').click();
       cy.osd.waitForLoader(true);
       cy.wait(1000);
 
