@@ -450,3 +450,6 @@ server.socketTimeout: 300000
 
 # Set the value to true to enable direct data import from a file
 data_importer.enabled: true
+
+# Enable explore
+explore.enabled: true
