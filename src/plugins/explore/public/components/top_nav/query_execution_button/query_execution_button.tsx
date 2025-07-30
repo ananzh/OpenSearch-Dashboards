@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { EuiSuperUpdateButton } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 import { useDispatch } from 'react-redux';
@@ -16,7 +16,6 @@ import {
 } from '../../../application/utils/state_management/slices/query_editor/query_editor_slice';
 import {
   selectDateRange,
-  selectQueryExecutionButtonStatus,
   selectIsQueryEditorDirty,
 } from '../../../application/utils/state_management/selectors';
 import { isTimeRangeInvalid } from '../utils/validate_time_range';
@@ -54,14 +53,11 @@ export const QueryExecutionButton: React.FC<QueryExecutionButtonProps> = ({ onCl
     return hasChanges ? 'UPDATE' : 'REFRESH';
   }, [dateRange, isQueryEditorDirty, timefilter]);
 
-  useEffect(() => {
-    const status = determineButtonStatus();
-    dispatch(setQueryExecutionButtonStatus(status));
-  }, [determineButtonStatus, dispatch]);
+  const status = determineButtonStatus();
+  dispatch(setQueryExecutionButtonStatus(status));
 
-  const buttonStatus = useSelector(selectQueryExecutionButtonStatus);
-  const isDisabled = buttonStatus === 'DISABLED';
-  const needsUpdate = buttonStatus === 'UPDATE';
+  const isDisabled = status === 'DISABLED';
+  const needsUpdate = status === 'UPDATE';
 
   const buttonText = needsUpdate
     ? i18n.translate('explore.topNav.queryExecutionButton.update', {

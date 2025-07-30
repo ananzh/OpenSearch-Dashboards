@@ -4,7 +4,12 @@
  */
 
 import { AppDispatch, RootState } from '../../../store';
-import { clearResults, setQueryStringWithHistory, setActiveTab } from '../../../slices';
+import {
+  clearResults,
+  setQueryStringWithHistory,
+  setActiveTab,
+  setQueryExecutionButtonStatus,
+} from '../../../slices';
 import {
   clearQueryStatusMap,
   setIsQueryEditorDirty,
@@ -38,5 +43,6 @@ export const runQueryActionCreator = (services: ExploreServices, query?: string)
   if (isUpdate) {
     dispatch(setActiveTab(''));
     dispatch(detectAndSetOptimalTab({ services }));
+    dispatch(setQueryExecutionButtonStatus('REFRESH'));
   }
 };

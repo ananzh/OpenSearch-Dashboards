@@ -11,7 +11,6 @@ import {
   AnyAction,
   Reducer,
 } from '@reduxjs/toolkit';
-import { isEqual } from 'lodash';
 import {
   queryReducer,
   uiReducer,
@@ -29,7 +28,6 @@ import { createDatasetChangeMiddleware } from './middleware/dataset_change_middl
 import { ExploreServices } from '../../../types';
 
 const resetState = createAction<RootState>('app/resetState');
-const hydrateState = createAction<RootState>('app/hydrateState');
 
 const baseRootReducer = combineReducers({
   query: queryReducer,
@@ -42,9 +40,6 @@ const baseRootReducer = combineReducers({
 
 export const rootReducer: Reducer<RootState, AnyAction> = (state, action) => {
   if (resetState.match(action)) {
-    return action.payload;
-  }
-  if (hydrateState.match(action)) {
     return action.payload;
   }
   return baseRootReducer(state, action);

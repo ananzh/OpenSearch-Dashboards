@@ -101,7 +101,8 @@ export const Default: Story = {
   decorators: [
     (Story) => {
       const store = createMockStore({
-        queryExecutionButtonStatus: 'REFRESH',
+        isQueryEditorDirty: false,
+        dateRange: undefined,
       });
       return (
         <OpenSearchDashboardsContextProvider services={mockServices}>
@@ -118,8 +119,7 @@ export const UpdateState: Story = {
   decorators: [
     (Story) => {
       const store = createMockStore({
-        queryExecutionButtonStatus: 'UPDATE',
-        isDirty: true,
+        isQueryEditorDirty: true,
       });
       return (
         <OpenSearchDashboardsContextProvider services={mockServices}>
@@ -136,8 +136,8 @@ export const RefreshState: Story = {
   decorators: [
     (Story) => {
       const store = createMockStore({
-        queryExecutionButtonStatus: 'REFRESH',
-        isDirty: false,
+        isQueryEditorDirty: false,
+        dateRange: undefined,
       });
       return (
         <OpenSearchDashboardsContextProvider services={mockServices}>
@@ -154,7 +154,6 @@ export const DisabledState: Story = {
   decorators: [
     (Story) => {
       const store = createMockStore({
-        queryExecutionButtonStatus: 'DISABLED',
         dateRange: { from: 'invalid', to: 'invalid' },
       });
       return (
@@ -166,15 +165,22 @@ export const DisabledState: Story = {
       );
     },
   ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Shows the button in disabled state when date range validation fails. Note: This story requires mocking the isTimeRangeInvalid function to return true.',
+      },
+    },
+  },
 };
 
 export const DateRangeChanged: Story = {
   decorators: [
     (Story) => {
       const store = createMockStore({
-        queryExecutionButtonStatus: 'UPDATE',
         dateRange: { from: 'now-30m', to: 'now' },
-        isDirty: false,
+        isQueryEditorDirty: false,
       });
       return (
         <OpenSearchDashboardsContextProvider services={mockServices}>
@@ -191,8 +197,7 @@ export const QueryDirty: Story = {
   decorators: [
     (Story) => {
       const store = createMockStore({
-        queryExecutionButtonStatus: 'UPDATE',
-        isDirty: true,
+        isQueryEditorDirty: true,
       });
       return (
         <OpenSearchDashboardsContextProvider services={mockServices}>
@@ -209,9 +214,8 @@ export const BothChanged: Story = {
   decorators: [
     (Story) => {
       const store = createMockStore({
-        queryExecutionButtonStatus: 'UPDATE',
         dateRange: { from: 'now-1h', to: 'now' },
-        isDirty: true,
+        isQueryEditorDirty: true,
       });
       return (
         <OpenSearchDashboardsContextProvider services={mockServices}>

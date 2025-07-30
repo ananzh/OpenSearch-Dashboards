@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { OpenSearchDashboardsContextProvider } from '../../../../../opensearch_dashboards_react/public';
@@ -118,71 +118,57 @@ describe('QueryExecutionButton', () => {
     expect(screen.getByTestId('exploreQueryExecutionButton')).toBeInTheDocument();
   });
 
-  it('shows "Update" text when query has changed', async () => {
+  it('shows "Update" text when query has changed', () => {
     renderWithProvider(<QueryExecutionButton />, {
       isQueryEditorDirty: true,
-      queryExecutionButtonStatus: 'UPDATE',
     });
 
-    // Wait for the useEffect to update the Redux state
-    await waitFor(() => {
-      expect(screen.getByText('Update')).toBeInTheDocument();
-    });
+    // Status is calculated directly during render
+    expect(screen.getByText('Update')).toBeInTheDocument();
   });
 
-  it('shows "Refresh" text when query has not changed', async () => {
-    renderWithProvider(<QueryExecutionButton />, {
-      queryExecutionButtonStatus: 'REFRESH',
-    });
+  it('shows "Refresh" text when query has not changed', () => {
+    renderWithProvider(<QueryExecutionButton />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Refresh')).toBeInTheDocument();
-    });
+    // Status is calculated directly during render
+    expect(screen.getByText('Refresh')).toBeInTheDocument();
   });
 
-  it('shows "Update" when date range has changed', async () => {
+  it('shows "Update" when date range has changed', () => {
     renderWithProvider(<QueryExecutionButton />, {
       dateRange: { from: 'now-30m', to: 'now' },
-      queryExecutionButtonStatus: 'UPDATE',
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('Update')).toBeInTheDocument();
-    });
+    // Status is calculated directly during render
+    expect(screen.getByText('Update')).toBeInTheDocument();
   });
 
-  it('shows disabled button when date range is invalid', async () => {
+  it('shows disabled button when date range is invalid', () => {
     // Mock invalid date range
     mockIsTimeRangeInvalid.mockReturnValue(true);
 
     renderWithProvider(<QueryExecutionButton />, {
       dateRange: { from: 'invalid', to: 'invalid' },
-      queryExecutionButtonStatus: 'DISABLED',
     });
 
-    await waitFor(() => {
-      const button = screen.getByTestId('exploreQueryExecutionButton');
-      expect(button).toBeDisabled();
-      // When disabled, button shows "Refresh" text (the default state)
-      expect(screen.getByText('Refresh')).toBeInTheDocument();
-    });
+    const button = screen.getByTestId('exploreQueryExecutionButton');
+    expect(button).toBeDisabled();
+    // When disabled, button shows "Refresh" text (the default state)
+    expect(screen.getByText('Refresh')).toBeInTheDocument();
   });
 
-  it('shows disabled "Refresh" button when no changes and date range is invalid', async () => {
+  it('shows disabled "Refresh" button when no changes and date range is invalid', () => {
     // Mock invalid date range
     mockIsTimeRangeInvalid.mockReturnValue(true);
 
     renderWithProvider(<QueryExecutionButton />, {
       dateRange: { from: 'invalid', to: 'invalid' },
-      queryExecutionButtonStatus: 'DISABLED',
     });
 
-    await waitFor(() => {
-      const button = screen.getByTestId('exploreQueryExecutionButton');
-      expect(button).toBeDisabled();
-      // Should show "Refresh" text even when disabled
-      expect(screen.getByText('Refresh')).toBeInTheDocument();
-    });
+    const button = screen.getByTestId('exploreQueryExecutionButton');
+    expect(button).toBeDisabled();
+    // Should show "Refresh" text even when disabled
+    expect(screen.getByText('Refresh')).toBeInTheDocument();
   });
 
   it('handles click events', () => {
@@ -196,7 +182,7 @@ describe('QueryExecutionButton', () => {
     expect(mockOnClick).toHaveBeenCalled();
   });
 
-  it('dispatches button status to Redux on mount', async () => {
+  it('dispatches button status to Redux during render', () => {
     const store = createMockStore();
     const dispatchSpy = jest.spyOn(store, 'dispatch');
 
@@ -208,18 +194,16 @@ describe('QueryExecutionButton', () => {
       </OpenSearchDashboardsContextProvider>
     );
 
-    // Wait for the useEffect to run
-    await waitFor(() => {
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'queryEditor/setQueryExecutionButtonStatus',
-          payload: 'REFRESH',
-        })
-      );
-    });
+    // Dispatch happens synchronously during render
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'queryEditor/setQueryExecutionButtonStatus',
+        payload: 'REFRESH',
+      })
+    );
   });
 
-  it('updates button status when editorText changes', async () => {
+  it('updates button status when editorText changes', () => {
     const store = createMockStore({
       isQueryEditorDirty: true,
     });
@@ -233,29 +217,24 @@ describe('QueryExecutionButton', () => {
       </OpenSearchDashboardsContextProvider>
     );
 
-    // Wait for dispatch with UPDATE status when isQueryEditorDirty is true
-    await waitFor(() => {
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'queryEditor/setQueryExecutionButtonStatus',
-          payload: 'UPDATE',
-        })
-      );
-    });
+    // Dispatch happens synchronously during render with UPDATE status when isQueryEditorDirty is true
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'queryEditor/setQueryExecutionButtonStatus',
+        payload: 'UPDATE',
+      })
+    );
   });
 
-  it('shows correct needsUpdate state for EuiSuperUpdateButton', async () => {
+  it('shows correct needsUpdate state for EuiSuperUpdateButton', () => {
     renderWithProvider(<QueryExecutionButton />, {
-      queryExecutionButtonStatus: 'UPDATE',
       isQueryEditorDirty: true,
     });
 
-    await waitFor(() => {
-      const button = screen.getByTestId('exploreQueryExecutionButton');
-      // Verify the button shows "Update" text when needsUpdate is true
-      expect(screen.getByText('Update')).toBeInTheDocument();
-      // Verify the button has the success color (green) when needsUpdate is true
-      expect(button).toHaveClass('euiButton--success');
-    });
+    const button = screen.getByTestId('exploreQueryExecutionButton');
+    // Verify the button shows "Update" text when needsUpdate is true
+    expect(screen.getByText('Update')).toBeInTheDocument();
+    // Verify the button has the success color (green) when needsUpdate is true
+    expect(button).toHaveClass('euiButton--success');
   });
 });

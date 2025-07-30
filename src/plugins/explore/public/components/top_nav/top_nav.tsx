@@ -24,11 +24,8 @@ import {
 import { useFlavorId } from '../../helpers/use_flavor_id';
 import { getTopNavLinks } from './top_nav_links';
 import { SavedExplore } from '../../saved_explore';
+import { setDateRange } from '../../application/utils/state_management/slices/query_editor/query_editor_slice';
 import { useClearEditors, useEditorRef } from '../../application/hooks';
-import {
-  setQueryExecutionButtonStatus,
-  setDateRange,
-} from '../../application/utils/state_management/slices/query_editor/query_editor_slice';
 import { onEditorRunActionCreator } from '../../application/utils/state_management/actions/query_editor/on_editor_run/on_editor_run';
 import { QueryExecutionButton } from './query_execution_button';
 import { Query } from '../../../../data/common';
@@ -173,7 +170,6 @@ export const TopNav = ({ setHeaderActionMenu = () => {}, savedExplore }: TopNavP
   const handleQuerySubmit = useCallback(() => {
     const editorText = editorRef.current?.getValue() || '';
     dispatch(onEditorRunActionCreator(services, editorText));
-    dispatch(setQueryExecutionButtonStatus('REFRESH'));
   }, [dispatch, services, editorRef]);
 
   const handleCustomButtonClick = useCallback(
