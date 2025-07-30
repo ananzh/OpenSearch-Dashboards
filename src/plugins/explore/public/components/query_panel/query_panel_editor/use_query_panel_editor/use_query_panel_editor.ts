@@ -40,7 +40,7 @@ type IEditorConstructionOptions = monaco.editor.IEditorConstructionOptions;
 const enabledPromptPlaceholder = i18n.translate(
   'explore.queryPanel.queryPanelEditor.enabledPromptPlaceholder',
   {
-    defaultMessage: 'Query with PPL or press `space` for AI',
+    defaultMessage: 'Press `space` to Ask AI with natural language, or search with PPL',
   }
 );
 
@@ -57,7 +57,7 @@ const disabledPromptPlaceholder = i18n.translate(
 const promptModePlaceholder = i18n.translate(
   'explore.queryPanel.queryPanelEditor.promptPlaceholder',
   {
-    defaultMessage: 'Ask AI about your data. `Esc` to return',
+    defaultMessage: 'Ask AI with natural language. `Esc` to clear and search with PPL',
   }
 );
 
@@ -347,7 +347,7 @@ export const useQueryPanelEditor = (): UseQueryPanelEditorReturnType => {
     options,
     placeholder,
     promptIsTyping,
-    showPlaceholder: !editorText.length && editorIsFocused,
+    showPlaceholder: !editorText.length,
     useLatestTheme: true,
     value: editorText,
   };
