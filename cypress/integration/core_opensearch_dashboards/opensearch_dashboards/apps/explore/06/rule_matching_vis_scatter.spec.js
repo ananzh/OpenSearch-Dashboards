@@ -11,7 +11,7 @@ const workspaceName = getRandomizedWorkspaceName();
 const datasetName = `${INDEX_WITH_TIME_1}*`;
 
 export const runCreateVisTests = () => {
-  describe('create heatmap visualization tests', () => {
+  describe('create scatter visualization tests', () => {
     before(() => {
       cy.osd.setupWorkspaceAndDataSourceWithIndices(workspaceName, [INDEX_WITH_TIME_1]);
       cy.createWorkspaceIndexPatterns({
@@ -34,19 +34,20 @@ export const runCreateVisTests = () => {
     after(() => {
       cy.osd.cleanupWorkspaceAndDataSourceAndIndices(workspaceName, [INDEX_WITH_TIME_1]);
     });
-    it('should create a heatmap visualization using a query with one metric and two categories', () => {
-      const query = `source=${datasetName} | fields status_code, personal.age, bytes_transferred`;
-      cy.explore.createVisualizationWithQuery(query, 'Heatmap', datasetName);
+    it('should create a scatter plot visualization using a query with two metrics and one category', () => {
+      const query = `source=${datasetName} | fields bytes_transferred, status_code`;
+      cy.explore.createVisualizationWithQuery(query, 'Scatter', datasetName);
     });
-    it('should change axes style of heatmap chart and reflect immediatly to the heatmap visualization', () => {
-      const query = `source=${datasetName} | fields status_code, personal.age, bytes_transferred`;
-      cy.explore.createVisualizationWithQuery(query, 'Heatmap', datasetName);
+    it('should change axes style of scatter chart and reflect immediatly to the scatter visualization', () => {
+      const query = `source=${datasetName} | fields bytes_transferred, status_code`;
+      cy.explore.createVisualizationWithQuery(query, 'Scatter', datasetName);
       let beforeCanvasDataUrl;
       cy.get('canvas.marks')
         .should('be.visible')
         .then((canvas) => {
           beforeCanvasDataUrl = canvas[0].toDataURL(); // current representation of image
         });
+      // turn off show y axis
       cy.getElementByTestId('showAxisSwitch').eq(1).click();
       // compare with new canvas
       cy.get('canvas.marks').then((canvas) => {
@@ -54,32 +55,17 @@ export const runCreateVisTests = () => {
         expect(afterCanvasDataUrl).not.to.eq(beforeCanvasDataUrl);
       });
     });
-    it('should turn off legend of heatmap chart and reflect immediatly to the heatmap visualization', () => {
-      const query = `source=${datasetName} | fields status_code, personal.age, bytes_transferred`;
-      cy.explore.createVisualizationWithQuery(query, 'Heatmap', datasetName);
+    it('should change point style of scatter chart and reflect immediatly to the scatter visualization', () => {
+      const query = `source=${datasetName} | fields bytes_transferred, status_code`;
+      cy.explore.createVisualizationWithQuery(query, 'Scatter', datasetName);
       let beforeCanvasDataUrl;
       cy.get('canvas.marks')
         .should('be.visible')
         .then((canvas) => {
           beforeCanvasDataUrl = canvas[0].toDataURL(); // current representation of image
         });
-      cy.getElementByTestId('legendModeSwitch').click();
-      // compare with new canvas
-      cy.get('canvas.marks').then((canvas) => {
-        const afterCanvasDataUrl = canvas[0].toDataURL();
-        expect(afterCanvasDataUrl).not.to.eq(beforeCanvasDataUrl);
-      });
-    });
-    it('should update style of heatmap chart and reflect immediatly to the heatmap visualization', () => {
-      const query = `source=${datasetName} | fields status_code, personal.age, bytes_transferred`;
-      cy.explore.createVisualizationWithQuery(query, 'Heatmap', datasetName);
-      let beforeCanvasDataUrl;
-      cy.get('canvas.marks')
-        .should('be.visible')
-        .then((canvas) => {
-          beforeCanvasDataUrl = canvas[0].toDataURL(); // current representation of image
-        });
-      cy.getElementByTestId('scaleToDataBounds').click();
+      // turn off show y axis
+      cy.getElementByTestId('pointFilledSwitch').click();
       // compare with new canvas
       cy.get('canvas.marks').then((canvas) => {
         const afterCanvasDataUrl = canvas[0].toDataURL();
@@ -89,4 +75,4 @@ export const runCreateVisTests = () => {
   });
 };
 
-prepareTestSuite('Create Heatmap Visualization', runCreateVisTests);
+prepareTestSuite('Create Scatter Visualization', runCreateVisTests);
