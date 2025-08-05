@@ -1,5 +1,5 @@
 package.OpenSearch-Dashboards = {
-    interfaces = (devstack_platform_3.x);
+    interfaces = (neo_3.x);
     build-system = container-build;
 
     build-environment = {
@@ -11,7 +11,7 @@ package.OpenSearch-Dashboards = {
     };
 
     build-tools = {
-        devstack_platform_3.x = {
+        neo_3.x = {
             ContainerBuild = 1.2;
             AWSOpenSearchNeoContainerBuildCredentialsProvider = 1.0;
         };
@@ -22,12 +22,12 @@ package.OpenSearch-Dashboards = {
     # Use dependencies instead if you intend for these dependencies to
     # be exported to other packages that build against you.
     dependencies = {
-        devstack_platform_3.x = {
+        neo_3.x = {
         };
     };
 
     runtime-dependencies = {
-        devstack_platform_3.x = {
+        neo_3.x = {
         };
     };
 };
