@@ -453,3 +453,9 @@ data_importer.enabled: true
 
 # Enable explore
 explore.enabled: true
+
+# Enable the Saved Object Repository Plugin
+neoDashboardsSavedObjectRepositoryPlugin.enabled: true
+neoDashboardsSavedObjectRepositoryPlugin.s3Config.bucket: ${STORAGE_BUCKET_NAME}
+neoDashboardsSavedObjectRepositoryPlugin.openSearchConfig.endpoint: ${OPENSEARCH_ENDPOINT}
+neoDashboardsSavedObjectRepositoryPlugin.openSearchConfig.metadataIndex: ${METADATA_INDEX_NAME}
