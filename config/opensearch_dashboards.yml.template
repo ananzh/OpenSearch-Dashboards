@@ -427,6 +427,7 @@ migrations.skip: true
 dashboardsPlugin.validateJwt: ${VALIDATE_JWT}
 dashboardsPlugin.cpOnlyDataSourceManagement: ${CP_ONLY_DATA_SOURCE_MANAGEMENT}
 directQuery.enabled: ${DQS_ENABLED}
+apmDashboards.enabled: ${APM_ENABLED}
 data.savedQueriesNewUI.enabled: ${SAVED_QUERIES_NEW_UI_ENABLED}
 
 # Minimal CSP rules that are appended to existing S3 customer configs

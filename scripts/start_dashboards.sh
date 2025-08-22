@@ -50,6 +50,18 @@ case "$REGION" in
     ;;
 esac
 
+case "$REGION" in
+  "us-west-2"| \
+  "us-east-1"| \
+  "us-east-2")
+    export APM_ENABLED="true"
+    ;;
+  
+  *)
+    export APM_ENABLED="false"
+    ;;
+esac
+
 if [ "$STAGE" = "prod" ]; then
   export CONTROL_PLANE_SPN="svc:opensearchservice.amazonaws.com"
 else
@@ -58,6 +70,7 @@ fi
 
 echo "setting environment variable VALIDATE_JWT to ${VALIDATE_JWT}"
 echo "setting environment variable DQS_ENABLED to ${DQS_ENABLED}"
+echo "setting environment variable APM_ENABLED to ${APM_ENABLED}"
 echo "setting environment variable CP_ONLY_DATA_SOURCE_MANAGEMENT to ${CP_ONLY_DATA_SOURCE_MANAGEMENT}"
 echo "setting environment variable CONTROL_PLANE_SPN to ${CONTROL_PLANE_SPN}"
 echo "setting environment variable SAVED_QUERIES_NEW_UI_ENABLED to ${SAVED_QUERIES_NEW_UI_ENABLED}"
