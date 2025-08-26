@@ -19,11 +19,14 @@ import { DiscoverChartContainer } from '../../../../components/chart/discover_ch
 import { useDatasetContext } from '../../../../application/context';
 import { ErrorPanel } from '../../../error_panel';
 import { ResizableVisControlAndTabs } from './resizable_vis_control_and_tabs';
+import { useFlavorId } from '../../../../helpers/use_flavor_id';
+import { ExploreFlavor } from '../../../../../common';
 
 export const BottomRightContainer = () => {
   const dispatch = useDispatch();
   const { dataset } = useDatasetContext();
   const { services } = useOpenSearchDashboards<ExploreServices>();
+  const flavorId = useFlavorId();
 
   const onRefresh = () => {
     if (services) {
@@ -82,7 +85,7 @@ export const BottomRightContainer = () => {
   if (status === QueryExecutionStatus.READY) {
     return (
       <>
-        <DiscoverChartContainer />
+        {flavorId !== ExploreFlavor.Traces && <DiscoverChartContainer />}
         <CanvasPanel>
           <ResizableVisControlAndTabs />
         </CanvasPanel>
