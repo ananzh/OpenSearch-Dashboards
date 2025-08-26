@@ -70,6 +70,22 @@ import { createAbortDataQueryAction } from './application/utils/state_management
 import { ABORT_DATA_QUERY_TRIGGER } from '../../ui_actions/public';
 import { abortAllActiveQueries } from './application/utils/state_management/actions/query_actions';
 import { setServices } from './services/services';
+import { DataConnectionType } from './../../../plugins/data_source/common';
+
+// Feature flag for APM
+let hasAPMConnectionFlag = false;
+
+export async function checkAPMFeatureFlag(core: CoreSetup<ExploreStartDependencies, ExplorePluginStart>) {
+  const [coreStart] = await core.getStartServices();
+  try {
+    const result = await coreStart.savedObjects.client.find({ type: 'data-connection' });
+    hasAPMConnectionFlag = result.savedObjects.some((obj) =>
+      (obj.attributes as { type?: string }).type === DataConnectionType.ApplicationPerformanceMonitoring
+    );
+  } catch {
+    hasAPMConnectionFlag = false;
+  }
+}
 
 export class ExplorePlugin
   implements
@@ -100,6 +116,9 @@ export class ExplorePlugin
   /** visualization registry */
   private visualizationRegistryService = new VisualizationRegistryService();
 
+  // Flag for APM check
+  private hasAPMConnection: boolean = false;
+
   constructor(private readonly initializerContext: PluginInitializerContext) {
     this.config = initializerContext.config.get<ConfigSchema>();
   }
@@ -110,6 +129,7 @@ export class ExplorePlugin
   ): ExplorePluginSetup {
     // Set usage collector
     setUsageCollector(setupDeps.usageCollection);
+
     this.registerExploreVisualization(core, setupDeps);
     const visualizationRegistryService = this.visualizationRegistryService.setup();
 
@@ -385,21 +405,28 @@ export class ExplorePlugin
         order: 300,
         parentNavLinkId: PLUGIN_ID,
       },
-      {
-        id: `${PLUGIN_ID}/${ExploreFlavor.Traces}`,
-        category: undefined,
-        order: 300,
-        parentNavLinkId: PLUGIN_ID,
-      },
-      // uncomment when metrics is ready for launch
-      /*
-      {
-        id: `${PLUGIN_ID}/${ExploreFlavor.Metrics}`,
-        category: undefined,
-        order: 300,
-        parentNavLinkId: PLUGIN_ID,
-      }, */
+      // Metrics nav link (uncomment if needed)
+      // {
+      //   id: `${PLUGIN_ID}/${ExploreFlavor.Metrics}`,
+      //   category: undefined,
+      //   order: 300,
+      //   parentNavLinkId: PLUGIN_ID,
+      // },
     ]);
+
+    // Conditionally add Traces nav link after APM check
+    checkAPMFeatureFlag(core).then(() => {
+      if (hasAPMConnectionFlag) {
+        core.chrome.navGroup.addNavLinksToGroup(DEFAULT_NAV_GROUPS.observability, [
+          {
+            id: `${PLUGIN_ID}/${ExploreFlavor.Traces}`,
+            category: undefined,
+            order: 300,
+            parentNavLinkId: PLUGIN_ID,
+          }
+        ]);
+      }
+    });
     this.registerEmbeddable(core, setupDeps);
 
     setupDeps.urlForwarding.forwardApp('doc', PLUGIN_ID, (path) => {

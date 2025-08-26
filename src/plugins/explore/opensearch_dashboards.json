@@ -20,7 +20,7 @@
     "expressions",
     "dashboard"
   ],
-  "requiredBundles": ["opensearchDashboardsReact", "opensearchDashboardsUtils", "dashboard"],
-  "optionalPlugins": ["home", "share"],
+  "requiredBundles": ["opensearchDashboardsReact", "dataSource", "opensearchDashboardsUtils", "dashboard"],
+  "optionalPlugins": ["home", "share", "dataSource"],
   "configPath": ["explore"]
 }
