@@ -224,18 +224,7 @@ export function Header({
       position="fixed"
       sections={[
         {
-          items: [
-            <HeaderLogo
-              href={homeHref}
-              forceNavigation$={observables.forceAppSwitcherNavigation$}
-              navLinks$={observables.navLinks$}
-              navigateToApp={application.navigateToApp}
-              branding={branding}
-              logos={logos}
-              /* This color-scheme should match the `theme` of the parent EuiHeader */
-              backgroundColorScheme={expandedHeaderColorScheme}
-            />,
-          ],
+          items: [],
           borders: 'none',
         },
         {
@@ -659,7 +648,7 @@ export function Header({
     <>
       <header className={className} data-test-subj="headerGlobalNav">
         <div id="globalHeaderBars">
-          {!useUpdatedHeader && useExpandedHeader && renderLegacyExpandedHeader()}
+          {false && renderLegacyExpandedHeader()}
           {useUpdatedHeader ? renderHeader() : renderLegacyHeader()}
         </div>
 
