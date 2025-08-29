@@ -506,7 +506,7 @@ cy.explore.add('createVisualizationWithQuery', (query, chartType, datasetName) =
   cy.getElementByTestId('exploreVisStylePanel')
     .should('be.visible')
     .within(() => {
-      cy.get('button[class*="euiSuperSelect"]').should('be.visible').click();
+      cy.getElementByTestId('exploreChartTypeSelector').should('be.visible').click();
     });
 
   // for pie and area, it needs manual chart type switch
@@ -520,7 +520,7 @@ cy.explore.add('createVisualizationWithQuery', (query, chartType, datasetName) =
     cy.getElementByTestId('exploreVisStylePanel')
       .should('be.visible')
       .within(() => {
-        cy.get('button[class*="euiSuperSelect"]').should('be.visible').click();
+        cy.getElementByTestId('exploreChartTypeSelector').should('be.visible').click();
       });
   }
 
