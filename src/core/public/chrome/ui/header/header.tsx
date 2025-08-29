@@ -81,7 +81,6 @@ import { HeaderBadge } from './header_badge';
 import { HeaderBreadcrumbs } from './header_breadcrumbs';
 import { HeaderControlsContainer } from './header_controls_container';
 import { HeaderHelpMenu } from './header_help_menu';
-import { HeaderLogo } from './header_logo';
 import { HeaderNavControls } from './header_nav_controls';
 import { HomeLoader } from './home_loader';
 import { RecentItems } from './recent_items';
@@ -211,7 +210,6 @@ export function Header({
   const toggleCollapsibleNavRef = createRef<HTMLButtonElement & { euiAnimate: () => void }>();
   const navId = htmlIdGenerator()();
   const className = classnames('hide-for-sharing', 'headerGlobalNav');
-  const { useExpandedHeader = true } = branding;
   const useApplicationHeader = headerVariant === HeaderVariant.APPLICATION;
 
   const expandedHeaderColorScheme: EuiHeaderProps['theme'] = 'dark';
