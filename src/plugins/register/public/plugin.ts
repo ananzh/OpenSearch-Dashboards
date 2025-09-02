@@ -6,9 +6,12 @@ import {
   PluginInitializerContext,
 } from 'opensearch-dashboards/public';
 import { i18n } from '@osd/i18n';
+import { RegisterApiService } from './services/api';
  
 export interface RegisterPluginSetup {}
-export interface RegisterPluginStart {}
+export interface RegisterPluginStart {
+  api: RegisterApiService;
+}
  
 export class RegisterPlugin implements Plugin<RegisterPluginSetup, RegisterPluginStart> {
   constructor(private readonly initializerContext: PluginInitializerContext) {}
@@ -31,7 +34,8 @@ export class RegisterPlugin implements Plugin<RegisterPluginSetup, RegisterPlugi
   }
  
   public start(core: CoreStart): RegisterPluginStart {
-    return {};
+    const api = new RegisterApiService(core.http);
+    return { api };
   }
  
   public stop() {}

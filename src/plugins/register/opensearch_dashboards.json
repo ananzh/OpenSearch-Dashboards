@@ -1,7 +1,7 @@
 {
   "id": "register",
   "version": "opensearchDashboards",
-  "server": false,
+  "server": true,
   "ui": true,
   "requiredPlugins": [],
   "optionalPlugins": []

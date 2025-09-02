@@ -1,0 +1,10 @@
+{
+  "name": "register-plugin",
+  "version": "1.0.0",
+  "description": "OpenSearch Dashboards Register Plugin with IAM and OpenSearch integration",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^18.0.0"
+  }
+}

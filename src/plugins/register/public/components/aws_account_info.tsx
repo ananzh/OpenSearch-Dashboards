@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { i18n } from '@osd/i18n';
 import {
   EuiButton,
   EuiCallOut,
@@ -8,20 +7,44 @@ import {
   EuiSpacer,
   EuiText,
   EuiTitle,
+  EuiFieldText,
+  EuiFormRow,
 } from '@elastic/eui';
+import { RegisterApiService, IAMCredentials } from '../services/api';
  
-export const AWSAccountInfo: React.FC = () => {
+interface Props {
+  api: RegisterApiService;
+}
+
+export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isCreated, setIsCreated] = useState(false);
- 
-  const awsAccountId = '123456789012';
+  const [credentials, setCredentials] = useState<IAMCredentials>({
+    accessKeyId: '',
+    secretAccessKey: '',
+    sessionToken: '',
+    region: 'us-west-2'
+  });
+  const [applicationName, setApplicationName] = useState('');
+  const [error, setError] = useState<string | null>(null);
  
   const handleCreateSaasInstance = async () => {
     setIsCreating(true);
-    setTimeout(() => {
-      setIsCreating(false);
+    setError(null);
+    
+    try {
+      const result = await api.createSaasInstance({
+        applicationName: applicationName || undefined,
+        credentials: credentials.accessKeyId ? credentials : undefined
+      });
+      
+      console.log('SAAS instance created:', result);
       setIsCreated(true);
-    }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create SAAS instance');
+    } finally {
+      setIsCreating(false);
+    }
   };
  
   return (
@@ -56,15 +79,64 @@ export const AWSAccountInfo: React.FC = () => {
         </EuiText>
       </div>
  
-      <div style={{ marginBottom: '32px' }}>
-        <EuiText size="s" style={{ marginBottom: '8px', color: '#374151', fontWeight: '500' }}>
-          AWS Account ID
-        </EuiText>
-        <EuiText size="m">
-          <strong style={{ fontSize: '16px' }}>{awsAccountId}</strong>
-        </EuiText>
+      <div style={{ marginBottom: '24px' }}>
+        <EuiFormRow label="Application Name">
+          <EuiFieldText
+            value={applicationName}
+            onChange={(e) => setApplicationName(e.target.value)}
+            placeholder="Enter application name (e.g., my-search-app)"
+          />
+        </EuiFormRow>
+        <EuiSpacer size="s" />
+        <EuiFormRow label="Access Key ID">
+          <EuiFieldText
+            value={credentials.accessKeyId}
+            onChange={(e) => setCredentials({...credentials, accessKeyId: e.target.value})}
+            placeholder="Enter AWS Access Key ID"
+          />
+        </EuiFormRow>
+        <EuiSpacer size="s" />
+        <EuiFormRow label="Secret Access Key">
+          <EuiFieldText
+            type="password"
+            value={credentials.secretAccessKey}
+            onChange={(e) => setCredentials({...credentials, secretAccessKey: e.target.value})}
+            placeholder="Enter AWS Secret Access Key"
+          />
+        </EuiFormRow>
+        <EuiSpacer size="s" />
+        <EuiFormRow label="Session Token">
+          <EuiFieldText
+            type="password"
+            value={credentials.sessionToken || ''}
+            onChange={(e) => setCredentials({...credentials, sessionToken: e.target.value})}
+            placeholder="Enter AWS Session Token"
+          />
+        </EuiFormRow>
+        <EuiSpacer size="s" />
+        <EuiFormRow label="Region">
+          <EuiFieldText
+            value={credentials.region}
+            onChange={(e) => setCredentials({...credentials, region: e.target.value})}
+            placeholder="us-west-2"
+          />
+        </EuiFormRow>
       </div>
  
+      {error && (
+        <>
+          <EuiCallOut
+            title="Error"
+            color="danger"
+            iconType="alert"
+            size="s"
+          >
+            {error}
+          </EuiCallOut>
+          <EuiSpacer size="m" />
+        </>
+      )}
+
       {isCreated && (
         <>
           <EuiCallOut
@@ -73,7 +145,7 @@ export const AWSAccountInfo: React.FC = () => {
             iconType="check"
             size="s"
           >
-            Your SAAS instance has been created for AWS Account ID: {awsAccountId}
+            Your SAAS instance has been created with the provided credentials
           </EuiCallOut>
           <EuiSpacer size="m" />
         </>

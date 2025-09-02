@@ -1,12 +1,15 @@
 import React from 'react';
 import { CoreStart } from 'opensearch-dashboards/public';
 import { AWSAccountInfo } from '../components/aws_account_info';
+import { RegisterApiService } from '../services/api';
  
 interface RegisterAppProps {
   core: CoreStart;
 }
  
 export const RegisterApp: React.FC<RegisterAppProps> = ({ core }) => {
+  const api = new RegisterApiService(core.http);
+  
   return (
     <div style={{
       minHeight: '100vh',
@@ -16,7 +19,7 @@ export const RegisterApp: React.FC<RegisterAppProps> = ({ core }) => {
       justifyContent: 'center',
       padding: '24px'
     }}>
-      <AWSAccountInfo />
+      <AWSAccountInfo api={api} />
     </div>
   );
 };
