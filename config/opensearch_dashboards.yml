@@ -393,3 +393,6 @@
 # datasetManagement.enabled: true
 # set the value to false to call the label as dataset
 # datasetManagement.aliasedAsIndexPattern: false
+
+# Enable Chat Plugin
+# chat.enabled: true
