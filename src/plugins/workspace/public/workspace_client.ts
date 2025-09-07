@@ -46,10 +46,34 @@ export class WorkspaceClient implements IWorkspaceClient {
    * Initialize workspace list:
    * 1. Retrieve the list of workspaces
    * 2. Change the initialized flag to true
+   *
+   * Skip initialization for certain URL paths to improve performance
    */
   public async init() {
+    // Check if we should skip workspace initialization based on current URL path
+    if (this.shouldSkipWorkspaceInit()) {
+      // Set initialized to true without making API calls
+      this.workspaces.initialized$.next(true);
+      return;
+    }
+
     await this.updateWorkspaceList();
     this.workspaces.initialized$.next(true);
+  }
+
+  /**
+   * Determine if workspace initialization should be skipped based on current URL path
+   * Skip for paths that don't need workspace functionality currently SOAP demo for register page
+   */
+  private shouldSkipWorkspaceInit(): boolean {
+    const currentPath = window.location.pathname;
+
+    // List of paths where workspace initialization should be skipped
+    const skipPaths = [
+      '/app/register/awsaccount'
+    ];
+
+    return skipPaths.some(path => currentPath.includes(path));
   }
 
   /**
