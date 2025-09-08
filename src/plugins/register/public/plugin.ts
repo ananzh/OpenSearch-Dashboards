@@ -18,11 +18,11 @@ export class RegisterPlugin implements Plugin<RegisterPluginSetup, RegisterPlugi
  
   public setup(core: CoreSetup): RegisterPluginSetup {
     core.application.register({
-      id: 'register',
+      id: 'soap-register',
       title: i18n.translate('register.appTitle', {
         defaultMessage: 'AWS Account Registration',
       }),
-      appRoute: '/app/register/awsaccount',
+      appRoute: '/app/soap/register/awsaccount',
       chromeless: true,
       async mount(params: AppMountParameters) {
         const { renderApp } = await import('./application');

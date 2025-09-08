@@ -11,6 +11,7 @@ import {
   EuiFormRow,
 } from '@elastic/eui';
 import { RegisterApiService, IAMCredentials } from '../services/api';
+import { SaasCreationSuccess } from './saas_creation_success';
  
 interface Props {
   api: RegisterApiService;
@@ -18,7 +19,7 @@ interface Props {
 
 export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
   const [isCreating, setIsCreating] = useState(false);
-  const [isCreated, setIsCreated] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [credentials, setCredentials] = useState<IAMCredentials>({
     accessKeyId: '',
     secretAccessKey: '',
@@ -39,25 +40,70 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
       });
       
       console.log('SAAS instance created:', result);
-      setIsCreated(true);
+      setShowSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to create SAAS instance');
+      console.log('Full error object:', err);
+      console.log('Error body:', err.body);
+      console.log('Error response:', err.response);
+      console.log('Error status:', err.status);
+      console.log('Error statusText:', err.statusText);
+      
+      let errorMessage = 'Failed to create SAAS instance';
+      
+      if (err.body) {
+        errorMessage = typeof err.body === 'string' ? err.body : err.body.message || err.body.error || errorMessage;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      console.log('Final error message:', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsCreating(false);
     }
   };
+
+  const handleBackToRegister = () => {
+    setShowSuccess(false);
+    setApplicationName('');
+    setCredentials({
+      accessKeyId: '',
+      secretAccessKey: '',
+      sessionToken: '',
+      region: 'us-west-2'
+    });
+    setError(null);
+  };
  
+  if (showSuccess) {
+    return (
+      <SaasCreationSuccess
+        applicationName={applicationName}
+        region={credentials.region}
+        onBackToRegister={handleBackToRegister}
+      />
+    );
+  }
+
   return (
-    <EuiPanel
-      style={{
-        width: '100%',
-        maxWidth: '400px',
-        padding: '32px',
-        borderRadius: '12px',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        border: '1px solid #e5e7eb'
-      }}
-    >
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f9fafb',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px'
+    }}>
+      <EuiPanel
+        style={{
+          width: '100%',
+          maxWidth: '400px',
+          padding: '32px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #e5e7eb'
+        }}
+      >
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <EuiTitle size="l">
           <h1 style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '30px', margin: 0 }}>
@@ -137,26 +183,14 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
         </>
       )}
 
-      {isCreated && (
-        <>
-          <EuiCallOut
-            title="SAAS Instance Created Successfully"
-            color="success"
-            iconType="check"
-            size="s"
-          >
-            Your SAAS instance has been created with the provided credentials
-          </EuiCallOut>
-          <EuiSpacer size="m" />
-        </>
-      )}
+
  
       <EuiButton
         fill
         fullWidth
         size="m"
         onClick={handleCreateSaasInstance}
-        disabled={isCreating || isCreated}
+        disabled={isCreating}
         isLoading={isCreating}
         style={{
           height: '48px',
@@ -169,12 +203,11 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
             <EuiLoadingSpinner size="s" />
             Creating SAAS Instance...
           </span>
-        ) : isCreated ? (
-          'SAAS Instance Created'
         ) : (
           'Create SAAS Instance'
         )}
       </EuiButton>
-    </EuiPanel>
+      </EuiPanel>
+    </div>
   );
 };

@@ -5,7 +5,7 @@ import { IAMCredentials } from '../types';
 export function iamCredentialsRoute(router: IRouter, logger: Logger) {
   router.get(
     {
-      path: '/api/register/iam-credentials',
+      path: '/api/soap/register/iam-credentials',
       validate: false,
     },
     async (context, request, response) => {
@@ -34,7 +34,7 @@ export function iamCredentialsRoute(router: IRouter, logger: Logger) {
 
   router.post(
     {
-      path: '/api/register/iam-credentials',
+      path: '/api/soap/register/iam-credentials',
       validate: {
         body: schema.object({
           accessKeyId: schema.string(),

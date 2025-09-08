@@ -16,11 +16,11 @@ export class RegisterApiService {
   constructor(private http: HttpSetup) {}
 
   async getIamCredentials(): Promise<{ credentials: IAMCredentials }> {
-    return this.http.get('/api/register/iam-credentials');
+    return this.http.get('/api/soap/register/iam-credentials');
   }
 
   async updateIamCredentials(credentials: IAMCredentials): Promise<{ message: string }> {
-    return this.http.post('/api/register/iam-credentials', {
+    return this.http.post('/api/soap/register/iam-credentials', {
       body: JSON.stringify(credentials),
     });
   }
@@ -33,12 +33,12 @@ export class RegisterApiService {
     credentials: any;
     opensearch: any;
   }> {
-    return this.http.post('/api/register/create-saas-instance', {
+    return this.http.post('/api/soap/register/create-saas-instance', {
       body: JSON.stringify(data),
     });
   }
 
   async getApplicationStatus(): Promise<{ status: string; message: string }> {
-    return this.http.get('/api/register/opensearch-application/status');
+    return this.http.get('/api/soap/register/opensearch-application/status');
   }
 }

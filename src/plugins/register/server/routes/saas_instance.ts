@@ -1,6 +1,6 @@
 import { schema } from '@osd/config-schema';
 import { IRouter, Logger } from 'opensearch-dashboards/server';
-import { OpenSearchClient, CreateApplicationCommand } from '@aws-sdk/client-opensearch';
+import { OpenSearchClient, CreateApplicationCommand, ListApplicationsCommand } from '@aws-sdk/client-opensearch';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 
 function validateAwsCredentials(credentials: any, logger: Logger): boolean {
@@ -40,8 +40,17 @@ async function createAwsOpenSearchApplication(applicationName: string, credentia
     const identity = await stsClient.send(identityCommand);
     logger.info(`AWS credentials validated successfully for account: ${identity.Account}`);
     
-    // Create OpenSearch Application
+    // Check if application already exists
     const openSearchClient = new OpenSearchClient(awsConfig);
+    const listCommand = new ListApplicationsCommand({});
+    const existingApps = await openSearchClient.send(listCommand);
+    
+    const existingApp = existingApps.applicationSummaries?.find(app => app.name === appName);
+    if (existingApp) {
+      throw new Error(`SaaS instance with name '${appName}' already exists, please use a different name`);
+    }
+    
+    // Create OpenSearch Application
     const createCommand = new CreateApplicationCommand({
       name: appName
     });
@@ -58,14 +67,14 @@ async function createAwsOpenSearchApplication(applicationName: string, credentia
     };
   } catch (error: any) {
     logger.error(`AWS SDK error: ${error.message}`);
-    throw new Error(`Failed to create OpenSearch application: ${error.message}`);
+    throw new Error(error.message || 'AWS SDK error occurred');
   }
 }
 
 export function saasInstanceRoute(router: IRouter, logger: Logger) {
   router.post(
     {
-      path: '/api/register/create-saas-instance',
+      path: '/api/soap/register/create-saas-instance',
       validate: {
         body: schema.object({
           applicationName: schema.maybe(schema.string()),
@@ -79,28 +88,28 @@ export function saasInstanceRoute(router: IRouter, logger: Logger) {
       },
     },
     async (context, request, response) => {
+      const { applicationName, credentials } = request.body;
+      
+      if (!credentials) {
+        return response.badRequest({
+          body: 'AWS credentials are required',
+        });
+      }
+      
+      // Validate AWS credentials
+      logger.info('Validating AWS credentials...');
+      const credentialsValid = validateAwsCredentials(credentials, logger);
+      
+      if (!credentialsValid) {
+        logger.error('Invalid AWS credentials provided');
+        return response.badRequest({
+          body: 'Invalid AWS credentials. Please check your access key, secret key, and region.',
+        });
+      }
+      
+      const finalApplicationName = applicationName || `soap-${Math.floor(Date.now() / 1000)}`;
+      
       try {
-        const { applicationName, credentials } = request.body;
-        
-        if (!credentials) {
-          return response.badRequest({
-            body: 'AWS credentials are required',
-          });
-        }
-        
-        // Validate AWS credentials
-        logger.info('Validating AWS credentials...');
-        const credentialsValid = validateAwsCredentials(credentials, logger);
-        
-        if (!credentialsValid) {
-          logger.error('Invalid AWS credentials provided');
-          return response.badRequest({
-            body: 'Invalid AWS credentials. Please check your access key, secret key, and region.',
-          });
-        }
-        
-        const finalApplicationName = applicationName || `soap-${Math.floor(Date.now() / 1000)}`;
-        
         // Create AWS OpenSearch Application
         const applicationResult = await createAwsOpenSearchApplication(finalApplicationName, credentials, logger) as any;
 
@@ -142,7 +151,7 @@ export function saasInstanceRoute(router: IRouter, logger: Logger) {
       } catch (error) {
         logger.error('Error creating SAAS instance:', error);
         return response.badRequest({
-          body: `Failed to create SAAS instance: ${(error as Error).message}`,
+          body: (error as Error).message || 'Failed to create SAAS instance',
         });
       }
     }

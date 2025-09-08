@@ -8,7 +8,7 @@ import { OpenSearchConfig } from '../types';
 export function opensearchApplicationRoute(router: IRouter, logger: Logger) {
   router.post(
     {
-      path: '/api/register/opensearch-application',
+      path: '/api/soap/register/opensearch-application',
       validate: {
         body: schema.object({
           endpoint: schema.string(),
@@ -61,7 +61,7 @@ export function opensearchApplicationRoute(router: IRouter, logger: Logger) {
 
   router.get(
     {
-      path: '/api/register/opensearch-application/status',
+      path: '/api/soap/register/opensearch-application/status',
       validate: false,
     },
     async (context, request, response) => {

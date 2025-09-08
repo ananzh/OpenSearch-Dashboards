@@ -11,15 +11,6 @@ export const RegisterApp: React.FC<RegisterAppProps> = ({ core }) => {
   const api = new RegisterApiService(core.http);
   
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f9fafb',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px'
-    }}>
-      <AWSAccountInfo api={api} />
-    </div>
+    <AWSAccountInfo api={api} />
   );
 };
