@@ -377,11 +377,11 @@ workspace.enabled: true
 # flowFrameworkDashboards.enabled: false
  
 # Setting this value does not disable dynamic config service but its client will always return static yaml configs
-dynamic_config_service.enabled: true
+dynamic_config_service.enabled: false
 dynamic_config_service.skipMigrations: true
 
 # Neo specific configuration
-dashboardsPlugin.enabled: true
+# dashboardsPlugin.enabled: true
 migrations.skip: true
 
 # Minimal CSP rules that are appended to existing S3 customer configs
