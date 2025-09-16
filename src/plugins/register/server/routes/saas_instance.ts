@@ -74,6 +74,26 @@ async function createAwsOpenSearchApplication(applicationName: string, credentia
 export function saasInstanceRoute(router: IRouter, logger: Logger) {
   router.post(
     {
+      path: '/api/soap/register/display-json',
+      validate: {
+        body: schema.any(),
+      },
+    },
+    async (context, request, response) => {
+      const jsonData = request.body;
+      logger.info('Received JSON data:', JSON.stringify(jsonData, null, 2));
+      
+      return response.ok({
+        body: {
+          message: 'JSON data received successfully',
+          data: jsonData,
+          timestamp: new Date().toISOString()
+        },
+      });
+    }
+  );
+  router.post(
+    {
       path: '/api/soap/register/create-saas-instance',
       validate: {
         body: schema.object({

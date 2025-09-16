@@ -41,4 +41,10 @@ export class RegisterApiService {
   async getApplicationStatus(): Promise<{ status: string; message: string }> {
     return this.http.get('/api/soap/register/opensearch-application/status');
   }
+
+  async displayJson(data: any): Promise<{ message: string; data: any; timestamp: string }> {
+    return this.http.post('/api/soap/register/display-json', {
+      body: JSON.stringify(data),
+    });
+  }
 }
