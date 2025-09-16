@@ -414,7 +414,7 @@ export class ExplorePlugin
 
     // Conditionally add Traces nav link after APM check
     checkAPMFeatureFlag(core).then(() => {
-      if (hasAPMConnectionFlag) {
+      if (true) {
         core.chrome.navGroup.addNavLinksToGroup(DEFAULT_NAV_GROUPS.observability, [
           {
             id: `${PLUGIN_ID}/${ExploreFlavor.Traces}`,

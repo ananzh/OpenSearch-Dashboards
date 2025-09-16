@@ -384,6 +384,8 @@ dynamic_config_service.skipMigrations: true
 # dashboardsPlugin.enabled: true
 migrations.skip: true
 
+apmDashboards.enabled: true
+
 # Minimal CSP rules that are appended to existing S3 customer configs
 # dashboardsPlugin.app_config.base_csp_rules: ["base-uri 'self'", "connect-src 'self' vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org", "default-src 'self' data:", "font-src 'self'", "frame-ancestors 'self'", "img-src data: 'self' tiles.maps.opensearch.org", "object-src 'none'", "script-src 'unsafe-eval' 'self'", "style-src 'unsafe-inline' 'self'", "worker-src blob: 'self'"]
  
