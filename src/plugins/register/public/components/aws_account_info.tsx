@@ -195,8 +195,7 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
         style={{
           height: '48px',
           fontSize: '14px',
-          fontWeight: '500',
-          marginBottom: '12px'
+          fontWeight: '500'
         }}
       >
         {isCreating ? (
@@ -207,19 +206,6 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
         ) : (
           'Create SAAS Instance'
         )}
-      </EuiButton>
-      
-      <EuiButton
-        fullWidth
-        size="m"
-        onClick={() => window.location.href = 'https://us-east-1.awsc-integ.aws.amazon.com/cloudwatch/home?pluginEndpoint=https%3A%2F%2F10.169.1.167%3A31214%2Fmain.js&pluginName=ApmSynthetics&region=us-east-1#synthetics:canary/list'}
-        style={{
-          height: '48px',
-          fontSize: '14px',
-          fontWeight: '500'
-        }}
-      >
-        Login to AWS Account
       </EuiButton>
       </EuiPanel>
     </div>

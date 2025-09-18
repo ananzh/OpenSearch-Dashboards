@@ -30,20 +30,6 @@ export class RegisterPlugin implements Plugin<RegisterPluginSetup, RegisterPlugi
         return renderApp(coreStart, params);
       },
     });
-
-    core.application.register({
-      id: 'soap-json-display',
-      title: i18n.translate('jsonDisplay.appTitle', {
-        defaultMessage: 'JSON Data Display',
-      }),
-      appRoute: '/app/soap/json-display',
-      chromeless: true,
-      async mount(params: AppMountParameters) {
-        const { renderJsonApp } = await import('./application');
-        const [coreStart] = await core.getStartServices();
-        return renderJsonApp(coreStart, params);
-      },
-    });
     return {};
   }
  
