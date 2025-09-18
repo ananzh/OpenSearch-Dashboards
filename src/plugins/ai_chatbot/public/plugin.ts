@@ -1,6 +1,3 @@
-
-
-src/plugins/ai_chatbot/public/plugin.ts
 /*
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0

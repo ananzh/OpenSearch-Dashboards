@@ -242,7 +242,6 @@ export function Header({
   const className = classnames('hide-for-sharing', 'headerGlobalNav', {
     'headerGlobalNav--withBanner': !!globalBanner,
   });
-  const { useExpandedHeader = true } = branding;
   const useApplicationHeader = headerVariant === HeaderVariant.APPLICATION;
 
   const expandedHeaderColorScheme: EuiHeaderProps['theme'] = 'dark';
