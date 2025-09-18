@@ -18,7 +18,6 @@ function validateAwsCredentials(credentials: any, logger: Logger): boolean {
 }
 
 async function createAwsOpenSearchApplication(applicationName: string, credentials: any, logger: Logger) {
-  const tempHardCodedAccountId = "746602329284";
   const appName = applicationName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
   const region = credentials.region;
   
@@ -47,7 +46,7 @@ async function createAwsOpenSearchApplication(applicationName: string, credentia
       service: 'opensearch'
     });
     
-    const result = await soapClient.createApplication(appName, tempHardCodedAccountId);
+    const result = await soapClient.createApplication(appName, identity.Account);
     logger.info(`status code: ${JSON.stringify(result.body)}`)
     if (result.statusCode !== 200) {
       throw new Error(`Failed to create application: ${JSON.stringify(result.body)}`);
@@ -55,7 +54,7 @@ async function createAwsOpenSearchApplication(applicationName: string, credentia
 
     logger.info(`OpenSearch Application created: ${appName}`);
 
-    const getResult = await soapClient.getApplication(appName, tempHardCodedAccountId);
+    const getResult = await soapClient.getApplication(appName, identity.Account);
  
     const getData = getResult.body;
     logger.info(`Response: ${JSON.stringify(result.body)}`)
@@ -88,7 +87,7 @@ export function saasInstanceRoute(router: IRouter, logger: Logger) {
         }),
       },
     },
-    async (context, request, response) => { 
+    async (context, request, response) => {
       try {
         const { applicationName, credentials } = request.body;
  
@@ -113,7 +112,6 @@ export function saasInstanceRoute(router: IRouter, logger: Logger) {
 
         // Create AWS OpenSearch Application
         const applicationResult = await createAwsOpenSearchApplication(finalApplicationName, credentials, logger) as any;
-
 
         logger.info('=== AWS OPENSEARCH APPLICATION CREATED ===');
         logger.info(`Application Name: ${applicationResult.applicationName}`);
