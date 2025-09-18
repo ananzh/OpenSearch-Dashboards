@@ -126,14 +126,14 @@ const getLanguageSpecificConfig = (language, config) => {
     case QueryLanguages.PPL.name:
       return {
         initialCommands: [
-          { value: 'source', input: 's' },
+          { value: 'SOURCE', input: 's' },
           { value: '=' },
           { value: getDatasetName('data_logs_small_time_1', config.datasetType) },
           { value: '|' },
-          { value: 'where', input: 'w' },
+          { value: 'WHERE', input: 'w' },
         ],
         editorType: 'exploreQueryPanelEditor',
-        andOperator: 'and',
+        andOperator: 'AND',
       };
     default:
       throw new Error(`Unsupported language: ${language}`);
@@ -244,7 +244,7 @@ export const showSuggestionAndHint = (maxAttempts = 3) => {
 
   const attemptShow = () => {
     attempts++;
-    cy.get('.inputarea').type(' ', { force: true });
+    cy.get('.inputarea').type('source ', { force: true });
 
     return cy.get('.suggest-widget.visible').then(($widget) => {
       const isVisible = $widget.is(':visible');
@@ -305,12 +305,33 @@ export const hideWidgets = (maxAttempts = 3) => {
 };
 
 /**
+ * Types in a query in Monaco editor
+ * @param {String} query - Query String
+ */
+export const setQueryInMonacoEditor = (query) => {
+  const editorType = 'exploreQueryPanelEditor';
+
+  cy.getElementByTestId(editorType)
+    .find('.monaco-editor')
+    .should('be.visible')
+    .should('have.class', 'vs')
+    .wait(1000)
+    .within(() => {
+      cy.get('.inputarea').type(query, {
+        force: true,
+      });
+    });
+};
+
+/**
  * Creates a query using either mouse or keyboard interactions
  * @param {Object} config - Query configuration
  * @param {boolean} useKeyboard - Whether to use keyboard instead of mouse
  */
 export const createQuery = (config, useKeyboard = false) => {
   const editorType = 'exploreQueryPanelEditor';
+
+  setQueryInMonacoEditor('source'); // Setting base Query to source <space> to avoid being stuck in AI mode with space
 
   cy.getElementByTestId(editorType)
     .find('.monaco-editor')
@@ -320,15 +341,97 @@ export const createQuery = (config, useKeyboard = false) => {
     .within(() => {
       cy.get('.inputarea').type(' ', { force: true });
       if (config.language === QueryLanguages.PPL.name) {
-        selectSuggestion('source', useKeyboard);
         selectSuggestion('=', useKeyboard);
         const dataset = getDatasetName('data_logs_small_time_1', config.datasetType);
         selectSuggestion(dataset, useKeyboard);
         selectSuggestion('|', useKeyboard);
-        selectSuggestion('where', useKeyboard);
+        selectSuggestion('WHERE', useKeyboard);
         selectSuggestion('unique_category', useKeyboard);
         selectSuggestion('=', useKeyboard);
         selectSuggestion('Development', useKeyboard);
+      }
+    });
+};
+
+/**
+ * Creates an Invalid query to test error highlighting
+ * @param {Object} config - Query configuration
+ */
+export const createInvalidQuery = (config) => {
+  const editorType = 'exploreQueryPanelEditor';
+
+  cy.getElementByTestId(editorType)
+    .find('.monaco-editor')
+    .should('be.visible')
+    .should('have.class', 'vs')
+    .wait(1000)
+    .within(() => {
+      if (config.language === QueryLanguages.PPL.name) {
+        cy.get('.inputarea').type('source = data_logs_small_time_1 | where stats ', {
+          force: true,
+        });
+      }
+    });
+};
+
+/**
+ * Checks if the editor contains any error by looking for mtk31 class (error marker)
+ */
+export const validateEditorContainsError = () => {
+  cy.get('.monaco-editor', { timeout: 10000 })
+    .should('be.visible')
+    .within(() => {
+      cy.get('.mtk31', { timeout: 5000 }).should('exist');
+    });
+};
+
+/**
+ * Validates Implicit PPL Queries, that don't necessarily start with `source =` part
+ * @param {Object} config - Query configuration
+ */
+export const validateImplicitPPLQuery = (config) => {
+  const editorType = 'exploreQueryPanelEditor';
+
+  setQueryInMonacoEditor('category = "Application"');
+
+  cy.getElementByTestId(editorType)
+    .find('.monaco-editor')
+    .should('be.visible')
+    .should('have.class', 'vs')
+    .wait(1000)
+    .within(() => {
+      cy.get('.inputarea').type(' ', { force: true });
+      if (config.language === QueryLanguages.PPL.name) {
+        typeAndSelectSuggestion('c', 'category');
+        selectSuggestion('=');
+      }
+    });
+};
+
+/**
+ * Validates if documentation panel is visible after typing 'sour'
+ * @param {Object} config - Query configuration
+ */
+export const validateDocumentationPanelIsOpen = (config) => {
+  const editorType = 'exploreQueryPanelEditor';
+
+  cy.getElementByTestId(editorType)
+    .find('.monaco-editor')
+    .should('be.visible')
+    .should('have.class', 'vs')
+    .wait(1000)
+    .within(() => {
+      if (config.language === QueryLanguages.PPL.name) {
+        // Type 'sour' to trigger suggestions with documentation
+        cy.get('.inputarea').type('sour', { force: true });
+        // Wait for suggestion widget to appear
+        cy.get('.suggest-widget.visible')
+          .should('be.visible')
+          .then(($widget) => {
+            // Check if documentation panel (status bar) is visible
+            const statusBar = $widget.find('.suggest-status-bar');
+            expect(statusBar.length).to.be.greaterThan(0);
+          });
       }
     });
 };
@@ -342,30 +445,39 @@ export const createQuery = (config, useKeyboard = false) => {
  * The Monaco editor renders spaces using various Unicode whitespace characters and middle dot characters
  * This function handles all possible whitespace representations that might appear in the editor
  * @param {string} queryString - The query string to verify
- * @param {string} editorType - The editor type selector (e.g., 'osdQueryEditor__multiLine' or 'osdQueryEditor__singleLine')
  */
-export const verifyMonacoEditorContent = (queryString, editorType) => {
+export const verifyMonacoEditorContent = (queryString) => {
   if (!queryString) return;
+  // Check the editor content against our pattern - try multiple approaches
+  cy.getElementByTestId('exploreQueryPanelEditor')
+    .should('be.visible')
+    .then(($editor) => {
+      // Get text from all lines in the editor
+      let text = '';
 
-  // Escape special regex characters in the query string
-  const escapedQueryString = queryString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const viewLines = $editor.find('.view-line');
+      if (viewLines.length > 0) {
+        // Collect text from all lines
+        const allLinesText = viewLines
+          .toArray()
+          .map((line) => Cypress.$(line).text())
+          .join(' ');
+        text = allLinesText;
+      }
 
-  // This comprehensive pattern handles all possible whitespace representations that might appear in the editor
-  // including regular spaces, non-breaking spaces, middle dots, and other special characters used for spacing
-  const pattern = new RegExp(
-    escapedQueryString.replace(
-      /\s+/g,
-      '[\\s\\u00A0\\u00B7\\u2022\\u2023\\u25E6\\u2043\\u2219\\u22C5\\u30FB\\u00B7.·]+'
-    )
-  );
+      // Normalize the text by removing newlines and merging multiple spaces into single space
+      const normalizeText = (str) => {
+        return str
+          .replace(/\n/g, ' ') // Remove newlines
+          .replace(/[\s\u00A0\u00B7\u2022\u2023\u25E6\u2043\u2219\u22C5\u30FB\u00B7.·]+/g, ' ') // Normalize whitespace characters and merge multiple spaces
+          .trim();
+      };
 
-  // Check the editor content against our pattern
-  cy.getElementByTestId(editorType)
-    .find('.view-line')
-    .first()
-    .invoke('text')
-    .then((text) => {
-      expect(pattern.test(text)).to.be.true;
+      const normalizedText = normalizeText(text);
+      const normalizedQuery = normalizeText(queryString);
+
+      expect(text).to.not.be.empty;
+      expect(normalizedText).to.include(normalizedQuery);
     });
 };
 

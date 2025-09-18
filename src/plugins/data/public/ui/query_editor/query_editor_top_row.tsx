@@ -14,7 +14,7 @@ import {
 } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 import classNames from 'classnames';
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   DatasetSelector,
@@ -70,10 +70,35 @@ export interface QueryEditorTopRowProps {
 // Needed for React.lazy
 // eslint-disable-next-line import/no-default-export
 export default function QueryEditorTopRow(props: QueryEditorTopRowProps) {
+  const datePickerRef = useRef<EuiSuperDatePicker | null>(null);
   const [isDateRangeInvalid, setIsDateRangeInvalid] = useState(false);
   const [isQueryEditorFocused, setIsQueryEditorFocused] = useState(false);
   const opensearchDashboards = useOpenSearchDashboards<IDataPluginServices>();
-  const { uiSettings, storage, appName, data } = opensearchDashboards.services;
+  const { uiSettings, storage, appName, data, keyboardShortcut } = opensearchDashboards.services;
+
+  const handleOpenDatePicker = useCallback(() => {
+    if (datePickerRef.current) {
+      const datePicker = datePickerRef.current;
+      if (datePicker.onStartDatePopoverToggle) {
+        datePicker.onStartDatePopoverToggle();
+      } else if (datePicker.onEndDatePopoverToggle) {
+        datePicker.onEndDatePopoverToggle();
+      }
+    }
+  }, []);
+
+  keyboardShortcut?.useKeyboardShortcut({
+    id: 'date_picker',
+    pluginId: 'data',
+    name: i18n.translate('data.query.queryEditor.openDatePickerShortcut', {
+      defaultMessage: 'Open date picker',
+    }),
+    category: i18n.translate('data.query.queryEditor.searchCategory', {
+      defaultMessage: 'Search',
+    }),
+    keys: 'shift+d',
+    execute: handleOpenDatePicker,
+  });
 
   const queryLanguage = props.query && props.query.language;
   const persistedLog: PersistedLog | undefined = React.useMemo(
@@ -344,6 +369,7 @@ export default function QueryEditorTopRow(props: QueryEditorTopRowProps) {
     return (
       <EuiFlexItem className={wrapperClasses}>
         <EuiSuperDatePicker
+          ref={datePickerRef}
           start={props.dateRangeFrom}
           end={props.dateRangeTo}
           isPaused={props.isRefreshPaused}

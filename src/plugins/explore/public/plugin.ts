@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+/* eslint-disable no-console */
 
 import { i18n } from '@osd/i18n';
 import { stringify } from 'query-string';
@@ -54,6 +55,7 @@ import {
 import { createSavedExploreLoader } from './saved_explore';
 import { TabRegistryService } from './services/tab_registry/tab_registry_service';
 import { setUsageCollector } from './services/usage_collector';
+import { QueryPanelActionsRegistryService } from './services/query_panel_actions_registry';
 import { VisualizationRegistryService } from './services/visualization_registry_service';
 import {
   ExplorePluginSetup,
@@ -69,22 +71,12 @@ import { createAbortDataQueryAction } from './application/utils/state_management
 import { ABORT_DATA_QUERY_TRIGGER } from '../../ui_actions/public';
 import { abortAllActiveQueries } from './application/utils/state_management/actions/query_actions';
 import { setServices } from './services/services';
-import { DataConnectionType } from './../../../plugins/data_source/common';
 
-// Feature flag for APM
-let hasAPMConnectionFlag = false;
+// Context Provider Integration
+import { ExploreContextContributor } from './context_contributor';
 
-export async function checkAPMFeatureFlag(core: CoreSetup<ExploreStartDependencies, ExplorePluginStart>) {
-  const [coreStart] = await core.getStartServices();
-  try {
-    const result = await coreStart.savedObjects.client.find({ type: 'data-connection' });
-    hasAPMConnectionFlag = result.savedObjects.some((obj) =>
-      (obj.attributes as { type?: string }).type === DataConnectionType.ApplicationPerformanceMonitoring
-    );
-  } catch {
-    hasAPMConnectionFlag = false;
-  }
-}
+// UI Actions Integration
+import { registerExploreUIActions } from './ui_actions/explore_ui_actions';
 
 export class ExplorePlugin
   implements
@@ -109,47 +101,32 @@ export class ExplorePlugin
   private urlGenerator?: import('./types').ExplorePluginStart['urlGenerator'];
   private initializeServices?: () => { core: CoreStart; plugins: ExploreStartDependencies };
 
-  // Add a new property for the tab registry
+  // Registries
   private tabRegistry: TabRegistryService = new TabRegistryService();
-
-  /** visualization registry */
   private visualizationRegistryService = new VisualizationRegistryService();
+  private queryPanelActionsRegistryService = new QueryPanelActionsRegistryService();
 
-  // Flag for APM check
-  private hasAPMConnection: boolean = false;
+  // Context Provider Integration
+  private contextContributor?: ExploreContextContributor;
 
-  constructor(private readonly initializerContext: PluginInitializerContext) {
-    this.config = initializerContext.config.get<ConfigSchema>();
+  constructor(private readonly initializerContext: PluginInitializerContext<ConfigSchema>) {
+    this.config = this.initializerContext.config.get();
   }
 
   public setup(
     core: CoreSetup<ExploreStartDependencies, ExplorePluginStart>,
     setupDeps: ExploreSetupDependencies
   ): ExplorePluginSetup {
-    // Set usage collector
-    setUsageCollector(setupDeps.usageCollection);
-
-    this.registerExploreVisualization(core, setupDeps);
-    const visualizationRegistryService = this.visualizationRegistryService.setup();
+    // Use setupDeps directly instead of destructuring to avoid unused variable warnings
+    const visualizationRegistryService = this.visualizationRegistryService;
 
     this.docViewsRegistry = new DocViewsRegistry();
     setDocViewsRegistry(this.docViewsRegistry);
-    this.docViewsRegistry.addDocView({
-      title: i18n.translate('explore.docViews.trace.timeline.title', {
-        defaultMessage: 'Timeline',
-      }),
-      order: 5,
-      component: TraceDetailsView,
-      shouldShow: (hit) => {
-        // Only show the Timeline tab when on the traces flavor
-        const currentPath = window.location.pathname;
-        const currentHash = window.location.hash;
-        return currentPath.includes('/explore/traces') || currentHash.includes('/explore/traces');
-      },
-    });
+    this.docViewsLinksRegistry = new DocViewsLinksRegistry();
+    setDocViewsLinksRegistry(this.docViewsLinksRegistry);
 
     this.docViewsRegistry.addDocView({
-      title: i18n.translate('explore.discover.docViews.table.tableTitle', {
+      title: i18n.translate('explore.docViews.table.tableTitle', {
         defaultMessage: 'Table',
       }),
       order: 10,
@@ -157,73 +134,33 @@ export class ExplorePlugin
     });
 
     this.docViewsRegistry.addDocView({
-      title: i18n.translate('explore.discover.docViews.json.jsonTitle', {
+      title: i18n.translate('explore.docViews.json.jsonTitle', {
         defaultMessage: 'JSON',
       }),
       order: 20,
       component: JsonCodeBlock,
     });
-    this.docViewsLinksRegistry = new DocViewsLinksRegistry();
-    setDocViewsLinksRegistry(this.docViewsLinksRegistry);
 
-    this.docViewsLinksRegistry.addDocViewLink({
-      label: i18n.translate('explore.discover.docTable.tableRow.viewSurroundingDocumentsLinkText', {
-        defaultMessage: 'View surrounding documents',
+    this.docViewsRegistry.addDocView({
+      title: i18n.translate('explore.docViews.trace.traceTitle', {
+        defaultMessage: 'Trace',
       }),
-      generateCb: (renderProps: Record<string, unknown>) => {
-        const queryString = getServices().data.query.queryString;
-        const showDocLinks =
-          queryString.getLanguageService().getLanguage(queryString.getQuery().language)
-            ?.showDocLinks ?? undefined;
-
-        // Note: Explore uses Redux for filter management, not filterManager
-        // So we don't include filter state in URLs for context links
-        const hash = stringify(
-          url.encodeQuery({
-            _g: rison.encode({}), // No global filters (explore uses Redux)
-            _a: rison.encode({
-              columns: (renderProps as any).columns,
-              // No filters since explore uses Redux store instead of filterManager
-            }),
-          }),
-          { encode: false, sort: false }
-        );
-
-        const contextUrl = `#/context/${encodeURIComponent(
-          (renderProps as any).indexPattern.id
-        )}/${encodeURIComponent((renderProps as any).hit._id)}?${hash}`;
-
-        return {
-          url: generateDocViewsUrl(contextUrl),
-          hide:
-            (showDocLinks !== undefined ? !showDocLinks : false) ||
-            !(renderProps as any).indexPattern.isTimeBased(),
-        };
-      },
-      order: 1,
+      order: 30,
+      component: TraceDetailsView,
     });
 
     this.docViewsLinksRegistry.addDocViewLink({
-      label: i18n.translate('explore.discover.docTable.tableRow.viewSingleDocumentLinkText', {
+      order: 10,
+      label: i18n.translate('explore.docTable.tableRow.viewSingleDocumentLinkTextSimple', {
         defaultMessage: 'View single document',
       }),
-      generateCb: (renderProps) => {
-        const queryString = getServices().data.query.queryString;
-        const showDocLinks =
-          queryString.getLanguageService().getLanguage(queryString.getQuery().language)
-            ?.showDocLinks ?? undefined;
-
-        const docUrl = `#/doc/${renderProps.indexPattern.id}/${
-          renderProps.hit._index
-        }?id=${encodeURIComponent(renderProps.hit._id)}`;
-
-        return {
-          url: generateDocViewsUrl(docUrl),
-          hide: showDocLinks !== undefined ? !showDocLinks : false,
-        };
-      },
-      order: 2,
+      generateCb: (renderProps: any) => ({ url: generateDocViewsUrl(renderProps) }),
+      href: '#',
     });
+
+    if (setupDeps.usageCollection) {
+      setUsageCollector(setupDeps.usageCollection);
+    }
 
     const { appMounted, appUnMounted, stop: stopUrlTracker } = createOsdUrlTracker({
       baseUrl: core.http.basePath.prepend(`/app/${PLUGIN_ID}`),
@@ -256,7 +193,7 @@ export class ExplorePlugin
 
     setupDeps.data.__enhance({
       editor: {
-        queryEditorExtension: createQueryEditorExtensionConfig(core),
+        queryEditorExtension: createQueryEditorExtensionConfig(core as any),
       },
     });
 
@@ -325,7 +262,8 @@ export class ExplorePlugin
           pluginsStart,
           this.initializerContext,
           this.tabRegistry,
-          this.visualizationRegistryService
+          this.visualizationRegistryService,
+          this.queryPanelActionsRegistryService
         );
 
         // Add osdUrlStateStorage to services (like VisBuilder and DataExplorer)
@@ -352,6 +290,33 @@ export class ExplorePlugin
         const abortAction = createAbortDataQueryAction(abortActionId);
         services.uiActions.addTriggerAction(ABORT_DATA_QUERY_TRIGGER, abortAction);
         setServices(services);
+
+        // Make services globally available for MCP integration
+        (global as any).exploreServices = services;
+        console.log('🌐 Explore services made globally available for MCP integration');
+
+        // Make Redux actions globally available for MCP integration
+        const setupReduxActions = async () => {
+          try {
+            const { setQueryStringWithHistory, setQueryState } = await import(
+              './application/utils/state_management/slices/query/query_slice'
+            );
+            const { executeQueries } = await import(
+              './application/utils/state_management/actions/query_actions'
+            );
+
+            (global as any).exploreReduxActions = {
+              setQueryStringWithHistory,
+              setQueryState,
+              executeQueries,
+            };
+            console.log('🌐 Explore Redux actions made globally available for MCP integration');
+          } catch (error) {
+            console.warn('⚠️ Failed to expose Redux actions globally:', error);
+          }
+        };
+
+        setupReduxActions();
 
         appMounted();
 
@@ -403,34 +368,27 @@ export class ExplorePlugin
         order: 300,
         parentNavLinkId: PLUGIN_ID,
       },
-      // Metrics nav link (uncomment if needed)
-      // {
-      //   id: `${PLUGIN_ID}/${ExploreFlavor.Metrics}`,
-      //   category: undefined,
-      //   order: 300,
-      //   parentNavLinkId: PLUGIN_ID,
-      // },
+      {
+        id: `${PLUGIN_ID}/${ExploreFlavor.Traces}`,
+        category: undefined,
+        order: 300,
+        parentNavLinkId: PLUGIN_ID,
+      },
+      // uncomment when metrics is ready for launch
+      /*
+      {
+        id: `${PLUGIN_ID}/${ExploreFlavor.Metrics}`,
+        category: undefined,
+        order: 300,
+        parentNavLinkId: PLUGIN_ID,
+      }, */
     ]);
+    this.registerEmbeddable(core as any, setupDeps);
 
-    // Conditionally add Traces nav link after APM check
-    checkAPMFeatureFlag(core).then(() => {
-      if (true) {
-        core.chrome.navGroup.addNavLinksToGroup(DEFAULT_NAV_GROUPS.observability, [
-          {
-            id: `${PLUGIN_ID}/${ExploreFlavor.Traces}`,
-            category: undefined,
-            order: 300,
-            parentNavLinkId: PLUGIN_ID,
-          }
-        ]);
-      }
-    });
-    this.registerEmbeddable(core, setupDeps);
-
-    setupDeps.urlForwarding.forwardApp('doc', PLUGIN_ID, (path) => {
+    setupDeps.urlForwarding.forwardApp('doc', PLUGIN_ID, (path: string) => {
       return `#${path}`;
     });
-    setupDeps.urlForwarding.forwardApp('context', PLUGIN_ID, (path) => {
+    setupDeps.urlForwarding.forwardApp('context', PLUGIN_ID, (path: string) => {
       const urlParts = path.split('/');
       // take care of urls containing legacy url, those split in the following way
       // ["", "context", indexPatternId, _type, id + params]
@@ -441,7 +399,7 @@ export class ExplorePlugin
       }
       return `#${path}`;
     });
-    setupDeps.urlForwarding.forwardApp('discover', PLUGIN_ID, (path) => {
+    setupDeps.urlForwarding.forwardApp('discover', PLUGIN_ID, (path: string) => {
       const [, id, tail] = /discover\/([^\?]+)(.*)/.exec(path) || [];
       if (!id) {
         return `#${path.replace('/discover', '') || '/'}`;
@@ -453,6 +411,20 @@ export class ExplorePlugin
       registerFeature(setupDeps.home);
     } */
 
+    // Context Provider Integration - Setup Phase
+    console.log('🔧 Explore Plugin Setup - Context Provider Integration');
+    console.log('🔍 DEBUG: contextProvider in setupDeps:', !!setupDeps.contextProvider);
+    if (setupDeps.contextProvider) {
+      console.log('📝 Context Provider detected during setup');
+    } else {
+      console.log('⚠️ Context Provider not available during setup');
+    }
+
+    // Register UI Actions for explore
+    console.log('🔧 Registering Explore UI Actions');
+    registerExploreUIActions(setupDeps.uiActions);
+    console.log('✅ Explore UI Actions registered');
+
     return {
       docViews: {
         addDocView: (docViewSpec: unknown) => this.docViewsRegistry?.addDocView(docViewSpec as any),
@@ -461,11 +433,15 @@ export class ExplorePlugin
         addDocViewLink: (docViewLinkSpec: unknown) =>
           this.docViewsLinksRegistry?.addDocViewLink(docViewLinkSpec as any),
       },
-      visualizationRegistry: visualizationRegistryService,
+      visualizationRegistry: visualizationRegistryService.setup(),
+      queryPanelActionsRegistry: this.queryPanelActionsRegistryService.setup(),
     };
   }
 
   public start(core: CoreStart, plugins: ExploreStartDependencies): ExplorePluginStart {
+    console.log('🚀 Explore Plugin Start - STARTING');
+    console.log('🔍 DEBUG: Start dependencies:', Object.keys(plugins));
+
     setUiActions(plugins.uiActions);
     setDashboard(plugins.dashboard);
     const opensearchDashboardsVersion = this.initializerContext.env.packageInfo.version;
@@ -484,7 +460,8 @@ export class ExplorePlugin
         plugins,
         this.initializerContext,
         this.tabRegistry,
-        this.visualizationRegistryService
+        this.visualizationRegistryService,
+        this.queryPanelActionsRegistryService
       );
       setLegacyServices({
         ...services,
@@ -496,6 +473,42 @@ export class ExplorePlugin
     };
 
     this.initializeServices();
+
+    // Context Provider Integration - Start Phase
+    console.log('🚀 Explore Plugin Start - Context Provider Integration');
+    console.log('🔍 DEBUG: Available plugins:', Object.keys(plugins));
+    console.log('🔍 DEBUG: Context Provider available:', !!plugins.contextProvider);
+
+    // Register context contributor if Context Provider is available
+    if (plugins.contextProvider) {
+      console.log('📝 Registering Explore Context Contributor');
+
+      this.contextContributor = new ExploreContextContributor(core.savedObjects.client);
+
+      console.log('🔍 DEBUG: Created contributor with appId:', this.contextContributor.appId);
+
+      // Initialize the contributor
+      this.contextContributor.initialize();
+
+      // Register with Context Provider
+      plugins.contextProvider.registerContextContributor(this.contextContributor);
+
+      console.log('✅ Explore Context Contributor registered successfully');
+      console.log('🔍 DEBUG: Contributor registered for appId:', this.contextContributor.appId);
+
+      // Make it globally available for testing
+      (window as any).exploreContextContributor = this.contextContributor;
+      console.log('🌐 Explore Context Contributor available at window.exploreContextContributor');
+
+      // Register context extraction rules with Global Interaction Interceptor
+      this.registerGlobalInteractionRules(core);
+
+      // Add debugging for document expansion detection
+      this.setupDocumentExpansionDetection();
+    } else {
+      console.log('⚠️ Context Provider not available, skipping context contributor registration');
+      console.log('🔍 DEBUG: Available plugins:', Object.keys(plugins));
+    }
 
     const savedExploreLoader = createSavedExploreLoader({
       savedObjectsClient: core.savedObjects.client,
@@ -510,6 +523,8 @@ export class ExplorePlugin
       savedSearchLoader: savedExploreLoader, // For backward compatibility
       savedExploreLoader,
       visualizationRegistry: this.visualizationRegistryService.start(),
+      // Expose context contributor for testing
+      getContextContributor: () => this.contextContributor || null,
     };
   }
 
@@ -517,6 +532,285 @@ export class ExplorePlugin
     if (this.stopUrlTracking) {
       this.stopUrlTracking();
     }
+
+    // Context Provider Integration - Cleanup
+    console.log('🛑 Explore Plugin Stop - Context Provider Integration');
+    if (this.contextContributor) {
+      this.contextContributor.cleanup();
+      delete (window as any).exploreContextContributor;
+    }
+  }
+
+  /**
+   * Set up detection for document expansion in the Explore UI
+   */
+  private setupDocumentExpansionDetection(): void {
+    console.log('🔍 Setting up document expansion detection for Explore');
+
+    // Listen for clicks on document expansion buttons
+    document.addEventListener(
+      'click',
+      (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+
+        // Check if click is on a document expansion toggle
+        if (
+          target &&
+          (target.getAttribute('data-test-subj') === 'docTableExpandToggleColumn' ||
+            target.closest('[data-test-subj="docTableExpandToggleColumn"]'))
+        ) {
+          console.log('🔍 Document expansion toggle clicked!');
+
+          // Find the table row
+          const tableRow = target.closest('tr');
+          if (tableRow) {
+            const rowIndex = Array.from(tableRow.parentElement?.children || []).indexOf(tableRow);
+
+            // Extract document data from the row - look for the actual document content
+            const documentData: Record<string, any> = {};
+
+            // Try to find the document viewer or expanded content
+            const docViewer =
+              tableRow.querySelector('.osdDocViewer') ||
+              tableRow.nextElementSibling?.querySelector('.osdDocViewer');
+
+            if (docViewer) {
+              // Extract from document viewer if available
+              const docViewTable = docViewer.querySelector('.osdDocViewerTable');
+              if (docViewTable) {
+                const rows = docViewTable.querySelectorAll('tr');
+                rows.forEach((row) => {
+                  const fieldCell = row.querySelector('.osdDocViewer__field');
+                  const valueCell = row.querySelector('.osdDocViewer__value');
+                  if (fieldCell && valueCell) {
+                    const fieldName = fieldCell.textContent?.trim();
+                    const fieldValue = valueCell.textContent?.trim();
+                    if (fieldName && fieldValue) {
+                      documentData[fieldName] = fieldValue;
+                    }
+                  }
+                });
+              }
+            }
+
+            // Fallback: extract from table cells if no document viewer found
+            if (Object.keys(documentData).length === 0) {
+              const cells = tableRow.querySelectorAll('td');
+              cells.forEach((cell, index) => {
+                const fieldName = cell.getAttribute('data-test-subj') || `field_${index}`;
+                const textContent = cell.textContent?.trim() || '';
+                if (textContent && fieldName !== 'docTableExpandToggleColumn') {
+                  documentData[fieldName] = textContent;
+                }
+              });
+            }
+
+            // Use a more meaningful document ID based on actual document content
+            const documentId =
+              documentData._id || documentData.id || `doc_${rowIndex}_${Date.now()}`;
+
+            console.log('📄 Document expansion detected:', {
+              documentId,
+              rowIndex,
+              documentData,
+              documentFields: Object.keys(documentData).length,
+            });
+
+            // Trigger the context capture
+            console.log('🔥 DEBUG: About to trigger context capture');
+            console.log(
+              '🔥 DEBUG: window.contextProvider exists:',
+              !!(window as any).contextProvider
+            );
+
+            const contextProvider = (window as any).contextProvider;
+            if (contextProvider && contextProvider.triggerTestCapture) {
+              console.log('🔥 DEBUG: Calling triggerTestCapture with data:', {
+                documentId,
+                rowIndex,
+                documentData,
+                source: 'ui_detection',
+                timestamp: Date.now(),
+                expandedFields: Object.keys(documentData).length,
+              });
+
+              contextProvider.triggerTestCapture('DOCUMENT_EXPAND', {
+                documentId,
+                rowIndex,
+                documentData,
+                source: 'ui_detection',
+                timestamp: Date.now(),
+                expandedFields: Object.keys(documentData).length,
+              });
+
+              console.log('🔥 DEBUG: triggerTestCapture called successfully');
+            } else {
+              console.warn('⚠️ Context Provider not available for dynamic context capture');
+              console.log('🔥 DEBUG: contextProvider:', contextProvider);
+              console.log(
+                '🔥 DEBUG: triggerTestCapture method:',
+                contextProvider?.triggerTestCapture
+              );
+            }
+          }
+        }
+      },
+      { capture: true }
+    );
+
+    console.log('✅ Document expansion detection set up');
+  }
+
+  /**
+   * Register context extraction rules with the Global Interaction Interceptor
+   */
+  private registerGlobalInteractionRules(core: CoreStart): void {
+    console.log('🔧 Registering Global Interaction Rules for Explore');
+
+    // Check if Global Interaction Interceptor is available
+    const globalInteractionInterceptor =
+      (core as any).globalInteractionInterceptor || (window as any).globalInteractionInterceptor;
+    if (!globalInteractionInterceptor) {
+      console.warn('⚠️ Global Interaction Interceptor not available');
+      console.log(
+        '🔍 DEBUG: Checked core.globalInteractionInterceptor:',
+        !!(core as any).globalInteractionInterceptor
+      );
+      console.log(
+        '🔍 DEBUG: Checked window.globalInteractionInterceptor:',
+        !!(window as any).globalInteractionInterceptor
+      );
+      return;
+    }
+
+    // Register context extraction rules for Explore-specific elements
+    const exploreRules = [
+      {
+        // Document expansion button
+        selector: '[data-test-subj="docTableExpandToggleColumn"]',
+        contextExtractor: (element: HTMLElement, event: MouseEvent) => {
+          const tableRow = element.closest('tr');
+          if (!tableRow) return null;
+
+          const rowIndex = Array.from(tableRow.parentElement?.children || []).indexOf(tableRow);
+
+          // Extract document data from the row
+          const documentData: Record<string, any> = {};
+
+          // Try to find the document viewer or expanded content
+          const docViewer =
+            tableRow.querySelector('.osdDocViewer') ||
+            tableRow.nextElementSibling?.querySelector('.osdDocViewer');
+
+          if (docViewer) {
+            // Extract from document viewer if available
+            const docViewTable = docViewer.querySelector('.osdDocViewerTable');
+            if (docViewTable) {
+              const rows = docViewTable.querySelectorAll('tr');
+              rows.forEach((row) => {
+                const fieldCell = row.querySelector('.osdDocViewer__field');
+                const valueCell = row.querySelector('.osdDocViewer__value');
+                if (fieldCell && valueCell) {
+                  const fieldName = fieldCell.textContent?.trim();
+                  const fieldValue = valueCell.textContent?.trim();
+                  if (fieldName && fieldValue) {
+                    documentData[fieldName] = fieldValue;
+                  }
+                }
+              });
+            }
+          }
+
+          // Fallback: extract from table cells if no document viewer found
+          if (Object.keys(documentData).length === 0) {
+            const cells = tableRow.querySelectorAll('td');
+            cells.forEach((cell, index) => {
+              const fieldName = cell.getAttribute('data-test-subj') || `field_${index}`;
+              const textContent = cell.textContent?.trim() || '';
+              if (textContent && fieldName !== 'docTableExpandToggleColumn') {
+                documentData[fieldName] = textContent;
+              }
+            });
+          }
+
+          const documentId = documentData._id || documentData.id || `doc_${rowIndex}_${Date.now()}`;
+
+          return {
+            type: 'DOCUMENT_EXPAND',
+            documentId,
+            rowIndex,
+            documentData,
+            expandedFields: Object.keys(documentData).length,
+            timestamp: Date.now(),
+          };
+        },
+      },
+      {
+        // Filter controls
+        selector: '[data-test-subj*="filter"]',
+        contextExtractor: (element: HTMLElement, event: MouseEvent) => {
+          const filterType = element.getAttribute('data-test-subj') || 'unknown_filter';
+          const filterValue = element.textContent?.trim() || '';
+
+          return {
+            type: 'FILTER_ACTION',
+            filterType,
+            filterValue,
+            action: 'click',
+            timestamp: Date.now(),
+          };
+        },
+      },
+      {
+        // Search and query controls
+        selector: '[data-test-subj*="query"], [data-test-subj*="search"]',
+        contextExtractor: (element: HTMLElement, event: MouseEvent) => {
+          const controlType = element.getAttribute('data-test-subj') || 'unknown_control';
+          const inputValue =
+            (element as HTMLInputElement).value || element.textContent?.trim() || '';
+
+          return {
+            type: 'QUERY_ACTION',
+            controlType,
+            inputValue,
+            action: event.type,
+            timestamp: Date.now(),
+          };
+        },
+      },
+      {
+        // Navigation elements
+        selector: '[data-test-subj*="nav"], [data-test-subj*="tab"]',
+        contextExtractor: (element: HTMLElement, event: MouseEvent) => {
+          const navType = element.getAttribute('data-test-subj') || 'unknown_nav';
+          const navText = element.textContent?.trim() || '';
+
+          return {
+            type: 'NAVIGATION',
+            navType,
+            navText,
+            action: 'click',
+            timestamp: Date.now(),
+          };
+        },
+      },
+    ];
+
+    // Register each rule with the Global Interaction Interceptor
+    exploreRules.forEach((rule, index) => {
+      try {
+        globalInteractionInterceptor.registerContextRule(
+          `explore_rule_${index}`,
+          rule.selector,
+          rule.contextExtractor
+        );
+        console.log(`✅ Registered rule ${index}: ${rule.selector}`);
+      } catch (error) {
+        console.error(`❌ Failed to register rule ${index}:`, error);
+      }
+    });
+
+    console.log('✅ Global Interaction Rules registered for Explore');
   }
 
   private registerEmbeddable(
@@ -563,7 +857,7 @@ export class ExplorePlugin
       appExtensions: {
         visualizations: {
           docTypes: [SAVED_OBJECT_TYPE],
-          toListItem: ({ id, attributes, updated_at: updatedAt }) => {
+          toListItem: ({ id, attributes, updated_at: updatedAt }: any) => {
             let iconType = '';
             let chartName = '';
             try {
@@ -606,7 +900,7 @@ export class ExplorePlugin
       const visTypes = pluginsStart.visualizations.all();
       const aliasTypes = pluginsStart.visualizations.getAliases();
       const allVisTypes = [...visTypes, ...aliasTypes];
-      dashboardVisActions.forEach((action) => {
+      dashboardVisActions.forEach((action: any) => {
         const visOfAction = allVisTypes.find((vis) => action.id === `add_vis_action_${vis.name}`);
         if (visOfAction && visOfAction.isClassic) {
           action.grouping?.push({
@@ -619,7 +913,7 @@ export class ExplorePlugin
     } else {
       const registeredVisAlias = pluginsStart.visualizations
         .getAliases()
-        .find((v) => v.name === this.DISCOVER_VISUALIZATION_NAME);
+        .find((v: any) => v.name === this.DISCOVER_VISUALIZATION_NAME);
 
       // if current workspace has NO explore enabled, the explore visualization ingress should be hidden
       if (registeredVisAlias) {

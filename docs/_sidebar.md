@@ -19,6 +19,8 @@
     - discover
       - [Getting_started_with_discover](plugins/discover/getting_started_with_discover.md)
       - [Understand_and_extend_discover](plugins/discover/understand_and_extend_discover.md)
+    - explore
+      - [Query panel actions](plugins/explore/query-panel-actions.md)
     - [Data_persistence](plugins/data_persistence.md)
   - Saved_objects
     - [Saved_object_repository_factory_design](saved_objects/saved_object_repository_factory_design.md)
@@ -30,14 +32,18 @@
       - [Build](../src/dev/build/README.md)
       - [I18n](../src/dev/i18n/README.md)
     - plugins
+      - [Ai_chatbot](../src/plugins/ai_chatbot/README.md)
       - [Application_config](../src/plugins/application_config/README.md)
+      - [Banner](../src/plugins/banner/README.md)
       - [Bfetch](../src/plugins/bfetch/README.md)
       - [Charts](../src/plugins/charts/README.md)
+      - [Chat](../src/plugins/chat/README.md)
       - console
         - public
           - application
             - [Hooks](../src/plugins/console/public/application/hooks/README.md)
       - [Content_management](../src/plugins/content_management/README.md)
+      - [Context_provider](../src/plugins/context_provider/README.md)
       - [Csp_handler](../src/plugins/csp_handler/README.md)
       - [Dashboard](../src/plugins/dashboard/README.md)
       - [Data](../src/plugins/data/README.md)
@@ -70,6 +76,7 @@
           - forms
             - [Form_wizard](../src/plugins/opensearch_ui_shared/public/forms/form_wizard/README.md)
             - [Multi_content](../src/plugins/opensearch_ui_shared/public/forms/multi_content/README.md)
+      - [Osd_mcp_server](../src/plugins/osd_mcp_server/README.md)
       - [Query_enhancements](../src/plugins/query_enhancements/README.md)
       - [Saved_objects](../src/plugins/saved_objects/README.md)
       - [Saved_objects_management](../src/plugins/saved_objects_management/README.md)
@@ -197,6 +204,8 @@
     - [Opensearch dashboards.release notes 3.0.0 alpha1](../release-notes/opensearch-dashboards.release-notes-3.0.0-alpha1.md)
     - [Opensearch dashboards.release notes 3.0.0 beta1](../release-notes/opensearch-dashboards.release-notes-3.0.0-beta1.md)
     - [Opensearch dashboards.release notes 3.0.0](../release-notes/opensearch-dashboards.release-notes-3.0.0.md)
+    - [Opensearch dashboards.release notes 3.1.0](../release-notes/opensearch-dashboards.release-notes-3.1.0.md)
+    - [Opensearch dashboards.release notes 3.2.0](../release-notes/opensearch-dashboards.release-notes-3.2.0.md)
   - scripts
     - [README](../scripts/README.md)
   - [DOCS_README](DOCS_README.md)
@@ -205,13 +214,18 @@
   - [CHANGELOG](../CHANGELOG.md)
   - [CODE_OF_CONDUCT](../CODE_OF_CONDUCT.md)
   - [COMMUNICATIONS](../COMMUNICATIONS.md)
+  - [COMPREHENSIVE_DESIGN_DOCUMENT](../COMPREHENSIVE_DESIGN_DOCUMENT.md)
   - [CONTRIBUTING](../CONTRIBUTING.md)
   - [DEVELOPER_GUIDE](../DEVELOPER_GUIDE.md)
+  - [ERROR_FIXES_SUMMARY](../ERROR_FIXES_SUMMARY.md)
   - [MAINTAINERS](../MAINTAINERS.md)
   - [README](../README.md)
   - [RELEASING](../RELEASING.md)
   - [SECURITY](../SECURITY.md)
+  - [SOLUTION_SUMMARY](../SOLUTION_SUMMARY.md)
   - [TESTING](../TESTING.md)
   - [TRIAGING](../TRIAGING.md)
   - [TYPESCRIPT](../TYPESCRIPT.md)
+  - [UI_ACTIONS_DEPENDENCY_INJECTION_SOLUTION](../UI_ACTIONS_DEPENDENCY_INJECTION_SOLUTION.md)
+  - [Practical_global_implementation_example](../practical_global_implementation_example.md)
   - [Testing_strategy](../testing_strategy.md)

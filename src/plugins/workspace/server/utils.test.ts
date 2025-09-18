@@ -8,6 +8,7 @@ import {
   savedObjectsClientMock,
   uiSettingsServiceMock,
 } from '../../../core/server/mocks';
+import { UiSettingScope } from '../../../core/server';
 import {
   generateRandomId,
   updateDashboardAdminStateForRequest,
@@ -163,7 +164,8 @@ describe('workspace utils', () => {
     await checkAndSetDefaultDataSource(uiSettingsClient, dataSources, false);
     expect(uiSettingsClient.set).toHaveBeenCalledWith(
       DEFAULT_DATA_SOURCE_UI_SETTINGS_ID,
-      dataSources[0]
+      dataSources[0],
+      UiSettingScope.WORKSPACE
     );
   });
 
@@ -186,7 +188,8 @@ describe('workspace utils', () => {
     await checkAndSetDefaultDataSource(uiSettingsClient, dataSources, true);
     expect(uiSettingsClient.set).toHaveBeenCalledWith(
       DEFAULT_DATA_SOURCE_UI_SETTINGS_ID,
-      dataSources[0]
+      dataSources[0],
+      UiSettingScope.WORKSPACE
     );
   });
 
@@ -199,7 +202,8 @@ describe('workspace utils', () => {
     await checkAndSetDefaultDataSource(uiSettingsClient, dataSources, true);
     expect(uiSettingsClient.set).toHaveBeenCalledWith(
       DEFAULT_DATA_SOURCE_UI_SETTINGS_ID,
-      undefined
+      undefined,
+      UiSettingScope.WORKSPACE
     );
   });
 });

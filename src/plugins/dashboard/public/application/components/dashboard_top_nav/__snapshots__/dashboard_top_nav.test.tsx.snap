@@ -139,6 +139,7 @@ exports[`Dashboard top nav render in embed mode 1`] = `
               "getBreadcrumbs$": [MockFunction],
               "getBreadcrumbsEnricher$": [MockFunction],
               "getCustomNavLink$": [MockFunction],
+              "getGlobalBanner$": [MockFunction],
               "getHeaderComponent": [MockFunction],
               "getHeaderVariant$": [MockFunction],
               "getHelpExtension$": [MockFunction],
@@ -250,10 +251,12 @@ exports[`Dashboard top nav render in embed mode 1`] = `
               "setBreadcrumbs": [MockFunction],
               "setBreadcrumbsEnricher": [MockFunction],
               "setCustomNavLink": [MockFunction],
+              "setGlobalBanner": [MockFunction],
               "setHeaderVariant": [MockFunction],
               "setHelpExtension": [MockFunction],
               "setHelpSupportUrl": [MockFunction],
               "setIsVisible": [MockFunction],
+              "useUpdatedHeader": false,
             },
             "dashboard": Object {
               "getAttributeService": [MockFunction],
@@ -984,8 +987,22 @@ exports[`Dashboard top nav render in embed mode 1`] = `
                   Array [
                     "home:useNewHomePage",
                   ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
                 ],
                 "results": Array [
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
                   Object {
                     "type": "return",
                     "value": undefined,
@@ -1006,6 +1023,7 @@ exports[`Dashboard top nav render in embed mode 1`] = `
               "getSaved$": [MockFunction],
               "getUpdate$": [MockFunction],
               "getUpdateErrors$": [MockFunction],
+              "getUserProvidedWithScope": [MockFunction],
               "isCustom": [MockFunction],
               "isDeclared": [MockFunction],
               "isDefault": [MockFunction],
@@ -1288,6 +1306,7 @@ exports[`Dashboard top nav render in embed mode, and force hide filter bar 1`] =
               "getBreadcrumbs$": [MockFunction],
               "getBreadcrumbsEnricher$": [MockFunction],
               "getCustomNavLink$": [MockFunction],
+              "getGlobalBanner$": [MockFunction],
               "getHeaderComponent": [MockFunction],
               "getHeaderVariant$": [MockFunction],
               "getHelpExtension$": [MockFunction],
@@ -1399,10 +1418,12 @@ exports[`Dashboard top nav render in embed mode, and force hide filter bar 1`] =
               "setBreadcrumbs": [MockFunction],
               "setBreadcrumbsEnricher": [MockFunction],
               "setCustomNavLink": [MockFunction],
+              "setGlobalBanner": [MockFunction],
               "setHeaderVariant": [MockFunction],
               "setHelpExtension": [MockFunction],
               "setHelpSupportUrl": [MockFunction],
               "setIsVisible": [MockFunction],
+              "useUpdatedHeader": false,
             },
             "dashboard": Object {
               "getAttributeService": [MockFunction],
@@ -2133,8 +2154,22 @@ exports[`Dashboard top nav render in embed mode, and force hide filter bar 1`] =
                   Array [
                     "home:useNewHomePage",
                   ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
                 ],
                 "results": Array [
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
                   Object {
                     "type": "return",
                     "value": undefined,
@@ -2155,6 +2190,7 @@ exports[`Dashboard top nav render in embed mode, and force hide filter bar 1`] =
               "getSaved$": [MockFunction],
               "getUpdate$": [MockFunction],
               "getUpdateErrors$": [MockFunction],
+              "getUserProvidedWithScope": [MockFunction],
               "isCustom": [MockFunction],
               "isDeclared": [MockFunction],
               "isDefault": [MockFunction],
@@ -2437,6 +2473,7 @@ exports[`Dashboard top nav render in embed mode, components can be forced show b
               "getBreadcrumbs$": [MockFunction],
               "getBreadcrumbsEnricher$": [MockFunction],
               "getCustomNavLink$": [MockFunction],
+              "getGlobalBanner$": [MockFunction],
               "getHeaderComponent": [MockFunction],
               "getHeaderVariant$": [MockFunction],
               "getHelpExtension$": [MockFunction],
@@ -2548,10 +2585,12 @@ exports[`Dashboard top nav render in embed mode, components can be forced show b
               "setBreadcrumbs": [MockFunction],
               "setBreadcrumbsEnricher": [MockFunction],
               "setCustomNavLink": [MockFunction],
+              "setGlobalBanner": [MockFunction],
               "setHeaderVariant": [MockFunction],
               "setHelpExtension": [MockFunction],
               "setHelpSupportUrl": [MockFunction],
               "setIsVisible": [MockFunction],
+              "useUpdatedHeader": false,
             },
             "dashboard": Object {
               "getAttributeService": [MockFunction],
@@ -3282,8 +3321,22 @@ exports[`Dashboard top nav render in embed mode, components can be forced show b
                   Array [
                     "home:useNewHomePage",
                   ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
                 ],
                 "results": Array [
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
                   Object {
                     "type": "return",
                     "value": undefined,
@@ -3304,6 +3357,7 @@ exports[`Dashboard top nav render in embed mode, components can be forced show b
               "getSaved$": [MockFunction],
               "getUpdate$": [MockFunction],
               "getUpdateErrors$": [MockFunction],
+              "getUserProvidedWithScope": [MockFunction],
               "isCustom": [MockFunction],
               "isDeclared": [MockFunction],
               "isDefault": [MockFunction],
@@ -3586,6 +3640,7 @@ exports[`Dashboard top nav render in full screen mode with appended URL param bu
               "getBreadcrumbs$": [MockFunction],
               "getBreadcrumbsEnricher$": [MockFunction],
               "getCustomNavLink$": [MockFunction],
+              "getGlobalBanner$": [MockFunction],
               "getHeaderComponent": [MockFunction],
               "getHeaderVariant$": [MockFunction],
               "getHelpExtension$": [MockFunction],
@@ -3697,10 +3752,12 @@ exports[`Dashboard top nav render in full screen mode with appended URL param bu
               "setBreadcrumbs": [MockFunction],
               "setBreadcrumbsEnricher": [MockFunction],
               "setCustomNavLink": [MockFunction],
+              "setGlobalBanner": [MockFunction],
               "setHeaderVariant": [MockFunction],
               "setHelpExtension": [MockFunction],
               "setHelpSupportUrl": [MockFunction],
               "setIsVisible": [MockFunction],
+              "useUpdatedHeader": false,
             },
             "dashboard": Object {
               "getAttributeService": [MockFunction],
@@ -4431,8 +4488,22 @@ exports[`Dashboard top nav render in full screen mode with appended URL param bu
                   Array [
                     "home:useNewHomePage",
                   ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
                 ],
                 "results": Array [
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
                   Object {
                     "type": "return",
                     "value": undefined,
@@ -4453,6 +4524,7 @@ exports[`Dashboard top nav render in full screen mode with appended URL param bu
               "getSaved$": [MockFunction],
               "getUpdate$": [MockFunction],
               "getUpdateErrors$": [MockFunction],
+              "getUserProvidedWithScope": [MockFunction],
               "isCustom": [MockFunction],
               "isDeclared": [MockFunction],
               "isDefault": [MockFunction],
@@ -4735,6 +4807,7 @@ exports[`Dashboard top nav render in full screen mode, no componenets should be 
               "getBreadcrumbs$": [MockFunction],
               "getBreadcrumbsEnricher$": [MockFunction],
               "getCustomNavLink$": [MockFunction],
+              "getGlobalBanner$": [MockFunction],
               "getHeaderComponent": [MockFunction],
               "getHeaderVariant$": [MockFunction],
               "getHelpExtension$": [MockFunction],
@@ -4846,10 +4919,12 @@ exports[`Dashboard top nav render in full screen mode, no componenets should be 
               "setBreadcrumbs": [MockFunction],
               "setBreadcrumbsEnricher": [MockFunction],
               "setCustomNavLink": [MockFunction],
+              "setGlobalBanner": [MockFunction],
               "setHeaderVariant": [MockFunction],
               "setHelpExtension": [MockFunction],
               "setHelpSupportUrl": [MockFunction],
               "setIsVisible": [MockFunction],
+              "useUpdatedHeader": false,
             },
             "dashboard": Object {
               "getAttributeService": [MockFunction],
@@ -5580,8 +5655,22 @@ exports[`Dashboard top nav render in full screen mode, no componenets should be 
                   Array [
                     "home:useNewHomePage",
                   ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
                 ],
                 "results": Array [
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
                   Object {
                     "type": "return",
                     "value": undefined,
@@ -5602,6 +5691,7 @@ exports[`Dashboard top nav render in full screen mode, no componenets should be 
               "getSaved$": [MockFunction],
               "getUpdate$": [MockFunction],
               "getUpdateErrors$": [MockFunction],
+              "getUserProvidedWithScope": [MockFunction],
               "isCustom": [MockFunction],
               "isDeclared": [MockFunction],
               "isDefault": [MockFunction],
@@ -5884,6 +5974,7 @@ exports[`Dashboard top nav render with all components 1`] = `
               "getBreadcrumbs$": [MockFunction],
               "getBreadcrumbsEnricher$": [MockFunction],
               "getCustomNavLink$": [MockFunction],
+              "getGlobalBanner$": [MockFunction],
               "getHeaderComponent": [MockFunction],
               "getHeaderVariant$": [MockFunction],
               "getHelpExtension$": [MockFunction],
@@ -5995,10 +6086,12 @@ exports[`Dashboard top nav render with all components 1`] = `
               "setBreadcrumbs": [MockFunction],
               "setBreadcrumbsEnricher": [MockFunction],
               "setCustomNavLink": [MockFunction],
+              "setGlobalBanner": [MockFunction],
               "setHeaderVariant": [MockFunction],
               "setHelpExtension": [MockFunction],
               "setHelpSupportUrl": [MockFunction],
               "setIsVisible": [MockFunction],
+              "useUpdatedHeader": false,
             },
             "dashboard": Object {
               "getAttributeService": [MockFunction],
@@ -6729,8 +6822,22 @@ exports[`Dashboard top nav render with all components 1`] = `
                   Array [
                     "home:useNewHomePage",
                   ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
+                  Array [
+                    "home:useNewHomePage",
+                  ],
                 ],
                 "results": Array [
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
+                  Object {
+                    "type": "return",
+                    "value": undefined,
+                  },
                   Object {
                     "type": "return",
                     "value": undefined,
@@ -6751,6 +6858,7 @@ exports[`Dashboard top nav render with all components 1`] = `
               "getSaved$": [MockFunction],
               "getUpdate$": [MockFunction],
               "getUpdateErrors$": [MockFunction],
+              "getUserProvidedWithScope": [MockFunction],
               "isCustom": [MockFunction],
               "isDeclared": [MockFunction],
               "isDefault": [MockFunction],

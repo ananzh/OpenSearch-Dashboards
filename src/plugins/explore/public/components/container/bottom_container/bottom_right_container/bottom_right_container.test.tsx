@@ -51,10 +51,6 @@ jest.mock('../../../../components/chart/discover_chart_container', () => ({
   DiscoverChartContainer: () => <div data-test-subj="chart-container">Chart Container</div>,
 }));
 
-jest.mock('../../../error_panel', () => ({
-  ErrorPanel: () => <div data-test-subj="error-panel">Error Panel</div>,
-}));
-
 // Mock the context
 jest.mock('../../../../application/context', () => ({
   useDatasetContext: jest.fn(),
@@ -189,7 +185,7 @@ describe('BottomRightContainer', () => {
     expect(screen.getByTestId('no-results')).toBeInTheDocument();
   });
 
-  it('renders error panel when status is ERROR', () => {
+  it('renders content when status is ERROR', () => {
     mockUseDatasetContext.mockReturnValue({
       dataset: { timeFieldName: 'timestamp' } as any,
       isLoading: false,
@@ -197,7 +193,9 @@ describe('BottomRightContainer', () => {
     });
 
     renderComponent(QueryExecutionStatus.ERROR);
-    expect(screen.getByTestId('error-panel')).toBeInTheDocument();
+
+    expect(screen.getByTestId('chart-container')).toBeInTheDocument();
+    expect(screen.getByTestId('explore-tabs-vis-style-panel')).toBeInTheDocument();
   });
 
   it('renders content when status is READY', () => {

@@ -43,6 +43,7 @@ import { ChromeService } from './chrome_service';
 import { getAppInfo } from '../application/utils';
 import { overlayServiceMock, workspacesServiceMock } from '../mocks';
 import { HeaderVariant } from './constants';
+import { keyboardShortcutServiceMock } from '../keyboard_shortcut/keyboard_shortcut_service.mock';
 
 class FakeApp implements App {
   public title: string;
@@ -80,6 +81,7 @@ function defaultStartDeps(availableApps?: App[]) {
     uiSettings: uiSettingsServiceMock.createStartContract(),
     overlays: overlayServiceMock.createStartContract(),
     workspaces: workspacesServiceMock.createStartContract(),
+    keyboardShortcut: keyboardShortcutServiceMock.createStart(),
     updateApplications: (() => {}) as (applications?: App[]) => void,
   };
 
@@ -221,6 +223,13 @@ describe('start', () => {
       // Have to do some fanagling to get the type system and enzyme to accept this.
       // Don't capture the snapshot because it's 600+ lines long.
       expect(shallow(React.createElement(() => chrome.getHeaderComponent()))).toBeDefined();
+    });
+
+    it('renders the Header component correctly', async () => {
+      const { chrome } = await start();
+      const headerComponent = shallow(React.createElement(() => chrome.getHeaderComponent()));
+      // Verify that the Header component renders without errors
+      expect(headerComponent).toBeDefined();
     });
   });
 

@@ -417,7 +417,6 @@ export class DiscoverPlugin
 
   start(core: CoreStart, plugins: DiscoverStartPlugins) {
     setUiActions(plugins.uiActions);
-
     this.initializeServices = () => {
       if (this.servicesInitialized) {
         return { core, plugins };
@@ -428,6 +427,30 @@ export class DiscoverPlugin
 
       return { core, plugins };
     };
+
+    // Register discover navigation shortcuts only when workspace is available
+    if (core.keyboardShortcut) {
+      // Check if workspaces are initialized and available
+      const isInitialized = core.workspaces.initialized$.getValue();
+      const currentWorkspace = core.workspaces.currentWorkspace$.getValue();
+
+      if (isInitialized && currentWorkspace) {
+        core.keyboardShortcut.register({
+          id: 'nav.discover',
+          name: i18n.translate('discover.keyboardShortcut.goToDiscover.name', {
+            defaultMessage: 'Go to discover',
+          }),
+          pluginId: 'discover',
+          category: i18n.translate('discover.keyboardShortcut.category.navigation', {
+            defaultMessage: 'Navigation',
+          }),
+          keys: 'g d',
+          execute: () => {
+            core.application.navigateToApp('explore/logs');
+          },
+        });
+      }
+    }
 
     this.initializeServices();
 
