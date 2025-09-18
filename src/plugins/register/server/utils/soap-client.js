@@ -69,6 +69,26 @@ class SoapClient {
       sessionToken: this.sessionToken
     });
   }
+
+  /**
+   * List web applications
+   *
+   * @param {string} accountId - Account ID
+   * @returns {Promise<Object>} - Response data
+   */
+  async listWebApps(accountId) {
+    return makeRequest({
+      method: 'POST',
+      endpoint: this.endpoint,
+      path: '/2024-01-01/list-web-apps',
+      body: { accountId: accountId },
+      service: this.service,
+      region: this.region,
+      accessKey: this.accessKey,
+      secretKey: this.secretKey,
+      sessionToken: this.sessionToken
+    });
+  }
 }
  
 module.exports = {

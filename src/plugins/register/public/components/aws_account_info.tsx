@@ -11,76 +11,112 @@ import {
   EuiFormRow,
 } from '@elastic/eui';
 import { RegisterApiService, IAMCredentials } from '../services/api';
-import { SaasCreationSuccess } from './saas_creation_success';
+import { AccountDashboard } from './account_dashboard';
  
 interface Props {
   api: RegisterApiService;
 }
 
 export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
-  const [isCreating, setIsCreating] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [accountId, setAccountId] = useState('');
   const [credentials, setCredentials] = useState<IAMCredentials>({
     accessKeyId: '',
     secretAccessKey: '',
     sessionToken: '',
-    region: 'us-west-2'
+    region: ''
   });
-  const [applicationName, setApplicationName] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Check for stored credentials on component mount
+  React.useEffect(() => {
+    const storedCreds = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('aws_soap_credentials='));
+    
+    if (storedCreds) {
+      try {
+        const credsData = JSON.parse(decodeURIComponent(storedCreds.split('=')[1]));
+        setCredentials(credsData.credentials);
+        setAccountId(credsData.accountId);
+        setIsLoggedIn(true);
+      } catch (e) {
+        console.error('Error parsing stored credentials:', e);
+      }
+    }
+  }, []);
  
-  const handleCreateSaasInstance = async () => {
-    setIsCreating(true);
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
     setError(null);
     
     try {
-      const result = await api.createSaasInstance({
-        applicationName: applicationName || undefined,
-        credentials: credentials.accessKeyId ? credentials : undefined
+      const result = await api.login({
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken
       });
       
-      console.log('SAAS instance created:', result);
-      setShowSuccess(true);
+      // Store credentials in cookie (without region for now)
+      const cookieData = {
+        credentials: {
+          accessKeyId: credentials.accessKeyId,
+          secretAccessKey: credentials.secretAccessKey,
+          sessionToken: credentials.sessionToken,
+          region: ''
+        },
+        accountId: result.accountId
+      };
+      document.cookie = `aws_soap_credentials=${encodeURIComponent(JSON.stringify(cookieData))}; path=/; max-age=3600`;
+      
+      setAccountId(result.accountId);
+      setIsLoggedIn(true);
     } catch (err: any) {
-      console.log('Full error object:', err);
-      console.log('Error body:', err.body);
-      console.log('Error response:', err.response);
-      console.log('Error status:', err.status);
-      console.log('Error statusText:', err.statusText);
+      console.log('Login error:', err);
       
-      let errorMessage = 'Failed to create SAAS instance';
-      
+      let errorMessage = 'Login failed';
       if (err.body) {
-        errorMessage = typeof err.body === 'string' ? err.body : err.body.message || err.body.error || errorMessage;
+        if (typeof err.body === 'string') {
+          errorMessage = err.body;
+        } else if (err.body.message) {
+          errorMessage = err.body.message;
+        } else if (err.body.error) {
+          errorMessage = err.body.error;
+        }
       } else if (err.message) {
         errorMessage = err.message;
       }
       
-      console.log('Final error message:', errorMessage);
+      console.log('Final login error message:', errorMessage);
       setError(errorMessage);
     } finally {
-      setIsCreating(false);
+      setIsLoggingIn(false);
     }
   };
 
-  const handleBackToRegister = () => {
-    setShowSuccess(false);
-    setApplicationName('');
+  const handleLogout = () => {
+    // Clear cookie
+    document.cookie = 'aws_soap_credentials=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+    
+    setIsLoggedIn(false);
+    setAccountId('');
     setCredentials({
       accessKeyId: '',
       secretAccessKey: '',
       sessionToken: '',
-      region: 'us-west-2'
+      region: ''
     });
     setError(null);
   };
  
-  if (showSuccess) {
+  if (isLoggedIn) {
     return (
-      <SaasCreationSuccess
-        applicationName={applicationName}
-        region={credentials.region}
-        onBackToRegister={handleBackToRegister}
+      <AccountDashboard
+        api={api}
+        accountId={accountId}
+        credentials={credentials}
+        onLogout={handleLogout}
       />
     );
   }
@@ -120,20 +156,13 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
         </EuiTitle>
         <EuiText size="s" color="subdued">
           <p style={{ margin: 0, color: '#6b7280' }}>
-            Review your account information and create a SAAS instance
+            Enter your AWS credentials to login
           </p>
         </EuiText>
       </div>
  
       <div style={{ marginBottom: '24px' }}>
-        <EuiFormRow label="Application Name">
-          <EuiFieldText
-            value={applicationName}
-            onChange={(e) => setApplicationName(e.target.value)}
-            placeholder="Enter application name (e.g., my-search-app)"
-          />
-        </EuiFormRow>
-        <EuiSpacer size="s" />
+
         <EuiFormRow label="Access Key ID">
           <EuiFieldText
             value={credentials.accessKeyId}
@@ -160,13 +189,7 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
           />
         </EuiFormRow>
         <EuiSpacer size="s" />
-        <EuiFormRow label="Region">
-          <EuiFieldText
-            value={credentials.region}
-            onChange={(e) => setCredentials({...credentials, region: e.target.value})}
-            placeholder="us-west-2"
-          />
-        </EuiFormRow>
+
       </div>
  
       {error && (
@@ -189,22 +212,22 @@ export const AWSAccountInfo: React.FC<Props> = ({ api }) => {
         fill
         fullWidth
         size="m"
-        onClick={handleCreateSaasInstance}
-        disabled={isCreating}
-        isLoading={isCreating}
+        onClick={handleLogin}
+        disabled={isLoggingIn}
+        isLoading={isLoggingIn}
         style={{
           height: '48px',
           fontSize: '14px',
           fontWeight: '500'
         }}
       >
-        {isCreating ? (
+        {isLoggingIn ? (
           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <EuiLoadingSpinner size="s" />
-            Creating SAAS Instance...
+            Logging in...
           </span>
         ) : (
-          'Create SAAS Instance'
+          'Login'
         )}
       </EuiButton>
       </EuiPanel>
