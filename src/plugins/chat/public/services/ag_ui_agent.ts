@@ -24,7 +24,7 @@ export class AgUiAgent {
   private abortController?: AbortController;
   private sseBuffer: string = '';
 
-  constructor(serverUrl: string = 'http://localhost:3000') {
+  constructor(serverUrl: string = 'https://ag-ui.explore.opensearch.aws.dev') {
     this.serverUrl = serverUrl;
   }
 
