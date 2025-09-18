@@ -1,3 +1,6 @@
+
+
+src/plugins/ai_chatbot/public/plugin.ts
 /*
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
@@ -32,33 +35,35 @@ export class AIChatbotPlugin
   }
 
   public start(core: CoreStart, deps: AIChatbotStartDependencies): AIChatbotStart {
-    console.log('🚀 AI Chatbot Plugin Start');
+    console.log('🚀 AI Chatbot Plugin Start - DISABLED');
     console.log('🔍 Available plugins:', Object.keys(deps));
     console.log('🔍 Context Provider available:', !!deps.contextProvider);
     console.log('🔍 UI Actions available:', !!deps.uiActions);
+    console.log('⚠️ AI Assistant is currently disabled');
 
-    // Make services available globally for components
+    // Make services available globally for components (but disabled)
     (window as any).aiChatbotServices = {
       uiActions: deps.uiActions,
       contextProvider: deps.contextProvider,
       core,
+      disabled: true,
     };
 
     let sidePanelInstance: any = null;
 
-    // Add chatbot toggle to chrome
-    this.addChatbotToggle(core, () => {
-      if (sidePanelInstance) {
-        console.log('🔄 Closing existing side panel instance');
-        sidePanelInstance.close();
-        sidePanelInstance = null;
-      } else {
-        console.log('🚀 Opening new side panel instance');
-        this.openChatbotSidePanel(core, deps).then((instance) => {
-          sidePanelInstance = instance;
-        });
-      }
-    });
+    // DISABLED: Add chatbot toggle to chrome
+    // this.addChatbotToggle(core, () => {
+    //   if (sidePanelInstance) {
+    //     console.log('🔄 Closing existing side panel instance');
+    //     sidePanelInstance.close();
+    //     sidePanelInstance = null;
+    //   } else {
+    //     console.log('🚀 Opening new side panel instance');
+    //     this.openChatbotSidePanel(core, deps).then((instance) => {
+    //       sidePanelInstance = instance;
+    //     });
+    //   }
+    // });
 
     return {
       openChatbot: () => {
