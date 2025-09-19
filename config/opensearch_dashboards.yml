@@ -387,7 +387,7 @@ apmDashboards.enabled: true
 # dashboardsPlugin.app_config.base_csp_rules: ["base-uri 'self'", "connect-src 'self' vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org", "default-src 'self' data:", "font-src 'self'", "frame-ancestors 'self'", "img-src data: 'self' tiles.maps.opensearch.org", "object-src 'none'", "script-src 'unsafe-eval' 'self'", "style-src 'unsafe-inline' 'self'", "worker-src blob: 'self'"]
  
 # Config content-security-policy directives (fallback in case customer configs are not set in S3)
-csp.rules: ["base-uri 'self'","connect-src 'self' tiles.maps.opensearch.org vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' https://*.console.aws-dev.amazon.com https://*.console.aws.amazon.com https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","img-src data: 'self' tiles.maps.opensearch.org;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
+csp.rules: ["base-uri 'self'","connect-src 'self' ag-ui.explore.opensearch.aws.dev tiles.maps.opensearch.org vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' https://*.console.aws-dev.amazon.com https://*.console.aws.amazon.com https://cloudwatch-console-version-b-test.amazon.com https://*.aka.corp.amazon.com:8443;","img-src data: 'self' tiles.maps.opensearch.org;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
  
 vis_type_timeline.enabled: false
 
@@ -433,3 +433,5 @@ aiChatbot.enabled: true
 osdMcpServer.enabled: true
 # Set the value to true to enable the keyboard shortcuts (requires workspace.enabled: true)
 # opensearchDashboards.keyboardShortcuts.enabled: true
+
+chat.agUiUrl: "https://ag-ui.explore.opensearch.aws.dev"

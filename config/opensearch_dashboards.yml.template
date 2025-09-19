@@ -434,7 +434,7 @@ data.savedQueriesNewUI.enabled: ${SAVED_QUERIES_NEW_UI_ENABLED}
 # dashboardsPlugin.app_config.base_csp_rules: ["base-uri 'self'", "connect-src 'self' vector-tiles.maps.search-services.aws.a2z.com maps.opensearch.org", "default-src 'self' data:", "font-src 'self'", "frame-ancestors 'self'", "img-src data: 'self' tiles.maps.opensearch.org", "object-src 'none'", "script-src 'unsafe-eval' 'self'", "style-src 'unsafe-inline' 'self'", "worker-src blob: 'self'"]
 
 # Config content-security-policy directives (fallback in case customer configs are not set in S3)
-csp.rules: ["base-uri 'self'","connect-src 'self' ${CSP_RULE_CONNECT_SRC};","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' ${CSP_RULE_FRAME_ANCESTOR};","img-src data: 'self' tiles.maps.opensearch.org tiles.maps.search-services.aws.a2z.com;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
+csp.rules: ["base-uri 'self'","connect-src 'self' ag-ui.explore.opensearch.aws.dev ${CSP_RULE_CONNECT_SRC};","default-src 'self' data:;","font-src 'self'","frame-ancestors 'self' ${CSP_RULE_FRAME_ANCESTOR};","img-src data: 'self' tiles.maps.opensearch.org tiles.maps.search-services.aws.a2z.com;","object-src 'none'","script-src 'unsafe-eval' 'self';","style-src 'unsafe-inline' 'self'","worker-src blob: 'self'"]
 
 
 #vis_type_timeline.enabled: false
@@ -460,3 +460,5 @@ neoDashboardsSavedObjectRepositoryPlugin.enabled: true
 neoDashboardsSavedObjectRepositoryPlugin.s3Config.bucket: ${STORAGE_BUCKET_NAME}
 neoDashboardsSavedObjectRepositoryPlugin.opensearchConfig.endpoint: ${OPENSEARCH_ENDPOINT}
 neoDashboardsSavedObjectRepositoryPlugin.opensearchConfig.metadataIndex: ${METADATA_INDEX_NAME}
+
+chat.agUiUrl: "https://ag-ui.explore.opensearch.aws.dev"
