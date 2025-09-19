@@ -5,7 +5,7 @@
   "server": true,
   "ui": true,
   "configPath": ["osdMcpServer"],
-  "requiredPlugins": ["explore", "uiActions"],
-  "optionalPlugins": [],
+  "requiredPlugins": ["uiActions"],
+  "optionalPlugins": ["explore"],
   "requiredBundles": []
 }
