@@ -397,7 +397,9 @@ data.savedQueriesNewUI.enabled: true
 # Enable AI Chatbot Plugin
 aiChatbot.enabled: true
 
-# Enable OSD MCP Server Plugin
-osdMcpServer.enabled: true
+# Enable OSD MCP Server Plugin (auto-start disabled for now)
+# osdMcpServer.enabled: true
+# osdMcpServer.stdio.enabled: true
+# osdMcpServer.stdio.autoStart: true
 # Set the value to true to enable the keyboard shortcuts (requires workspace.enabled: true)
 # opensearchDashboards.keyboardShortcuts.enabled: true
