@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable no-console */
-/* eslint-disable max-classes-per-file */
-
 /**
  * Redux Bridge Client - Client-side Redux execution
  *
@@ -52,53 +49,24 @@ class ReduxBridgeClient {
   public async waitForGlobalServices(): Promise<void> {
     return new Promise((resolve) => {
       const checkServices = () => {
-        // Use the same global reference that the explore plugin sets up
-        const globalServices = (global as any).exploreServices;
-        console.log('🔍 REDUX BRIDGE: Checking services...', {
-          globalServices: !!globalServices,
-          store: !!globalServices?.store,
-          currentUrl: window.location.href,
-          isExplorePage: window.location.href.includes('/app/explore'),
-          timestamp: new Date().toISOString(),
-        });
-
-        if (globalServices && globalServices.store) {
+        if (window.exploreServices && window.exploreServices.store) {
           console.log('🔗 Redux Bridge: Global services detected');
 
           // Test Redux store access and log current query
           try {
-            const currentState = globalServices.store.getState();
+            const currentState = window.exploreServices.store.getState();
             console.log('✅ Redux Store Access: Working');
             console.log('📊 Current Query State:', {
               query: currentState.query?.query || 'empty',
               language: currentState.query?.language || 'unknown',
               dataset: currentState.query?.dataset?.title || 'none',
             });
-
-            // Test dispatch functionality
-            console.log('🧪 REDUX BRIDGE: Testing dispatch functionality...');
-            try {
-              globalServices.store.dispatch({
-                type: 'REDUX_BRIDGE_TEST',
-                payload: { test: true, timestamp: new Date().toISOString() },
-              });
-              console.log('✅ REDUX BRIDGE: Dispatch test successful!');
-            } catch (dispatchError) {
-              console.error('❌ REDUX BRIDGE: Dispatch test failed:', dispatchError);
-            }
           } catch (error) {
             console.error('❌ Redux Store Error:', error);
           }
 
-          // Also make it available on window for compatibility
-          (window as any).exploreServices = globalServices;
           resolve();
         } else {
-          console.log('⏳ Waiting for global services... Current URL:', window.location.href);
-          console.log(
-            '⏳ Available globals:',
-            Object.keys(global as any).filter((key) => key.includes('explore'))
-          );
           setTimeout(checkServices, 1000);
         }
       };
@@ -180,7 +148,7 @@ class ReduxBridgeClient {
     console.log(`🎯 Executing Direct Redux instruction: ${type}`, payload);
     console.log('🎯 Direct execution details:', directExecution);
 
-    const globalServices = (global as any).exploreServices;
+    const globalServices = window.exploreServices;
     if (!globalServices || !globalServices.store) {
       console.error('❌ Global services or store not available');
       return {
@@ -245,7 +213,7 @@ class ReduxBridgeClient {
 
     console.log(`🚀 Executing Redux instruction: ${type}`, payload);
 
-    const globalServices = (global as any).exploreServices;
+    const globalServices = window.exploreServices;
     if (!globalServices || !globalServices.store) {
       console.error('❌ Global services or store not available');
       return {
@@ -285,7 +253,7 @@ class ReduxBridgeClient {
 
     console.log('🎯 Client Redux - Simulating human typing behavior:', { query, language });
 
-    const globalServices = (global as any).exploreServices;
+    const globalServices = window.exploreServices;
     const currentState = globalServices.store.getState();
     const currentQuery = currentState.query;
 
@@ -300,8 +268,8 @@ class ReduxBridgeClient {
     // 🎯 CORRECT APPROACH: Use OpenSearch Dashboards' Editor Context System
     console.log('🎯 Using OpenSearch Dashboards Editor Context approach...');
 
-    // Try to access the global editor context through global.exploreServices
-    const exploreServices = globalServices;
+    // Try to access the global editor context through window.exploreServices
+    const exploreServices = window.exploreServices;
     if (exploreServices && exploreServices.editorRef) {
       console.log('✅ Found exploreServices.editorRef');
       const editor = exploreServices.editorRef.current;
@@ -366,7 +334,7 @@ class ReduxBridgeClient {
 
     // 2. UPDATE REDUX STATE: Ensure Redux state is updated
     console.log('🔧 Step 2: Updating Redux state...');
-    const reduxActions = (global as any).exploreReduxActions;
+    const reduxActions = window.exploreReduxActions;
 
     // Update query text with history tracking
     if (reduxActions && reduxActions.setQueryStringWithHistory) {
@@ -441,7 +409,7 @@ class ReduxBridgeClient {
 
     console.log('🚀 Client Redux - Executing query:', { query, waitForResults });
 
-    const globalServices = (global as any).exploreServices;
+    const globalServices = window.exploreServices;
     const currentState = globalServices.store.getState();
     let currentQuery = currentState.query;
     const currentResults = currentState.results;
@@ -458,7 +426,7 @@ class ReduxBridgeClient {
     // If a query was provided, update it first
     if (query) {
       console.log('🔧 Client Redux - Updating query before execution');
-      const reduxActions = (global as any).exploreReduxActions;
+      const reduxActions = window.exploreReduxActions;
 
       if (reduxActions && reduxActions.setQueryStringWithHistory) {
         console.log('🔧 Client Redux - Dispatching setQueryStringWithHistory for execution');
@@ -482,7 +450,7 @@ class ReduxBridgeClient {
 
     // Execute the query using Redux actions
     console.log('🚀 Client Redux - Starting query execution...');
-    const reduxActions = (global as any).exploreReduxActions;
+    const reduxActions = window.exploreReduxActions;
     let executePromise;
 
     if (reduxActions && reduxActions.executeQueries) {
@@ -564,7 +532,7 @@ class ReduxBridgeClient {
   private async handleGetState(payload: any): Promise<any> {
     console.log('🔍 Client Redux - Getting current state');
 
-    const globalServices = (global as any).exploreServices;
+    const globalServices = window.exploreServices;
     const currentState = globalServices.store.getState();
     const queryState = currentState.query;
     const uiState = currentState.ui;
@@ -595,104 +563,8 @@ class ReduxBridgeClient {
     };
   }
 
-  public async executeCallAgentCommand(command: any): Promise<any> {
-    const { payload, directExecution } = command;
-    const { question, language = 'PPL' } = payload;
-
-    console.log(`🤖 Executing callAgentActionCreator command:`, { question, language });
-    console.log('🤖 Direct execution details:', directExecution);
-
-    const globalServices = (global as any).exploreServices;
-    if (!globalServices || !globalServices.store) {
-      console.error('❌ Global services or store not available for callAgentActionCreator');
-      return {
-        success: false,
-        message: 'Global services or store not available in browser context',
-        timestamp: new Date().toISOString(),
-        executionType: 'call_agent',
-      };
-    }
-
-    try {
-      // Check if callAgentActionCreator is available
-      const exploreReduxActions = (global as any).exploreReduxActions;
-      if (!exploreReduxActions || !exploreReduxActions.callAgentActionCreator) {
-        console.error('❌ callAgentActionCreator not available in exploreReduxActions');
-        console.log('🔍 Available exploreReduxActions:', Object.keys(exploreReduxActions || {}));
-        return {
-          success: false,
-          message: 'callAgentActionCreator not available in exploreReduxActions',
-          timestamp: new Date().toISOString(),
-          executionType: 'call_agent',
-        };
-      }
-
-      console.log('🤖 callAgentActionCreator: Starting execution');
-
-      // Get current state for context
-      const currentState = globalServices.store.getState();
-      const dataset = currentState.query?.dataset;
-
-      console.log('📊 callAgentActionCreator: Dataset info', {
-        dataset: dataset?.title || 'none',
-        dataSourceId: dataset?.dataSource?.id || 'none',
-      });
-
-      // Prepare parameters for callAgentActionCreator (same as AI mode)
-      const params = {
-        question,
-        index: dataset?.title || 'opensearch_dashboards_sample_data_logs',
-        language,
-        dataSourceId: dataset?.dataSource?.id,
-      };
-
-      console.log('📡 callAgentActionCreator: API call parameters', params);
-
-      // Execute callAgentActionCreator (same as AI mode)
-      // callAgentActionCreator expects { services, editorText } format
-      const callAgentParams = {
-        services: globalServices,
-        editorText: question, // Use question as editorText
-      };
-
-      console.log('🤖 callAgentActionCreator: Calling with correct parameters', callAgentParams);
-
-      const actionResult = await globalServices.store.dispatch(
-        exploreReduxActions.callAgentActionCreator(callAgentParams)
-      );
-
-      console.log('✅ callAgentActionCreator: API response received', actionResult);
-
-      // The callAgentActionCreator should automatically update the query editor and run the query
-      console.log('🏃 callAgentActionCreator: Query should now be generated and executed');
-
-      return {
-        success: true,
-        message: `callAgentActionCreator executed successfully for question: "${question}"`,
-        question,
-        language,
-        params,
-        actionResult,
-        timestamp: new Date().toISOString(),
-        executionType: 'call_agent',
-        note: 'Query should appear in Explore editor and execute automatically (same as AI mode)',
-      };
-    } catch (error) {
-      console.error('❌ Error executing callAgentActionCreator:', error);
-      return {
-        success: false,
-        message: `Error executing callAgentActionCreator: ${error.message}`,
-        question,
-        language,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        executionType: 'call_agent',
-      };
-    }
-  }
-
   private setupReduxMonitoring() {
-    const store = (global as any).exploreServices?.store;
+    const store = window.exploreServices?.store;
     if (!store) return;
 
     // Subscribe to Redux store changes
@@ -749,7 +621,7 @@ class ReduxBridgeClient {
 
   // Utility method to get current state (for debugging)
   public getCurrentState() {
-    const store = (global as any).exploreServices?.store;
+    const store = window.exploreServices?.store;
     if (!store) {
       console.log('❌ No Redux store available');
       return null;
@@ -803,8 +675,6 @@ class MCPCommandPoller {
   private async poll() {
     if (!this.isPolling) return;
 
-    console.log('🔄 MCP Polling: Starting poll cycle...', new Date().toISOString());
-
     try {
       // Check for pending MCP commands
       const response = await fetch('/api/osd-mcp-server/pending-commands', {
@@ -815,11 +685,8 @@ class MCPCommandPoller {
         },
       });
 
-      console.log('📡 MCP Polling: Response status:', response.status);
-
       if (response.ok) {
         const commands = await response.json();
-        console.log('📨 MCP Polling: Received response:', commands);
 
         if (commands && commands.length > 0) {
           console.log('📨 MCP Polling: Found pending commands:', commands.length);
@@ -868,42 +735,10 @@ class MCPCommandPoller {
               }
 
               try {
-                const result = await this.reduxBridge.executeDirectReduxInstruction(command);
-                console.log('✅ MCP Polling: Command executed successfully:', result);
+                await this.reduxBridge.executeDirectReduxInstruction(command);
+                console.log('✅ MCP Polling: Command executed successfully');
               } catch (error) {
                 console.error('❌ MCP Polling: Command execution failed:', error);
-                // Remove from processed commands if execution failed so it can be retried
-                this.processedCommands.delete(commandId);
-              }
-            } else if (command.action === 'execute_call_agent') {
-              console.log('🤖 MCP Polling: Executing callAgentActionCreator command');
-              console.log('🤖 MCP Polling: Command details:', {
-                type: command.type,
-                payload: command.payload,
-                timestamp: command.timestamp,
-              });
-
-              // Mark as processed BEFORE execution to prevent race conditions
-              this.processedCommands.add(commandId);
-
-              // Clean up old processed commands (keep only last 50 to prevent memory leaks)
-              if (this.processedCommands.size > 50) {
-                const commandsArray = Array.from(this.processedCommands);
-                this.processedCommands = new Set(commandsArray.slice(-25));
-                console.log(
-                  '🧹 MCP Polling: Cleaned up processed commands cache, now has:',
-                  this.processedCommands.size
-                );
-              }
-
-              try {
-                const result = await this.reduxBridge.executeCallAgentCommand(command);
-                console.log(
-                  '✅ MCP Polling: callAgentActionCreator executed successfully:',
-                  result
-                );
-              } catch (error) {
-                console.error('❌ MCP Polling: callAgentActionCreator execution failed:', error);
                 // Remove from processed commands if execution failed so it can be retried
                 this.processedCommands.delete(commandId);
               }
@@ -911,14 +746,11 @@ class MCPCommandPoller {
               console.log('⚠️ MCP Polling: Unknown command action:', command.action);
             }
           }
-        } else {
-          console.log('📭 MCP Polling: No pending commands');
         }
-      } else {
-        console.log('⚠️ MCP Polling: Response not OK:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('❌ MCP Polling: Error during poll:', error);
+      // Silently ignore polling errors (server might not have pending commands endpoint yet)
+      console.log('🔄 MCP Polling: No pending commands or endpoint not available');
     }
 
     // Schedule next poll
@@ -932,50 +764,6 @@ class MCPCommandPoller {
 console.log('🚀 REDUX BRIDGE CLIENT: Starting initialization...');
 console.log('🚀 REDUX BRIDGE CLIENT: Current timestamp:', new Date().toISOString());
 console.log('🚀 REDUX BRIDGE CLIENT: Current URL:', window.location.href);
-console.log('🚀 REDUX BRIDGE CLIENT: Checking global services availability...');
-console.log(
-  '🚀 REDUX BRIDGE CLIENT: global.exploreServices exists:',
-  !!(global as any).exploreServices
-);
-console.log(
-  '🚀 REDUX BRIDGE CLIENT: global.exploreServices.store exists:',
-  !!(global as any).exploreServices?.store
-);
-console.log(
-  '🚀 REDUX BRIDGE CLIENT: window.exploreServices exists:',
-  !!(window as any).exploreServices
-);
-
-// Test Redux store access immediately
-try {
-  const globalServices = (global as any).exploreServices;
-  if (globalServices && globalServices.store) {
-    console.log('✅ REDUX BRIDGE CLIENT: Redux store found via global!');
-    const currentState = globalServices.store.getState();
-    console.log('✅ REDUX BRIDGE CLIENT: Current query state:', {
-      query: currentState.query?.query || 'empty',
-      language: currentState.query?.language || 'unknown',
-      dataset: currentState.query?.dataset?.title || 'none',
-    });
-
-    // Test dispatch functionality
-    console.log('🧪 REDUX BRIDGE CLIENT: Testing dispatch functionality...');
-    try {
-      globalServices.store.dispatch({
-        type: 'TEST_DISPATCH',
-        payload: { test: true, timestamp: new Date().toISOString() },
-      });
-      console.log('✅ REDUX BRIDGE CLIENT: Dispatch test successful!');
-    } catch (dispatchError) {
-      console.error('❌ REDUX BRIDGE CLIENT: Dispatch test failed:', dispatchError);
-    }
-  } else {
-    console.warn('⚠️ REDUX BRIDGE CLIENT: Redux store not available at initialization');
-  }
-} catch (error) {
-  console.error('❌ REDUX BRIDGE CLIENT: Error testing Redux store:', error);
-}
-
 const reduxBridgeClient = new ReduxBridgeClient();
 
 // Initialize MCP command polling
