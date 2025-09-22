@@ -10,6 +10,42 @@ import { IRouter } from '../../../../core/server';
 // In-memory store for pending MCP commands
 const pendingCommands: any[] = [];
 
+// Debug: Track all requests to this module
+let requestCounter = 0;
+const requestLog: any[] = [];
+
+function logRequest(path: string, method: string, headers: any, body: any) {
+  requestCounter++;
+  const logEntry = {
+    id: requestCounter,
+    timestamp: new Date().toISOString(),
+    path,
+    method,
+    headers: {
+      'user-agent': typeof headers['user-agent'] === 'string'
+        ? headers['user-agent'].substring(0, 50) + '...'
+        : 'Array or undefined',
+      'content-type': headers['content-type'],
+      'authorization': headers['authorization'] ? 'Present' : 'None',
+      'osd-xsrf': headers['osd-xsrf'],
+    },
+    body,
+    queueSizeBefore: pendingCommands.length,
+  };
+  
+  requestLog.push(logEntry);
+  if (requestLog.length > 20) {
+    requestLog.shift(); // Keep only last 20 requests
+  }
+  
+  console.log(`🔍 REQUEST DEBUG [${requestCounter}]: ${method} ${path}`);
+  console.log(`🔍 REQUEST DEBUG [${requestCounter}]: Headers:`, logEntry.headers);
+  console.log(`🔍 REQUEST DEBUG [${requestCounter}]: Body:`, body);
+  console.log(`🔍 REQUEST DEBUG [${requestCounter}]: Queue size before: ${pendingCommands.length}`);
+  
+  return requestCounter;
+}
+
 /**
  * Redux Bridge Routes - Allows MCP server to communicate with browser Redux store
  *
@@ -197,38 +233,53 @@ export function registerReduxBridgeRoutes(router: IRouter) {
       },
     },
     async (context, request, response) => {
+      const requestId = logRequest('/api/osd-mcp-server/redux/call-agent', 'POST', request.headers, request.body);
+      
       try {
         const { question, language = 'PPL' } = request.body as any;
 
-        console.log('🎯 SERVER ROUTE HIT: /api/osd-mcp-server/redux/call-agent');
-        console.log('📥 Request body:', { question, language });
-        console.log('🔧 Returning callAgentActionCreator execution instructions...');
+        console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Server route hit`);
+        console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Processing call-agent request`);
 
-        // Create command for callAgentActionCreator execution
-        const command = {
+        // FIX 1: Polling-only approach for call-agent
+        const commandForQueue = {
           action: 'execute_call_agent',
           type: 'call_agent',
           payload: { question, language },
           timestamp: new Date().toISOString(),
-          message:
-            'callAgentActionCreator execution - query will be generated and executed via AI mode',
+          message: 'Polling-only callAgentActionCreator execution via browser polling',
           directExecution: {
             method: 'callAgentActionCreator',
             params: { question, language },
-            description:
-              'Execute callAgentActionCreator directly in browser context (same as AI mode)',
+            description: 'Execute callAgentActionCreator via polling mechanism only',
           },
         };
 
-        // Add to pending commands queue for polling
-        addPendingCommand(command);
+        console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Queue size before: ${pendingCommands.length}`);
+        
+        // POLLING-ONLY: Add command to queue for browser polling
+        addPendingCommand(commandForQueue);
+        
+        console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Queue size after: ${pendingCommands.length}`);
+        console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Command queued successfully for polling`);
 
-        console.log('📤 Server response:', command);
+        // FIX 2: Return simple acknowledgment only (no execution instructions)
+        const acknowledgment = {
+          success: true,
+          message: 'Call agent command queued for execution via polling',
+          queued: true,
+          timestamp: new Date().toISOString(),
+          queueSize: pendingCommands.length,
+          requestId,
+        };
+
+        console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Returning acknowledgment:`, acknowledgment);
 
         return response.ok({
-          body: command,
+          body: acknowledgment,
         });
       } catch (error) {
+        console.error(`❌ CALL-AGENT DEBUG [${requestId}]: Error in route:`, error);
         return response.customError({
           statusCode: 500,
           body: {

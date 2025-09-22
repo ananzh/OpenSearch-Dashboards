@@ -44,7 +44,7 @@ class ReduxBridgeClient {
       this.setupHttpInterception();
       this.setupReduxMonitoring();
       this.initialized = true;
-      console.log('✅ Redux Bridge Client initialized successfully');
+      console.log('✅ Redux Bridge Client initialized successfully (polling-only mode)');
     });
   }
 
