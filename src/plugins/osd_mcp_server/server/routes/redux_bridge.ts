@@ -6,6 +6,7 @@
 /* eslint-disable no-console */
 
 import { IRouter } from '../../../../core/server';
+import { broadcastSSECommand } from '../sse_bridge';
 
 // In-memory store for pending MCP commands
 const pendingCommands: any[] = [];
@@ -160,7 +161,11 @@ export function registerReduxBridgeRoutes(router: IRouter) {
           },
         };
 
-        // Add to pending commands queue for polling
+        // REAL-TIME APPROACH: Broadcast via SSE instead of queuing
+        const sseSuccess = broadcastSSECommand(responseBody);
+        console.log(`📡 SSE broadcast result: ${sseSuccess ? 'success' : 'failed'}`);
+        
+        // FALLBACK: Also add to pending commands queue for polling (backup)
         addPendingCommand(responseBody);
 
         console.log('📤 Server response:', responseBody);
@@ -257,7 +262,11 @@ export function registerReduxBridgeRoutes(router: IRouter) {
 
         console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Queue size before: ${pendingCommands.length}`);
         
-        // POLLING-ONLY: Add command to queue for browser polling
+        // REAL-TIME APPROACH: Broadcast via SSE instead of queuing
+        const sseSuccess = broadcastSSECommand(commandForQueue);
+        console.log(`📡 SSE broadcast result for call-agent: ${sseSuccess ? 'success' : 'failed'}`);
+        
+        // FALLBACK: Also add to pending commands queue for polling (backup)
         addPendingCommand(commandForQueue);
         
         console.log(`🎯 CALL-AGENT DEBUG [${requestId}]: Queue size after: ${pendingCommands.length}`);

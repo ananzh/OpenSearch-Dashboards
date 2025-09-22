@@ -4,7 +4,7 @@
  */
 
 import { CoreSetup, CoreStart, Plugin } from '../../../core/public';
-import './redux_bridge_client';
+import './sse_bridge_client';
 
 export interface OsdMcpServerPluginSetup {}
 export interface OsdMcpServerPluginStart {}
@@ -14,14 +14,14 @@ export class OsdMcpServerPlugin
   public setup(core: CoreSetup): OsdMcpServerPluginSetup {
     console.log('🔧 OSD MCP SERVER PLUGIN: Public setup starting...');
 
-    // The Redux bridge client is automatically initialized when imported
-    console.log('🌉 OSD MCP SERVER PLUGIN: Redux bridge client loaded via import');
+    // The SSE bridge client is automatically initialized when imported
+    console.log('📡 OSD MCP SERVER PLUGIN: SSE bridge client loaded via import');
     console.log(
-      '🔍 OSD MCP SERVER PLUGIN: Checking if reduxBridgeClient is available on window...'
+      '🔍 OSD MCP SERVER PLUGIN: Checking if sseBridgeClient is available on window...'
     );
     console.log(
-      '🔍 OSD MCP SERVER PLUGIN: window.reduxBridgeClient =',
-      (window as any).reduxBridgeClient
+      '🔍 OSD MCP SERVER PLUGIN: window.sseBridgeClient =',
+      (window as any).sseBridgeClient
     );
 
     return {};
@@ -30,8 +30,8 @@ export class OsdMcpServerPlugin
   public start(core: CoreStart): OsdMcpServerPluginStart {
     console.log('🚀 OSD MCP SERVER PLUGIN: Public start');
     console.log(
-      '🔍 OSD MCP SERVER PLUGIN: Final check - window.reduxBridgeClient =',
-      (window as any).reduxBridgeClient
+      '🔍 OSD MCP SERVER PLUGIN: Final check - window.sseBridgeClient =',
+      (window as any).sseBridgeClient
     );
     return {};
   }
