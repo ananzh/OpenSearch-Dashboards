@@ -394,12 +394,5 @@
 # set the value to false to call the label as dataset
 # datasetManagement.aliasedAsIndexPattern: false
 
-# Enable AI Chatbot Plugin
-aiChatbot.enabled: true
-
-# Enable OSD MCP Server Plugin (auto-start disabled for now)
-# osdMcpServer.enabled: true
-# osdMcpServer.stdio.enabled: true
-# osdMcpServer.stdio.autoStart: true
-# Set the value to true to enable the keyboard shortcuts (requires workspace.enabled: true)
-# opensearchDashboards.keyboardShortcuts.enabled: true
+# Enable Chat Plugin
+chat.enabled: true
