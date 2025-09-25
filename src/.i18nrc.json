@@ -19,7 +19,6 @@
     "discover": "plugins/discover",
     "explore": "plugins/explore",
     "embeddableApi": "plugins/embeddable",
-    "explore": "plugins/explore",
     "expressions": "plugins/expressions",
     "home": "plugins/home",
     "indexPatternManagement": "plugins/index_pattern_management",
