@@ -22,13 +22,13 @@ export class ChatContextManager {
   }
 
   public start(contextProvider?: ContextProviderStart): void {
-    console.log('🎯 ChatContextManager: Starting');
+    // ChatContextManager: Starting
 
     // Use the context provider passed as parameter
     this.contextProvider = contextProvider;
 
     if (!this.contextProvider) {
-      console.warn('⚠️ ChatContextManager: Context provider not available');
+      // ChatContextManager: Context provider not available
       return;
     }
 
