@@ -25,7 +25,6 @@ import { ChatContainer } from './chat_container';
 import { ChatHeader } from './chat_header';
 import { ChatMessages } from './chat_messages';
 import { ChatInput } from './chat_input';
-import { useUserConfirmationAction } from '../actions/user_confirmation_action';
 import { useGraphTimeseriesDataAction } from '../actions/graph_timeseries_data_action';
 
 interface TimelineMessage {
@@ -94,8 +93,7 @@ function ChatWindowContent({
   const [pendingToolCalls] = useState<Map<string, PendingToolCall>>(new Map());
 
   // Register actions
-  useUserConfirmationAction();
-  useGraphTimeseriesDataAction();
+  // useGraphTimeseriesDataAction(); // TODO: Fix the data type. lets kep the type limited to one of object, boolean, number or string and their arrays for now.
 
   // Initialize context manager
   const contextManager = useMemo(() => {
