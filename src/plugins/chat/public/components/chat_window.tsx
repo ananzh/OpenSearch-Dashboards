@@ -75,7 +75,7 @@ function ChatWindowContent({
   );
 
   // Register actions
-  // useGraphTimeseriesDataAction(); // TODO: Fix the data type. lets kep the type limited to one of object, boolean, number or string and their arrays for now.
+  useGraphTimeseriesDataAction();
 
   // Initialize context manager
   const contextManager = useMemo(() => {
