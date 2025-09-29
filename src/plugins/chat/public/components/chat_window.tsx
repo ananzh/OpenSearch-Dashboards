@@ -59,7 +59,6 @@ function ChatWindowContent({
   const [timeline, setTimeline] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [currentStreamingMessage, setCurrentStreamingMessage] = useState('');
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
 
   // Create the event handler using useMemo
@@ -69,7 +68,6 @@ function ChatWindowContent({
         service,
         chatService,
         setTimeline,
-        setCurrentStreamingMessage,
         setIsStreaming,
         () => timeline
       ),
@@ -114,7 +112,6 @@ function ChatWindowContent({
     const messageContent = input.trim();
     setInput('');
     setIsStreaming(true);
-    setCurrentStreamingMessage('');
 
     try {
       const { observable, userMessage } = await chatService.sendMessage(
@@ -153,7 +150,6 @@ function ChatWindowContent({
           console.error('Subscription error:', error);
           console.groupEnd(); // Close the run group
           setIsStreaming(false);
-          setCurrentStreamingMessage('');
         },
         complete: () => {
           console.groupEnd(); // Close the run group
@@ -194,7 +190,6 @@ function ChatWindowContent({
     setTimeline(truncatedTimeline);
 
     // Clear any streaming state and input
-    setCurrentStreamingMessage('');
     setInput('');
     setIsStreaming(true);
 
@@ -235,7 +230,6 @@ function ChatWindowContent({
           console.error('Subscription error:', error);
           console.groupEnd(); // Close the run group
           setIsStreaming(false);
-          setCurrentStreamingMessage('');
         },
         complete: () => {
           console.groupEnd(); // Close the run group
@@ -254,7 +248,6 @@ function ChatWindowContent({
   const handleNewChat = () => {
     chatService.newThread();
     setTimeline([]);
-    setCurrentStreamingMessage('');
     setCurrentRunId(null);
     setIsStreaming(false);
     // Refresh context for new chat
@@ -287,7 +280,6 @@ function ChatWindowContent({
       <ChatMessages
         layoutMode={layoutMode}
         timeline={timeline}
-        currentStreamingMessage={currentStreamingMessage}
         isStreaming={isStreaming}
         contextManager={contextManager}
         onResendMessage={handleResendMessage}
