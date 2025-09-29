@@ -20,39 +20,18 @@ import {
   // eslint-disable-next-line prettier/prettier
   type Event as ChatEvent,
 } from '../../common/events';
+import type {
+  Message,
+  AssistantMessage,
+  UserMessage,
+  ToolMessage,
+} from '../../common/types';
 import { ChatLayoutMode } from './chat_header_button';
 import { ChatContainer } from './chat_container';
 import { ChatHeader } from './chat_header';
 import { ChatMessages } from './chat_messages';
 import { ChatInput } from './chat_input';
 import { useGraphTimeseriesDataAction } from '../actions/graph_timeseries_data_action';
-
-interface TimelineMessage {
-  type: 'message';
-  id: string;
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  timestamp: number;
-}
-
-interface TimelineToolCall {
-  type: 'tool_call';
-  id: string;
-  toolName: string;
-  status: 'running' | 'completed' | 'error';
-  result?: string;
-  timestamp: number;
-}
-
-interface TimelineError {
-  type: 'error';
-  id: string;
-  message: string;
-  code?: string;
-  timestamp: number;
-}
-
-type TimelineItem = TimelineMessage | TimelineToolCall | TimelineError;
 
 interface ChatWindowProps {
   layoutMode?: ChatLayoutMode;
@@ -77,7 +56,7 @@ function ChatWindowContent({
     core: CoreStart;
     contextProvider?: ContextProviderStart;
   }>();
-  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const [timeline, setTimeline] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentStreamingMessage, setCurrentStreamingMessage] = useState('');
@@ -140,16 +119,14 @@ function ChatWindowContent({
     try {
       const { observable, userMessage } = await chatService.sendMessage(
         messageContent,
-        timeline.filter((item) => item.type === 'message') as any
+        timeline
       );
 
       // Add user message immediately to timeline
-      const timelineUserMessage: TimelineMessage = {
-        type: 'message',
+      const timelineUserMessage: UserMessage = {
         id: userMessage.id,
-        role: userMessage.role,
+        role: 'user',
         content: userMessage.content,
-        timestamp: userMessage.timestamp,
       };
       setTimeline((prev) => [...prev, timelineUserMessage]);
 
@@ -199,12 +176,12 @@ function ChatWindowContent({
     }
   };
 
-  const handleResendMessage = async (message: TimelineMessage) => {
+  const handleResendMessage = async (message: UserMessage) => {
     if (isStreaming) return;
 
     // Find the index of this message in the timeline
     const messageIndex = timeline.findIndex(
-      (item) => item.type === 'message' && item.id === message.id
+      (item) => item.id === message.id
     );
 
     if (messageIndex === -1) return;
@@ -221,16 +198,14 @@ function ChatWindowContent({
     try {
       const { observable, userMessage } = await chatService.sendMessage(
         message.content,
-        truncatedTimeline.filter((item) => item.type === 'message') as any
+        truncatedTimeline
       );
 
       // Add user message immediately to timeline
-      const timelineUserMessage: TimelineMessage = {
-        type: 'message',
+      const timelineUserMessage: UserMessage = {
         id: userMessage.id,
-        role: userMessage.role,
+        role: 'user',
         content: userMessage.content,
-        timestamp: userMessage.timestamp,
       };
       setTimeline((prev) => [...prev, timelineUserMessage]);
 
