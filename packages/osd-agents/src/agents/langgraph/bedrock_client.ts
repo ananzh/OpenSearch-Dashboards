@@ -222,10 +222,11 @@ export class BedrockClient {
     }
 
     // CRITICAL: If we have no content blocks at all (shouldn't happen but handle it),
-    // add an empty text block to ensure valid message format
+    // log a warning but don't add empty text block to avoid ValidationException
     if (result.message.content.length === 0 && !hasAnyContent) {
-      this.logger.warn('No content blocks received from Bedrock, adding empty text block');
-      result.message.content.push({ text: '' });
+      this.logger.warn(
+        "No content blocks received from Bedrock - this may indicate an issue with the response"
+      );
     }
 
     // Final cleanup - ensure all tool inputs are properly parsed
