@@ -56,19 +56,9 @@ class BaseAGUIServer {
     // Create agent and appropriate adapter
     const agent = AgentFactory.createAgent(agentType);
 
-    // Use specialized adapter for graph-based agents (ReactAgent and CoActAgent)
-    if ((agentType === 'langgraph' || agentType === 'react') && agent instanceof ReactAgent) {
-      this.adapter = new LangGraphAGUIAdapter(agent, config, this.logger, this.auditLogger);
-      this.logger.info('Using LangGraphAGUIAdapter for ReactAgent with enhanced graph tracking');
-    } else if (agentType === 'coact' && agent instanceof CoActAgent) {
-      // CoActAgent also uses StateGraph, so it benefits from graph visualization
-      this.adapter = new LangGraphAGUIAdapter(agent as any, config, this.logger, this.auditLogger);
-      this.logger.info('Using LangGraphAGUIAdapter for CoActAgent with enhanced graph tracking');
-    } else {
-      this.adapter = new BaseAGUIAdapter(agent, config, this.logger, this.auditLogger);
-      this.logger.info('Using BaseAGUIAdapter for non-graph agent');
-    }
-
+    this.adapter = new BaseAGUIAdapter(agent, config, this.logger, this.auditLogger);
+    this.logger.info(`Using BaseAGUIAdapter for ${agentType} agent`);
+    
     this.httpServer = new HTTPServer(config, this.adapter, this.logger, this.auditLogger);
   }
 
