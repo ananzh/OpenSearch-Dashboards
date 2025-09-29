@@ -76,10 +76,10 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   return (
     <>
-      {/* Context Tree View */}
-      <div className="chatMessages__context">
+      {/* Context Tree View: Hiding this for now. Uncomment for development */}
+      {/* <div className="chatMessages__context">
         <ContextTreeView staticContext={staticContext} dynamicContext={dynamicContext} />
-      </div>
+      </div> */}
 
       {/* Timeline Area */}
       <div className={`chatMessages chatMessages--${layoutMode}`}>
