@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BaseAgent } from './base-agent';
-import { JarvisAgent } from './jarvis/jarvis-agent';
-import { ReactAgent } from './langgraph/react-agent';
-import { CoActAgent } from './langgraph/coact-agent';
+import { BaseAgent } from './base_agent';
+import { JarvisAgent } from './jarvis/jarvis_agent';
+import { ReactAgent } from './langgraph/react_agent';
+import { CoActAgent } from './langgraph/coact_agent';
 
 export class AgentFactory {
   /**

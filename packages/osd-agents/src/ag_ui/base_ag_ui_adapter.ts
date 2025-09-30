@@ -36,10 +36,10 @@ import {
   RunAgentInput,
   State,
 } from '@ag-ui/core';
-import { BaseAgent, StreamingCallbacks } from '../agents/base-agent';
-import { MCPServerConfig } from '../types/mcp-types';
+import { BaseAgent, StreamingCallbacks } from '../agents/base_agent';
+import { MCPServerConfig } from '../types/mcp_types';
 import { Logger } from '../utils/logger';
-import { AGUIAuditLogger } from '../utils/ag-ui-audit-logger';
+import { AGUIAuditLogger } from '../utils/ag_ui_audit_logger';
 
 export interface BaseAGUIConfig {
   port?: number;

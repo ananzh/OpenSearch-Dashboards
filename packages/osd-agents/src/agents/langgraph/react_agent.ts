@@ -9,15 +9,15 @@ import readline from 'readline';
 import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
 import { StateGraph } from '@langchain/langgraph';
 import { BaseMCPClient, LocalMCPClient, HTTPMCPClient } from '../../mcp/index';
-import { MCPServerConfig } from '../../types/mcp-types';
+import { MCPServerConfig } from '../../types/mcp_types';
 import { Logger } from '../../utils/logger';
-import { BaseAgent, StreamingCallbacks } from '../base-agent';
-import { LLMRequestLogger } from '../../utils/llm-request-logger';
-import { BedrockClient } from './bedrock-client';
-import { PromptManager } from './prompt-manager';
-import { ReactGraphBuilder } from './react-graph-builder';
-import { ToolExecutor } from './tool-executor';
-import { ReactGraphNodes } from './react-graph-nodes';
+import { BaseAgent, StreamingCallbacks } from '../base_agent';
+import { LLMRequestLogger } from '../../utils/llm_request_logger';
+import { BedrockClient } from './bedrock_client';
+import { PromptManager } from './prompt_manager';
+import { ReactGraphBuilder } from './react_graph_builder';
+import { ToolExecutor } from './tool_executor';
+import { ReactGraphNodes } from './react_graph_nodes';
 
 // Configuration constants
 const REACT_MAX_ITERATIONS = 10; // Maximum tool execution cycles before forcing final response

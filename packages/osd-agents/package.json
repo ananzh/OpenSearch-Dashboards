@@ -6,8 +6,8 @@
   "scripts": {
     "start": "ts-node src/main.ts",
     "dev": "ts-node --watch src/main.ts",
-    "start:ag-ui": "ts-node src/main-ag-ui.ts",
-    "dev:ag-ui": "ts-node --watch src/main-ag-ui.ts",
+    "start:ag-ui": "ts-node src/main_ag_ui.ts",
+    "dev:ag-ui": "ts-node --watch src/main_ag_ui.ts",
     "build": "tsc",
     "clean": "find . -name '*.js' -not -path './node_modules/*' -delete",
     "opensearch:ingest": "ts-node src/opensearch-ingestion.ts",

@@ -5,7 +5,7 @@
 
 import { join } from 'path';
 import { BaseEvent } from '@ag-ui/core';
-import { BaseLogger } from './base-logger';
+import { BaseLogger } from './base_logger';
 
 /**
  * Audit logger for AG UI events - creates request-specific log files

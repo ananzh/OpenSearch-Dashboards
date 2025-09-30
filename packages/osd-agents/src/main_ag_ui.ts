@@ -22,16 +22,16 @@
  */
 
 import * as dotenv from 'dotenv';
-import { BaseAGUIAdapter, BaseAGUIConfig } from './ag_ui/base-ag-ui-adapter';
-import { LangGraphAGUIAdapter } from './ag_ui/langgraph-ag-ui-adapter';
-import { AgentFactory } from './agents/agent-factory';
-import { MCPServerConfig } from './types/mcp-types';
+import { BaseAGUIAdapter, BaseAGUIConfig } from './ag_ui/base_ag_ui_adapter';
+import { LangGraphAGUIAdapter } from './ag_ui/langgraph_ag_ui_adapter';
+import { AgentFactory } from './agents/agent_factory';
+import { MCPServerConfig } from './types/mcp_types';
 import { Logger } from './utils/logger';
-import { AGUIAuditLogger } from './utils/ag-ui-audit-logger';
-import { ConfigLoader } from './config/config-loader';
-import { HTTPServer } from './server/http-server';
-import { ReactAgent } from './agents/langgraph/react-agent';
-import { CoActAgent } from './agents/langgraph/coact-agent';
+import { AGUIAuditLogger } from './utils/ag_ui_audit_logger';
+import { ConfigLoader } from './config/config_loader';
+import { HTTPServer } from './server/http_server';
+import { ReactAgent } from './agents/langgraph/react_agent';
+import { CoActAgent } from './agents/langgraph/coact_agent';
 
 // Load environment variables
 dotenv.config();

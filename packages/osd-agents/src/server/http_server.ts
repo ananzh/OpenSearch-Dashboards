@@ -12,10 +12,10 @@ import { RunAgentInput, BaseEvent, EventType, RunErrorEvent, RunFinishedEvent } 
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { Logger } from '../utils/logger';
-import { AGUIAuditLogger } from '../utils/ag-ui-audit-logger';
-import { BaseAGUIAdapter, BaseAGUIConfig } from '../ag_ui/base-ag-ui-adapter';
-import { ModelConfigManager } from '../config/model-config';
-import { LLMRequestLogger } from '../utils/llm-request-logger';
+import { AGUIAuditLogger } from '../utils/ag_ui_audit_logger';
+import { BaseAGUIAdapter, BaseAGUIConfig } from '../ag_ui/base_ag_ui_adapter';
+import { ModelConfigManager } from '../config/model_config';
+import { LLMRequestLogger } from '../utils/llm_request_logger';
 
 export class HTTPServer {
   private app: express.Application;
@@ -199,7 +199,7 @@ export class HTTPServer {
           return;
         }
 
-        // Logger context will be set by base-ag-ui-adapter with request ID
+        // Logger context will be set by base_ag_ui_adapter with request ID
 
         this.logger.info('Running agent via SSE streaming', {
           threadId: input.threadId,

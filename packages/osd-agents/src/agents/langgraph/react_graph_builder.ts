@@ -6,7 +6,7 @@
 import { StateGraph, START, END, Annotation } from '@langchain/langgraph';
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
 import { Logger } from '../../utils/logger';
-import { ReactAgentState } from './react-agent';
+import { ReactAgentState } from './react_agent';
 
 // Configuration constants
 const REACT_MAX_ITERATIONS = 10; // Maximum tool execution cycles before forcing final response

@@ -5,8 +5,8 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { BaseMCPClient } from './base-client';
-import { MCPServerConfig } from '../types/mcp-types';
+import { BaseMCPClient } from './base_client';
+import { MCPServerConfig } from '../types/mcp_types';
 import { Logger } from '../utils/logger';
 
 // HTTP MCP Client using SSE transport (for GitHub MCP and similar)

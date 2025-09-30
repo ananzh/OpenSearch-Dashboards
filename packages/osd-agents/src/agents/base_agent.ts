@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { MCPServerConfig } from '../types/mcp-types';
+import { MCPServerConfig } from '../types/mcp_types';
 
 export interface StreamingCallbacks {
   onTextStart?: (text: string) => void;

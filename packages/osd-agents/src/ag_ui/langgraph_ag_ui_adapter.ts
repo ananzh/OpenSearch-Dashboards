@@ -29,10 +29,10 @@ import {
   State,
 } from '@ag-ui/core';
 import { v4 as uuidv4 } from 'uuid';
-import { BaseAGUIAdapter, BaseAGUIConfig } from './base-ag-ui-adapter';
-import { ReactAgent } from '../agents/langgraph/react-agent';
+import { BaseAGUIAdapter, BaseAGUIConfig } from './base_agui-adapter';
+import { ReactAgent } from '../agents/langgraph/react_agent';
 import { Logger } from '../utils/logger';
-import { AGUIAuditLogger } from '../utils/ag-ui-audit-logger';
+import { AGUIAuditLogger } from '../utils/ag_ui_audit_logger';
 
 export interface LangGraphState extends State {
   currentNode?: string;

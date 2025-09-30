@@ -7,7 +7,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import * as yaml from 'js-yaml';
-import { MCPTool, MCPServerConfig } from '../types/mcp-types';
+import { MCPTool, MCPServerConfig } from '../types/mcp_types';
 import { Logger } from '../utils/logger';
 
 // Circuit breaker for tracking repeated failures

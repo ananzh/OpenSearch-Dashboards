@@ -5,8 +5,8 @@
 
 import { BedrockRuntimeClient, ConverseStreamCommand } from '@aws-sdk/client-bedrock-runtime';
 import { Logger } from '../../utils/logger';
-import { getPrometheusMetricsEmitter } from '../../utils/metrics-emitter';
-import { StreamingCallbacks } from '../base-agent';
+import { getPrometheusMetricsEmitter } from '../../utils/metrics_emitter';
+import { StreamingCallbacks } from '../base_agent';
 
 export interface BedrockRequest {
   modelId: string;

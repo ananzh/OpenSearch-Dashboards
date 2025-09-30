@@ -6,7 +6,7 @@
 /* eslint-disable no-console */
 
 import { join } from 'path';
-import { BaseLogger } from './base-logger';
+import { BaseLogger } from './base_logger';
 
 // Logger utility with hourly rotation
 export class Logger extends BaseLogger {

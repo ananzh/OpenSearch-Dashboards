@@ -5,10 +5,10 @@
 
 import { Logger } from '../../utils/logger';
 import { BaseMCPClient } from '../../mcp';
-import { StreamingCallbacks } from '../base-agent';
-import { truncateToolResult } from '../../utils/truncate-tool-result';
-import { getPrometheusMetricsEmitter } from '../../utils/metrics-emitter';
-import { LLMRequestLogger } from '../../utils/llm-request-logger';
+import { StreamingCallbacks } from '../base_agent';
+import { truncateToolResult } from '../../utils/truncate_tool_result';
+import { getPrometheusMetricsEmitter } from '../../utils/metrics_emitter';
+import { LLMRequestLogger } from '../../utils/llm_request_logger';
 
 export class ToolExecutor {
   private logger: Logger;

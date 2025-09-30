@@ -8,11 +8,11 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import readline from 'readline';
 import { BaseMCPClient, LocalMCPClient, HTTPMCPClient } from '../../mcp/index';
-import { MCPServerConfig } from '../../types/mcp-types';
+import { MCPServerConfig } from '../../types/mcp_types';
 import { Logger } from '../../utils/logger';
-import { BaseAgent, StreamingCallbacks } from '../base-agent';
-import { truncateToolResult } from '../../utils/truncate-tool-result';
-import { ModelConfigManager } from '../../config/model-config';
+import { BaseAgent, StreamingCallbacks } from '../base_agent';
+import { truncateToolResult } from '../../utils/truncate_tool_result';
+import { ModelConfigManager } from '../../config/model_config';
 
 export class JarvisAgent implements BaseAgent {
   private bedrockClient: BedrockRuntimeClient;

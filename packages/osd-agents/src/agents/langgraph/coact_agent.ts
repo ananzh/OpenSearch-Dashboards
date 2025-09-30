@@ -14,12 +14,12 @@ import { join, dirname } from 'path';
 import readline from 'readline';
 import { v4 as uuidv4 } from 'uuid';
 import { BaseMCPClient, LocalMCPClient, HTTPMCPClient } from '../../mcp/index';
-import { MCPServerConfig } from '../../types/mcp-types';
+import { MCPServerConfig } from '../../types/mcp_types';
 import { Logger } from '../../utils/logger';
-import { BaseAgent, StreamingCallbacks } from '../base-agent';
-import { getPrometheusMetricsEmitter } from '../../utils/metrics-emitter';
-import { truncateToolResult } from '../../utils/truncate-tool-result';
-import { ModelConfigManager } from '../../config/model-config';
+import { BaseAgent, StreamingCallbacks } from '../base_agent';
+import { getPrometheusMetricsEmitter } from '../../utils/metrics_emitter';
+import { truncateToolResult } from '../../utils/truncate_tool_result';
+import { ModelConfigManager } from '../../config/model_config';
 
 // Configuration constants
 const COACT_MAX_ITERATIONS = 10; // Maximum tool execution cycles before forcing final response

@@ -7,9 +7,9 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { MCPServerConfig } from '../types/mcp-types';
+import { MCPServerConfig } from '../types/mcp_types';
 import { Logger } from '../utils/logger';
-import { BaseAGUIConfig } from '../ag_ui/base-ag-ui-adapter';
+import { BaseAGUIConfig } from '../ag_ui/base_ag_ui_adapter';
 
 export class ConfigLoader {
   private static logger = new Logger();

@@ -5,8 +5,8 @@
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { BaseMCPClient } from './base-client';
-import { MCPServerConfig } from '../types/mcp-types';
+import { BaseMCPClient } from './base_client';
+import { MCPServerConfig } from '../types/mcp_types';
 import { Logger } from '../utils/logger';
 
 // Local MCP Client (stdio communication)

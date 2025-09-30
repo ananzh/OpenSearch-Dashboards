@@ -21,9 +21,9 @@
 
 import * as dotenv from 'dotenv';
 import { readFileSync, existsSync } from 'fs';
-import { AgentFactory } from './agents/agent-factory';
+import { AgentFactory } from './agents/agent_factory';
 import { Logger } from './utils/logger';
-import { ConfigLoader } from './config/config-loader';
+import { ConfigLoader } from './config/config_loader';
 
 // Load environment variables
 dotenv.config();
