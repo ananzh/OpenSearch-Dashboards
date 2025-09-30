@@ -1,0 +1,41 @@
+/node_modules
+/build
+/dist
+/coverage
+CLAUDE.md
+settings.local.json
+
+# Environment variables
+.env
+.claude
+
+# MCP Configuration (may contain API keys)
+**/mcp-config.json
+
+# Logs
+**/logs/
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+opensearch-config.yml
+
+design.excalidraw
+HOLMESGPT*
+
+*/prompts/*
+
+*/docs/*
+
+metrics/*
+
+*/.vscode/*
+
+plantuml.jar
