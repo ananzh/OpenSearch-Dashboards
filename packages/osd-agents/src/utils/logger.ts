@@ -1,3 +1,10 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
 import { join } from 'path';
 import { BaseLogger } from './base-logger';
 
@@ -29,10 +36,10 @@ export class Logger extends BaseLogger {
     const hour = new Date(timestamp.unix).toLocaleString('en-US', {
       hour: '2-digit',
       hour12: false,
-      timeZone: 'America/Los_Angeles'
+      timeZone: 'America/Los_Angeles',
     });
     const newLogFile = join(this.logDir, `ai-agent-${dateStr}-${hour}.log`);
-    
+
     if (this.currentLogFile !== newLogFile) {
       this.currentLogFile = newLogFile;
       // Log rotation message
@@ -92,16 +99,22 @@ export class Logger extends BaseLogger {
       phase,
       toolName,
       timestamp: Date.now(),
-      ...data
+      ...data,
     };
-    
+
     this.debug(`[TOOL_PARAM_STREAM] ${phase}`, debugData);
-    
+
     // Always log tool parameter issues to console for immediate visibility
     if (phase === 'VALIDATION_FAILED' || phase === 'CIRCUIT_BREAKER_ACTIVATED') {
-      console.log(`\n🚨 [TOOL DEBUG] ${phase} for ${toolName}:`, JSON.stringify(debugData, null, 2));
+      console.log(
+        `\n🚨 [TOOL DEBUG] ${phase} for ${toolName}:`,
+        JSON.stringify(debugData, null, 2)
+      );
     } else if (process.env.DEBUG || process.env.TOOL_DEBUG) {
-      console.log(`\n🔧 [TOOL DEBUG] ${phase} for ${toolName}:`, JSON.stringify(debugData, null, 2));
+      console.log(
+        `\n🔧 [TOOL DEBUG] ${phase} for ${toolName}:`,
+        JSON.stringify(debugData, null, 2)
+      );
     }
   }
 

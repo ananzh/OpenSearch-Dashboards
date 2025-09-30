@@ -1,4 +1,9 @@
-// Types based on AI Agent MCP configuration format  
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// Types based on AI Agent MCP configuration format
 export interface MCPTool {
   name: string;
   description?: string;

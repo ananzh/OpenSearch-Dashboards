@@ -1,14 +1,21 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
-import { Logger } from '../utils/logger';
-import { AGUIAuditLogger } from '../utils/ag-ui-audit-logger';
-import { BaseAGUIAdapter, BaseAGUIConfig } from '../ag-ui/base-ag-ui-adapter';
 import { RunAgentInput, BaseEvent, EventType, RunErrorEvent, RunFinishedEvent } from '@ag-ui/core';
-import { ModelConfigManager } from '../config/model-config';
-import { LLMRequestLogger } from '../utils/llm-request-logger';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { Logger } from '../utils/logger';
+import { AGUIAuditLogger } from '../utils/ag-ui-audit-logger';
+import { BaseAGUIAdapter, BaseAGUIConfig } from '../ag_ui/base-ag-ui-adapter';
+import { ModelConfigManager } from '../config/model-config';
+import { LLMRequestLogger } from '../utils/llm-request-logger';
 
 export class HTTPServer {
   private app: express.Application;
@@ -19,7 +26,12 @@ export class HTTPServer {
   private adapter: BaseAGUIAdapter;
   private isShuttingDown: boolean = false;
 
-  constructor(config: BaseAGUIConfig, adapter: BaseAGUIAdapter, logger: Logger, auditLogger?: AGUIAuditLogger) {
+  constructor(
+    config: BaseAGUIConfig,
+    adapter: BaseAGUIAdapter,
+    logger: Logger,
+    auditLogger?: AGUIAuditLogger
+  ) {
     this.config = config;
     this.adapter = adapter;
     this.logger = logger;
@@ -31,23 +43,25 @@ export class HTTPServer {
   setupMiddleware(): void {
     // CORS configuration
     if (this.config.cors) {
-      this.app.use(cors({
-        origin: this.config.cors.origins,
-        credentials: this.config.cors.credentials
-      }));
+      this.app.use(
+        cors({
+          origin: this.config.cors.origins,
+          credentials: this.config.cors.credentials,
+        })
+      );
     } else {
       this.app.use(cors());
     }
 
     // JSON parsing
     this.app.use(express.json({ limit: '10mb' }));
-    
+
     // Request logging
     this.app.use((req, res, next) => {
       this.logger.info(`${req.method} ${req.path}`, {
         method: req.method,
         path: req.path,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get('User-Agent'),
       });
       next();
     });
@@ -59,7 +73,7 @@ export class HTTPServer {
       res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0.0',
       });
     });
 
@@ -75,8 +89,8 @@ export class HTTPServer {
           conversations: true,
           contextWindow: 200000,
           maxTokens: 4000,
-          supportedModels: ['claude-sonnet-4']
-        }
+          supportedModels: ['claude-sonnet-4'],
+        },
       });
     });
 
@@ -176,7 +190,7 @@ export class HTTPServer {
       }
 
       const input: RunAgentInput = req.body;
-      
+
       try {
         // Validate input
         const validationResult = this.validateRunAgentInput(input);
@@ -191,7 +205,7 @@ export class HTTPServer {
           threadId: input.threadId,
           runId: input.runId,
           messageCount: input.messages.length,
-          input: input
+          input,
         });
 
         // Log HTTP request details for audit
@@ -199,26 +213,28 @@ export class HTTPServer {
           method: req.method,
           path: req.path,
           userAgent: req.get('User-Agent'),
-          contentLength: req.get('Content-Length') ? parseInt(req.get('Content-Length')!) : undefined,
+          contentLength: req.get('Content-Length')
+            ? parseInt(req.get('Content-Length')!, 10)
+            : undefined,
           messageCount: input.messages.length,
-          toolCount: input.tools?.length || 0
+          toolCount: input.tools?.length || 0,
         });
 
         // Set SSE headers
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Cache-Control'
+          'Access-Control-Allow-Headers': 'Cache-Control',
         });
 
         // Stream events in real-time
         const eventStream = await this.adapter.runAgent(input);
-        
+
         // Declare subscription variable to track the observable subscription
         let subscription: any = null;
-        
+
         subscription = eventStream.subscribe({
           next: (event) => {
             // Send event as SSE format
@@ -227,18 +243,18 @@ export class HTTPServer {
           error: (error) => {
             const errorMessage = error instanceof Error ? error.message : String(error);
             const errorStack = error instanceof Error ? error.stack : undefined;
-            this.logger.error('Error in event stream', { 
+            this.logger.error('Error in event stream', {
               error: errorMessage,
               stack: errorStack,
               threadId: input.threadId,
-              runId: input.runId
+              runId: input.runId,
             });
             // Send error event and close connection
             const errorEvent: RunErrorEvent = {
               type: EventType.RUN_ERROR,
               message: errorMessage,
               code: 'STREAM_ERROR',
-              timestamp: Date.now()
+              timestamp: Date.now(),
             };
             res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
             res.end();
@@ -246,34 +262,33 @@ export class HTTPServer {
           complete: () => {
             // Stream already sends RUN_FINISHED event, just close connection
             res.end();
-          }
+          },
         });
 
         // Handle client disconnect - use once to avoid multiple listeners
         const handleClientDisconnect = () => {
           this.logger.info('Client disconnected from SSE stream', {
             threadId: input.threadId,
-            runId: input.runId
+            runId: input.runId,
           });
           // Clean up the event stream subscription
           if (subscription && typeof subscription.unsubscribe === 'function') {
             subscription.unsubscribe();
           }
         };
-        
+
         req.once('close', handleClientDisconnect);
         req.once('error', handleClientDisconnect);
-
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorStack = error instanceof Error ? error.stack : undefined;
-        this.logger.error('Error running agent', { 
+        this.logger.error('Error running agent', {
           error: errorMessage,
           stack: errorStack,
           threadId: input.threadId,
-          runId: input.runId
+          runId: input.runId,
         });
-        
+
         if (!res.headersSent) {
           res.status(500).json({ error: errorMessage });
         } else {
@@ -281,7 +296,7 @@ export class HTTPServer {
             type: EventType.RUN_ERROR,
             message: errorMessage,
             code: 'AGENT_ERROR',
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
           res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
           res.end();
@@ -296,9 +311,11 @@ export class HTTPServer {
         this.logger.info('AI Agent AG UI HTTP Server started', {
           host: this.config.host,
           port: this.config.port,
-          httpEndpoint: `http://${this.config.host}:${this.config.port}`
+          httpEndpoint: `http://${this.config.host}:${this.config.port}`,
         });
-        console.log(`🚀 AI Agent AG UI Server running at http://${this.config.host}:${this.config.port}`);
+        console.log(
+          `🚀 AI Agent AG UI Server running at http://${this.config.host}:${this.config.port}`
+        );
         resolve();
       });
     });
@@ -306,14 +323,14 @@ export class HTTPServer {
 
   async stop(): Promise<void> {
     this.isShuttingDown = true;
-    
+
     return new Promise((resolve, reject) => {
       // Close all active connections first
       this.server.closeAllConnections?.();
-      
+
       // Remove all listeners to prevent memory leaks
       this.server.removeAllListeners();
-      
+
       this.server.close((error) => {
         if (error) {
           this.logger.error('Error stopping HTTP server', { error: error.message });
@@ -331,16 +348,16 @@ export class HTTPServer {
    */
   private validateRunAgentInput(input: RunAgentInput): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
+
     // Validate required string fields
     if (!input.threadId || typeof input.threadId !== 'string') {
       errors.push('threadId must be a non-empty string');
     }
-    
+
     if (!input.runId || typeof input.runId !== 'string') {
       errors.push('runId must be a non-empty string');
     }
-    
+
     // Validate messages array
     if (!input.messages || !Array.isArray(input.messages) || input.messages.length === 0) {
       errors.push('messages must be a non-empty array');
@@ -350,10 +367,10 @@ export class HTTPServer {
         if (!msg.role || typeof msg.role !== 'string') {
           errors.push(`messages[${index}].role must be a string`);
         }
-        
+
         // Assistant messages with toolCalls may not have content
         const isAssistantWithTools = msg.role === 'assistant' && msg.toolCalls;
-        
+
         // Content is required unless it's an assistant message with tool calls
         if (!isAssistantWithTools) {
           if (!msg.content || (typeof msg.content !== 'string' && !Array.isArray(msg.content))) {
@@ -366,7 +383,7 @@ export class HTTPServer {
               contentValue: msg.content,
               isNull: msg.content === null,
               isUndefined: msg.content === undefined,
-              messageKeys: Object.keys(msg)
+              messageKeys: Object.keys(msg),
             });
           }
         } else if (msg.content && typeof msg.content !== 'string' && !Array.isArray(msg.content)) {
@@ -375,30 +392,35 @@ export class HTTPServer {
         }
       });
     }
-    
+
     // Validate optional fields
     if (input.tools && !Array.isArray(input.tools)) {
       errors.push('tools must be an array if provided');
     }
-    
+
     if (input.context && !Array.isArray(input.context)) {
       errors.push('context must be an array if provided');
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   /**
    * Handle validation errors with appropriate response format
    */
-  private handleValidationError(res: express.Response, errors: string[], threadId?: string, runId?: string): void {
+  private handleValidationError(
+    res: express.Response,
+    errors: string[],
+    threadId?: string,
+    runId?: string
+  ): void {
     this.logger.warn('Input validation failed', {
       errors,
       threadId,
-      runId
+      runId,
     });
 
     // Log validation error for audit
@@ -410,7 +432,7 @@ export class HTTPServer {
       type: EventType.RUN_ERROR,
       message: `Input validation failed: ${errors.join(', ')}`,
       code: 'VALIDATION_ERROR',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     if (!res.headersSent) {
@@ -425,7 +447,9 @@ export class HTTPServer {
    * Generate interactive HTML viewer for LLM request/response logs
    */
   private generateDebugHTML(logData: any): string {
-    const title = logData ? `LLM Debug Viewer - ${logData.runId || 'Unknown Run'}` : 'LLM Debug Viewer - No Data';
+    const title = logData
+      ? `LLM Debug Viewer - ${logData.runId || 'Unknown Run'}`
+      : 'LLM Debug Viewer - No Data';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -768,9 +792,8 @@ export class HTTPServer {
    */
   private generateLogContent(logData: any): string {
     const totalDuration = logData.totalMetrics?.totalDuration || 0;
-    const formattedDuration = totalDuration > 1000 ?
-      `${(totalDuration / 1000).toFixed(2)}s` :
-      `${totalDuration}ms`;
+    const formattedDuration =
+      totalDuration > 1000 ? `${(totalDuration / 1000).toFixed(2)}s` : `${totalDuration}ms`;
 
     return `
         <div class="header">
@@ -786,7 +809,9 @@ export class HTTPServer {
                 </div>
                 <div class="metadata-item">
                     <div class="metadata-label">Timestamp</div>
-                    <div class="metadata-value">${new Date(logData.timestamp).toLocaleString()}</div>
+                    <div class="metadata-value">${new Date(
+                      logData.timestamp
+                    ).toLocaleString()}</div>
                 </div>
                 <div class="metadata-item">
                     <div class="metadata-label">Total Duration</div>
@@ -803,11 +828,13 @@ export class HTTPServer {
             </div>
         </div>
 
-        ${(logData.iterations || []).map((iteration: any, index: number) =>
-            this.generateIterationHTML(iteration, index)
-        ).join('')}
+        ${(logData.iterations || [])
+          .map((iteration: any, index: number) => this.generateIterationHTML(iteration, index))
+          .join('')}
 
-        ${logData.errors && logData.errors.length > 0 ? this.generateErrorsHTML(logData.errors) : ''}
+        ${
+          logData.errors && logData.errors.length > 0 ? this.generateErrorsHTML(logData.errors) : ''
+        }
     `;
   }
 
@@ -816,9 +843,8 @@ export class HTTPServer {
    */
   private generateIterationHTML(iteration: any, index: number): string {
     const duration = iteration.duration || 0;
-    const formattedDuration = duration > 1000 ?
-      `${(duration / 1000).toFixed(2)}s` :
-      `${duration}ms`;
+    const formattedDuration =
+      duration > 1000 ? `${(duration / 1000).toFixed(2)}s` : `${duration}ms`;
 
     const toolCount = iteration.toolExecutions?.length || 0;
 
@@ -837,8 +863,12 @@ export class HTTPServer {
                 </div>
                 <div class="iteration-stats">
                     <span class="stat-badge duration">⏱️ ${formattedDuration}</span>
-                    <span class="stat-badge tools">🔧 ${toolCount} tool${toolCount !== 1 ? 's' : ''}</span>
-                    <span class="stat-badge">📝 ${iteration.request?.messages?.length || 0} messages</span>
+                    <span class="stat-badge tools">🔧 ${toolCount} tool${
+      toolCount !== 1 ? 's' : ''
+    }</span>
+                    <span class="stat-badge">📝 ${
+                      iteration.request?.messages?.length || 0
+                    } messages</span>
                 </div>
             </div>
 
@@ -858,8 +888,8 @@ export class HTTPServer {
                                temperature: iteration.request?.inferenceConfig?.temperature,
                                maxTokens: iteration.request?.inferenceConfig?.maxTokens,
                                timestamp: iteration.request?.timestamp,
-                               hasTools: !!(iteration.request?.toolConfig),
-                               toolCount: iteration.request?.toolConfig?.tools?.length || 0
+                               hasTools: !!iteration.request?.toolConfig,
+                               toolCount: iteration.request?.toolConfig?.tools?.length || 0,
                              })}'></div>
                     </div>
                 </div>
@@ -886,7 +916,9 @@ export class HTTPServer {
                 </div>
 
                 <!-- Tool Executions Section -->
-                ${toolCount > 0 ? `
+                ${
+                  toolCount > 0
+                    ? `
                 <div class="section">
                     <div class="section-title">
                         <span class="section-icon">🔧</span>
@@ -894,7 +926,9 @@ export class HTTPServer {
                     </div>
                     ${this.generateToolExecutionsHTML(iteration.toolExecutions || [])}
                 </div>
-                ` : ''}
+                `
+                    : ''
+                }
             </div>
         </div>
     `;
@@ -904,21 +938,29 @@ export class HTTPServer {
    * Generate HTML for messages
    */
   private generateMessagesHTML(messages: any[]): string {
-    return messages.map(msg => `
+    return messages
+      .map(
+        (msg) => `
         <div class="message-item">
             <div class="message-role">${msg.role}</div>
             <div class="code-block">
-                <div class="json-viewer">${this.escapeHtml(JSON.stringify(msg.content, null, 2))}</div>
+                <div class="json-viewer">${this.escapeHtml(
+                  JSON.stringify(msg.content, null, 2)
+                )}</div>
             </div>
         </div>
-    `).join('');
+    `
+      )
+      .join('');
   }
 
   /**
    * Generate HTML for tool executions
    */
   private generateToolExecutionsHTML(tools: any[]): string {
-    return tools.map(tool => `
+    return tools
+      .map(
+        (tool) => `
         <div class="tool-execution">
             <div class="tool-name">
                 ${tool.toolName}
@@ -927,15 +969,23 @@ export class HTTPServer {
                 </span>
             </div>
             <div class="code-block">
-                <div class="json-viewer">${this.escapeHtml(JSON.stringify({
-                  parameters: tool.parameters,
-                  result: tool.result,
-                  duration: tool.duration,
-                  timestamp: tool.timestamp
-                }, null, 2))}</div>
+                <div class="json-viewer">${this.escapeHtml(
+                  JSON.stringify(
+                    {
+                      parameters: tool.parameters,
+                      result: tool.result,
+                      duration: tool.duration,
+                      timestamp: tool.timestamp,
+                    },
+                    null,
+                    2
+                  )
+                )}</div>
             </div>
         </div>
-    `).join('');
+    `
+      )
+      .join('');
   }
 
   /**
@@ -953,16 +1003,22 @@ export class HTTPServer {
             </div>
             <div class="iteration-content collapsed" id="iteration-content-errors">
                 <div class="section">
-                    ${errors.map(error => `
+                    ${errors
+                      .map(
+                        (error) => `
                         <div class="tool-execution">
                             <div class="tool-name">
                                 Error at ${new Date(error.timestamp).toLocaleString()}
                             </div>
                             <div class="code-block">
-                                <div class="json-viewer">${this.escapeHtml(JSON.stringify(error.error, null, 2))}</div>
+                                <div class="json-viewer">${this.escapeHtml(
+                                  JSON.stringify(error.error, null, 2)
+                                )}</div>
                             </div>
                         </div>
-                    `).join('')}
+                    `
+                      )
+                      .join('')}
                 </div>
             </div>
         </div>

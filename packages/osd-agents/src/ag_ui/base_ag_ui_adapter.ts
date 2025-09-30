@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * Base AG UI Adapter
  *
@@ -6,10 +11,10 @@
  * This adapter converts agent interactions into AG UI compliant events and messages.
  */
 
-import { v4 as uuidv4 } from "uuid";
-import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
-import { Observable } from "rxjs";
+import { v4 as uuidv4 } from 'uuid';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+import { Observable } from 'rxjs';
 import {
   EventType,
   BaseEvent,
@@ -30,11 +35,11 @@ import {
   Tool,
   RunAgentInput,
   State,
-} from "@ag-ui/core";
-import { BaseAgent, StreamingCallbacks } from "../agents/base-agent";
-import { MCPServerConfig } from "../types/mcp-types";
-import { Logger } from "../utils/logger";
-import { AGUIAuditLogger } from "../utils/ag-ui-audit-logger";
+} from '@ag-ui/core';
+import { BaseAgent, StreamingCallbacks } from '../agents/base-agent';
+import { MCPServerConfig } from '../types/mcp-types';
+import { Logger } from '../utils/logger';
+import { AGUIAuditLogger } from '../utils/ag-ui-audit-logger';
 
 export interface BaseAGUIConfig {
   port?: number;
@@ -67,35 +72,32 @@ export class BaseAGUIAdapter {
     this.auditLogger = auditLogger;
   }
 
-  async initialize(
-    mcpConfigs: Record<string, MCPServerConfig> = {}
-  ): Promise<void> {
+  async initialize(mcpConfigs: Record<string, MCPServerConfig> = {}): Promise<void> {
     const agentType = this.agent.getAgentType();
     this.logger.debug(`Initializing ${agentType} AG UI Adapter`);
 
     // Check for custom system prompt file path from environment variable
-    let customSystemPrompt: string | undefined = undefined;
+    let customSystemPrompt: string | undefined;
     const systemPromptPath = process.env.SYSTEM_PROMPT;
     if (systemPromptPath) {
       try {
         // Resolve relative paths relative to the project root (where package.json is)
         const resolvedPath = resolve(process.cwd(), systemPromptPath);
         if (existsSync(resolvedPath)) {
-          customSystemPrompt = readFileSync(resolvedPath, "utf-8");
-          this.logger.info("Using custom system prompt from file", {
+          customSystemPrompt = readFileSync(resolvedPath, 'utf-8');
+          this.logger.info('Using custom system prompt from file', {
             originalPath: systemPromptPath,
-            resolvedPath: resolvedPath,
+            resolvedPath,
           });
         } else {
-          this.logger.warn("System prompt file not found", {
+          this.logger.warn('System prompt file not found', {
             originalPath: systemPromptPath,
-            resolvedPath: resolvedPath,
+            resolvedPath,
           });
         }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        this.logger.error("Failed to load system prompt file", {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error('Failed to load system prompt file', {
           path: systemPromptPath,
           error: errorMessage,
         });
@@ -123,7 +125,7 @@ export class BaseAGUIAdapter {
     this.logger.debug(`Running ${agentType} agent with AG UI input`, {
       threadId: input.threadId,
       runId: input.runId,
-      requestId: requestId,
+      requestId,
       messageCount: input.messages.length,
       toolCount: input.tools?.length || 0,
     });
@@ -133,9 +135,8 @@ export class BaseAGUIAdapter {
       this.auditLogger?.startRequest(input.threadId, input.runId, requestId);
 
       this.processAgentRequestWithEvents(input, observer, requestId).catch((error) => {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        this.logger.error("Error in processAgentRequestWithEvents", {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error('Error in processAgentRequestWithEvents', {
           error: errorMessage,
           threadId: input.threadId,
           runId: input.runId,
@@ -146,24 +147,13 @@ export class BaseAGUIAdapter {
         const errorEvent = {
           type: EventType.RUN_ERROR,
           message: errorMessage,
-          code: "AGENT_ERROR",
+          code: 'AGENT_ERROR',
           timestamp: Date.now(),
         } as RunErrorEvent;
 
+        this.emitAndAuditEvent(errorEvent, observer, input.threadId, input.runId);
 
-        this.emitAndAuditEvent(
-          errorEvent, 
-          observer, 
-          input.threadId, 
-          input.runId
-        );
-
-        this.auditLogger?.endRequest(
-          input.threadId,
-          input.runId,
-          "error",
-          errorMessage
-        );
+        this.auditLogger?.endRequest(input.threadId, input.runId, 'error', errorMessage);
 
         observer.complete();
       });
@@ -211,7 +201,7 @@ export class BaseAGUIAdapter {
     try {
       // Validate that we have messages
       if (!input.messages || input.messages.length === 0) {
-        throw new Error("No messages found in input");
+        throw new Error('No messages found in input');
       }
 
       // Emit text message start event
@@ -220,7 +210,7 @@ export class BaseAGUIAdapter {
         {
           type: EventType.TEXT_MESSAGE_START,
           messageId,
-          role: "assistant",
+          role: 'assistant',
           timestamp: Date.now(),
         } as TextMessageStartEvent,
         observer,
@@ -231,13 +221,13 @@ export class BaseAGUIAdapter {
       // Run the agent with streaming integration
       // Pass the full messages array instead of extracting text
       await this.runAgentWithStreamingEvents(
-        input.messages,  // Pass full messages array
+        input.messages, // Pass full messages array
         messageId,
         observer,
         input.threadId,
         input.runId,
-        requestId,  // Pass request ID
-        input  // Pass the full input
+        requestId, // Pass request ID
+        input // Pass the full input
       );
 
       // Emit text message end FIRST to close the message stream
@@ -266,15 +256,14 @@ export class BaseAGUIAdapter {
       );
 
       // End audit logging for successful completion
-      this.auditLogger?.endRequest(input.threadId, input.runId, "success");
+      this.auditLogger?.endRequest(input.threadId, input.runId, 'success');
 
       // Complete the stream
       observer.complete();
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
-      this.logger.error("Error running agent", {
+      this.logger.error('Error running agent', {
         error: errorMessage,
         stack: errorStack,
         threadId: input.threadId,
@@ -286,7 +275,7 @@ export class BaseAGUIAdapter {
         {
           type: EventType.RUN_ERROR,
           message: errorMessage,
-          code: "AGENT_ERROR",
+          code: 'AGENT_ERROR',
           timestamp: Date.now(),
         } as RunErrorEvent,
         observer,
@@ -295,12 +284,7 @@ export class BaseAGUIAdapter {
       );
 
       // End audit logging for error
-      this.auditLogger?.endRequest(
-        input.threadId,
-        input.runId,
-        "error",
-        errorMessage
-      );
+      this.auditLogger?.endRequest(input.threadId, input.runId, 'error', errorMessage);
 
       // Complete the stream
       observer.complete();
@@ -313,7 +297,9 @@ export class BaseAGUIAdapter {
   private detectPPLQuery(text: string): any | null {
     try {
       // Check for STATE_DELTA JSON block with PPL query
-      const stateDeltaMatch = text.match(/\{\s*"type"\s*:\s*"STATE_DELTA"[\s\S]*?"ppl_query"[\s\S]*?\}[\s\S]*?\}/);
+      const stateDeltaMatch = text.match(
+        /\{\s*"type"\s*:\s*"STATE_DELTA"[\s\S]*?"ppl_query"[\s\S]*?\}[\s\S]*?\}/
+      );
       if (stateDeltaMatch) {
         // Extract the JSON object
         const jsonStr = stateDeltaMatch[0];
@@ -321,7 +307,7 @@ export class BaseAGUIAdapter {
         if (parsed.delta?.ppl_query) {
           this.logger.debug('PPL query detected in STATE_DELTA format', {
             query: parsed.delta.ppl_query.query,
-            dataset: parsed.delta.ppl_query.dataset
+            dataset: parsed.delta.ppl_query.dataset,
           });
           return parsed.delta.ppl_query;
         }
@@ -338,10 +324,10 @@ export class BaseAGUIAdapter {
           const dataset = datasetMatch ? datasetMatch[1] : 'unknown';
 
           return {
-            query: query,
+            query,
             description: 'PPL query from code block',
-            dataset: dataset,
-            timestamp: new Date().toISOString()
+            dataset,
+            timestamp: new Date().toISOString(),
           };
         }
       }
@@ -349,7 +335,7 @@ export class BaseAGUIAdapter {
       // Check for inline PPL patterns
       const inlinePatterns = [
         /source\s*=\s*[^\s|]+.*?\|.*?(?:where|stats|fields|sort|head|tail)/i,
-        /search\s+source\s*=\s*[^\s|]+/i
+        /search\s+source\s*=\s*[^\s|]+/i,
       ];
 
       for (const pattern of inlinePatterns) {
@@ -361,10 +347,10 @@ export class BaseAGUIAdapter {
 
           this.logger.debug('Inline PPL query detected', { query, dataset });
           return {
-            query: query,
+            query,
             description: 'Inline PPL query',
-            dataset: dataset,
-            timestamp: new Date().toISOString()
+            dataset,
+            timestamp: new Date().toISOString(),
           };
         }
       }
@@ -379,13 +365,13 @@ export class BaseAGUIAdapter {
    * Run agent with streaming content emission through observer
    */
   private async runAgentWithStreamingEvents(
-    messages: any[],  // Changed from userMessage: string to messages array
+    messages: any[], // Changed from userMessage: string to messages array
     messageId: string,
     observer: any,
     threadId: string,
     runId: string,
-    requestId: string,  // Add request ID parameter
-    fullInput?: RunAgentInput  // Add parameter for full input
+    requestId: string, // Add request ID parameter
+    fullInput?: RunAgentInput // Add parameter for full input
   ): Promise<void> {
     const agentType = this.agent.getAgentType();
     // Track accumulated text to detect multi-line PPL queries
@@ -416,17 +402,17 @@ export class BaseAGUIAdapter {
           if (pplQuery) {
             // Check if we already have this query in pending deltas
             const existingQuery = this.pendingStateDeltas.find(
-              d => d.ppl_query?.query === pplQuery.query
+              (d) => d.ppl_query?.query === pplQuery.query
             );
 
             if (!existingQuery) {
               // Add to pending state deltas
               this.pendingStateDeltas.push({
-                ppl_query: pplQuery
+                ppl_query: pplQuery,
               });
               this.logger.debug('PPL query added to pending state deltas', {
                 query: pplQuery.query,
-                pendingCount: this.pendingStateDeltas.length
+                pendingCount: this.pendingStateDeltas.length,
               });
             }
           }
@@ -445,9 +431,8 @@ export class BaseAGUIAdapter {
         },
         onToolUseStart: (toolName: string, toolUseId: string, input: any) => {
           // Emit proper TOOL_CALL_START event
-          const actualToolName = toolName.split("__")[1] || toolName;
+          const actualToolName = toolName.split('__')[1] || toolName;
 
-        
           this.emitAndAuditEvent(
             {
               type: EventType.TOOL_CALL_START,
@@ -484,10 +469,9 @@ export class BaseAGUIAdapter {
             threadId,
             runId
           );
-
         },
         onToolResult: (toolName: string, toolUseId: string, result: any) => {
-          const actualToolName = toolName.split("__")[1] || toolName;
+          const actualToolName = toolName.split('__')[1] || toolName;
 
           // Emit TOOL_CALL_END event FIRST
           this.emitAndAuditEvent(
@@ -514,17 +498,16 @@ export class BaseAGUIAdapter {
             threadId,
             runId
           );
-
         },
         onToolError: (toolName: string, toolUseId: string, error: string) => {
           // Emit RUN_ERROR for tool failures
-          const actualToolName = toolName.split("__")[1] || toolName;
+          const actualToolName = toolName.split('__')[1] || toolName;
 
           this.emitAndAuditEvent(
             {
               type: EventType.RUN_ERROR,
               message: `Tool ${actualToolName} failed: ${error}`,
-              code: "TOOL_ERROR",
+              code: 'TOOL_ERROR',
               timestamp: Date.now(),
             } as RunErrorEvent,
             observer,
@@ -550,7 +533,7 @@ export class BaseAGUIAdapter {
           // Turn completed - emit any pending state deltas before message ends
           if (this.pendingStateDeltas.length > 0) {
             this.logger.debug('Emitting pending STATE_DELTA events', {
-              count: this.pendingStateDeltas.length
+              count: this.pendingStateDeltas.length,
             });
 
             // Combine all pending deltas into one
@@ -599,19 +582,18 @@ export class BaseAGUIAdapter {
         await this.agent.processMessageWithCallbacks(messages, callbacks, {
           state: fullInput?.state,
           context: fullInput?.context,
-          tools: fullInput?.tools,  // Pass client tools from AG UI
+          tools: fullInput?.tools, // Pass client tools from AG UI
           threadId: fullInput?.threadId,
           runId: fullInput?.runId,
-          requestId: requestId,  // Pass request ID for logging correlation
-          modelId: fullInput?.forwardedProps?.modelId  // Extract modelId from forwardedProps
+          requestId, // Pass request ID for logging correlation
+          modelId: fullInput?.forwardedProps?.modelId, // Extract modelId from forwardedProps
         });
       } else {
         await this.agent.processMessageWithCallbacks(messages, callbacks);
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error("Error in agent streaming", {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Error in agent streaming', {
         error: errorMessage,
         messageId,
         agentType,

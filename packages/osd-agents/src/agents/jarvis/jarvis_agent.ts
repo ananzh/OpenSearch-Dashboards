@@ -1,6 +1,12 @@
-import { BedrockRuntimeClient, ConverseStreamCommand } from "@aws-sdk/client-bedrock-runtime";
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { BedrockRuntimeClient, ConverseStreamCommand } from '@aws-sdk/client-bedrock-runtime';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import readline from 'readline';
 import { BaseMCPClient, LocalMCPClient, HTTPMCPClient } from '../../mcp/index';
 import { MCPServerConfig } from '../../types/mcp-types';
 import { Logger } from '../../utils/logger';
@@ -18,33 +24,33 @@ export class JarvisAgent implements BaseAgent {
   constructor() {
     this.logger = new Logger();
     const region = process.env.AWS_REGION || 'us-east-1';
-    
+
     this.bedrockClient = new BedrockRuntimeClient({
-      region: region
+      region,
     });
-    
+
     this.logger.debug('Jarvis Agent initialized', {
-      region: region,
+      region,
       hasAwsAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
       hasAwsSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
       hasAwsProfile: !!process.env.AWS_PROFILE,
-      hasAwsSessionToken: !!process.env.AWS_SESSION_TOKEN
+      hasAwsSessionToken: !!process.env.AWS_SESSION_TOKEN,
     });
   }
 
   async initialize(
-    configs: Record<string, MCPServerConfig>, 
+    configs: Record<string, MCPServerConfig>,
     customSystemPrompt?: string
   ): Promise<void> {
     this.logger.debug('Initializing Jarvis Agent', {
       serverCount: Object.keys(configs).length,
-      servers: Object.keys(configs)
+      servers: Object.keys(configs),
     });
 
     // Connect to all MCP servers
     for (const [name, config] of Object.entries(configs)) {
       this.logger.debug(`Connecting to MCP server: ${name}`);
-      
+
       // Create appropriate client based on config type
       let client: BaseMCPClient;
       if (config.type === 'http') {
@@ -52,9 +58,9 @@ export class JarvisAgent implements BaseAgent {
       } else {
         client = new LocalMCPClient(config, name, this.logger);
       }
-      
+
       this.mcpClients[name] = client;
-      
+
       try {
         await client.connect();
         this.logger.debug(`✅ Connected to ${name} (${config.type})`);
@@ -73,13 +79,13 @@ export class JarvisAgent implements BaseAgent {
       this.systemPrompt = this.getDefaultSystemPrompt();
       this.logger.debug('Using dynamic system prompt with MCP tools', {
         promptLength: this.systemPrompt.length,
-        connectedServers: Object.keys(this.mcpClients).length
+        connectedServers: Object.keys(this.mcpClients).length,
       });
     }
 
     this.logger.info('Jarvis Agent initialized with MCP servers', {
       connectedServers: Object.keys(this.mcpClients).length,
-      totalTools: this.getAllTools().length
+      totalTools: this.getAllTools().length,
     });
   }
 
@@ -93,7 +99,7 @@ export class JarvisAgent implements BaseAgent {
     }
 
     try {
-      let aiAgentPrompt = readFileSync(aiAgentPromptPath, 'utf-8');
+      const aiAgentPrompt = readFileSync(aiAgentPromptPath, 'utf-8');
       return this.enhanceSystemPrompt(aiAgentPrompt);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -115,7 +121,7 @@ export class JarvisAgent implements BaseAgent {
   private getFallbackSystemPrompt(): string {
     // Fallback prompt if claudecode.md cannot be loaded
     const toolDescriptions = this.generateToolDescriptions();
-    
+
     return `You are Jarvis Agent, an AI assistant specialized in helping with software engineering tasks.
 
 You have access to the following tools through MCP (Model Context Protocol) servers:
@@ -171,29 +177,31 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
 
   private generateToolDescriptions(): string {
     if (Object.keys(this.mcpClients).length === 0) {
-      return "No MCP tools currently available.";
+      return 'No MCP tools currently available.';
     }
 
     const descriptions: string[] = [];
-    
+
     for (const [serverName, client] of Object.entries(this.mcpClients)) {
       const serverTools = client.getTools();
       if (serverTools.length > 0) {
         descriptions.push(`## ${serverName} server tools:`);
-        
+
         for (const tool of serverTools) {
-          let toolDescription = `- **${tool.name}**: ${tool.description || 'No description available'}`;
-          
+          let toolDescription = `- **${tool.name}**: ${
+            tool.description || 'No description available'
+          }`;
+
           if (tool.inputSchema.required && tool.inputSchema.required.length > 0) {
             toolDescription += `\n  - Required parameters: ${tool.inputSchema.required.join(', ')}`;
           }
-          
+
           descriptions.push(toolDescription);
         }
         descriptions.push(''); // Add blank line between servers
       }
     }
-    
+
     return descriptions.join('\n');
   }
 
@@ -205,26 +213,26 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
     const MAX_TOOLS = 100; // Limit tools sent to Bedrock to prevent input size issues
     const tools: any[] = [];
     let toolCount = 0;
-    
+
     // Prioritize certain servers
     const serverPriority = ['filesystem', 'opensearch-mcp-server', 'amzn-mcp', 'builder-mcp'];
     const processedServers = new Set<string>();
-    
+
     // Process priority servers first
     for (const priorityServer of serverPriority) {
       if (this.mcpClients[priorityServer] && toolCount < MAX_TOOLS) {
         const serverTools = this.mcpClients[priorityServer].getTools();
         const maxFromServer = Math.min(30, MAX_TOOLS - toolCount, serverTools.length);
-        
+
         for (let i = 0; i < maxFromServer; i++) {
           const tool = serverTools[i];
-          
+
           // Simplified description to reduce request size
           let description = tool.description || `Tool: ${tool.name}`;
           if (description.length > 200) {
             description = description.slice(0, 197) + '...';
           }
-          
+
           if (tool.inputSchema.required && tool.inputSchema.required.length > 0) {
             description += `\n\nRequired: ${tool.inputSchema.required.join(', ')}`;
           }
@@ -232,27 +240,27 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
           tools.push({
             toolSpec: {
               name: `${priorityServer}__${tool.name}`,
-              description: description,
+              description,
               inputSchema: {
-                json: tool.inputSchema
-              }
-            }
+                json: tool.inputSchema,
+              },
+            },
           });
           toolCount++;
         }
         processedServers.add(priorityServer);
       }
     }
-    
+
     // Process remaining servers if we have capacity
     for (const [serverName, client] of Object.entries(this.mcpClients)) {
       if (!processedServers.has(serverName) && toolCount < MAX_TOOLS) {
         const serverTools = client.getTools();
         const maxFromServer = Math.min(10, MAX_TOOLS - toolCount, serverTools.length);
-        
+
         for (let i = 0; i < maxFromServer; i++) {
           const tool = serverTools[i];
-          
+
           // Simplified description to reduce request size
           let description = tool.description || `Tool: ${tool.name}`;
           if (description.length > 200) {
@@ -262,18 +270,20 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
           tools.push({
             toolSpec: {
               name: `${serverName}__${tool.name}`,
-              description: description,
+              description,
               inputSchema: {
-                json: tool.inputSchema
-              }
-            }
+                json: tool.inputSchema,
+              },
+            },
           });
           toolCount++;
         }
       }
     }
 
-    this.logger.debug(`Limited tools sent to Bedrock: ${toolCount} of ${this.getTotalToolCount()} available`);
+    this.logger.debug(
+      `Limited tools sent to Bedrock: ${toolCount} of ${this.getTotalToolCount()} available`
+    );
     return tools;
   }
 
@@ -287,12 +297,13 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
 
   async sendMessage(userMessage: string): Promise<void> {
     this.logger.debug('Received user message', { message: userMessage });
+    // eslint-disable-next-line no-console
     console.log('\n🧑 User:', userMessage);
 
     // Add user message to CLI history
     const userMsg: any = {
       role: 'user',
-      content: [{ text: userMessage }]
+      content: [{ text: userMessage }],
     };
     this.cliConversationHistory.push(userMsg);
 
@@ -305,7 +316,15 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
   async processMessageWithCallbacks(
     userMessage: string | any[],
     callbacks: StreamingCallbacks,
-    additionalInputs?: { state?: any; context?: any[]; tools?: any[]; threadId?: string; runId?: string; requestId?: string; modelId?: string }
+    additionalInputs?: {
+      state?: any;
+      context?: any[];
+      tools?: any[];
+      threadId?: string;
+      runId?: string;
+      requestId?: string;
+      modelId?: string;
+    }
   ): Promise<void> {
     // Handle both old signature (string) and new signature (messages array)
     const conversationHistory = Array.isArray(userMessage) ? userMessage : undefined;
@@ -313,7 +332,7 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
 
     this.logger.debug('Processing message with callbacks', {
       isArray: Array.isArray(userMessage),
-      modelId
+      modelId,
     });
 
     // For server mode (with callbacks), use passed conversation history as-is
@@ -325,14 +344,18 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
       // CLI mode: manage local history
       const userMsg: any = {
         role: 'user',
-        content: [{ text: userMessage }]
+        content: [{ text: userMessage }],
       };
       this.cliConversationHistory.push(userMsg);
       await this.processConversationTurn(callbacks, this.cliConversationHistory, modelId);
     }
   }
 
-  private async processConversationTurn(callbacks?: StreamingCallbacks, conversationHistory: any[] = [], requestModelId?: string): Promise<void> {
+  private async processConversationTurn(
+    callbacks?: StreamingCallbacks,
+    conversationHistory: any[] = [],
+    requestModelId?: string
+  ): Promise<void> {
     const tools = this.getAllTools();
     this.logger.debug('Available tools for request', { toolCount: tools.length });
 
@@ -340,55 +363,59 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
     const modelId = ModelConfigManager.resolveModelId(requestModelId);
 
     // Convert 'tool' roles to 'user' roles for Bedrock compatibility
-    const bedrockMessages = conversationHistory.map(msg => ({
+    const bedrockMessages = conversationHistory.map((msg) => ({
       ...msg,
       // Bedrock only accepts 'user' and 'assistant' roles
-      role: msg.role === "tool" ? "user" : msg.role
+      role: msg.role === 'tool' ? 'user' : msg.role,
     }));
 
     try {
       const command = new ConverseStreamCommand({
-        modelId: modelId,
+        modelId,
         system: [{ text: this.systemPrompt }],
         messages: bedrockMessages,
-        toolConfig: tools.length > 0 ? { tools: tools } : undefined,
+        toolConfig: tools.length > 0 ? { tools } : undefined,
         inferenceConfig: {
           maxTokens: 4000,
-          temperature: 0.3
-        }
+          temperature: 0.3,
+        },
       });
 
       this.logger.debug('Sending request to Bedrock', {
-        modelId: modelId,
+        modelId,
         messageCount: bedrockMessages.length,
-        toolCount: tools.length
+        toolCount: tools.length,
       });
 
       const response = await this.bedrockClient.send(command);
-      
-      let assistantMessage: any = {
+
+      const assistantMessage: any = {
         role: 'assistant',
-        content: []
+        content: [],
       };
 
       let currentText = '';
       const toolUses: any[] = [];
       const toolResults: any[] = [];
-      
+
       // Tool parameter accumulation for streaming
-      const activeToolStreams: Record<string, {
-        toolUseId: string;
-        name: string;
-        input: Record<string, any>;
-        inputBuffer: string; // Buffer for JSON string fragments
-        isComplete: boolean;
-      }> = {};
+      const activeToolStreams: Record<
+        string,
+        {
+          toolUseId: string;
+          name: string;
+          input: Record<string, any>;
+          inputBuffer: string; // Buffer for JSON string fragments
+          isComplete: boolean;
+        }
+      > = {};
 
       if (response.stream) {
         if (!callbacks) {
+          // eslint-disable-next-line no-console
           console.log('\n🤖 Jarvis:');
         }
-        
+
         for await (const chunk of response.stream) {
           // Handle text streaming
           if (chunk.contentBlockStart && 'text' in chunk.contentBlockStart.start) {
@@ -400,7 +427,7 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
             }
             currentText += text;
           }
-          
+
           if (chunk.contentBlockDelta?.delta?.text) {
             const deltaText = chunk.contentBlockDelta.delta.text;
             if (callbacks?.onTextDelta) {
@@ -415,25 +442,26 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
           if (chunk.contentBlockStart && 'toolUse' in chunk.contentBlockStart.start) {
             const toolUse = (chunk.contentBlockStart.start as any).toolUse;
             const blockIndex = chunk.contentBlockStart.contentBlockIndex || 0;
-            
+
             this.logger.toolParameterDebug('TOOL_USE_STARTED', toolUse.name, {
               toolUseId: toolUse.toolUseId,
               blockIndex,
-              initialInput: toolUse.input
+              initialInput: toolUse.input,
             });
-            
+
             // Initialize tool stream accumulator
             activeToolStreams[blockIndex] = {
               toolUseId: toolUse.toolUseId,
               name: toolUse.name,
               input: toolUse.input || {},
               inputBuffer: '', // Initialize empty buffer for JSON string fragments
-              isComplete: false
+              isComplete: false,
             };
-            
+
             if (callbacks?.onToolUseStart) {
               callbacks.onToolUseStart(toolUse.name, toolUse.toolUseId, toolUse.input || {});
             } else {
+              // eslint-disable-next-line no-console
               console.log(`\n🔧 Using tool: ${toolUse.name}`);
             }
           }
@@ -442,29 +470,39 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
           if (chunk.contentBlockDelta?.delta?.toolUse?.input) {
             const blockIndex = chunk.contentBlockDelta.contentBlockIndex || 0;
             const deltaInput = chunk.contentBlockDelta.delta.toolUse.input;
-            
+
             if (activeToolStreams[blockIndex]) {
               // Buffer JSON string fragments or merge objects
               if (typeof deltaInput === 'string') {
                 // Accumulate JSON string fragments
                 activeToolStreams[blockIndex].inputBuffer += deltaInput;
-                
-                this.logger.toolParameterDebug('JSON_BUFFER_STREAMING', activeToolStreams[blockIndex].name, {
-                  blockIndex,
-                  deltaInput,
-                  bufferLength: activeToolStreams[blockIndex].inputBuffer.length,
-                  currentBuffer: activeToolStreams[blockIndex].inputBuffer.substring(0, 100) + (activeToolStreams[blockIndex].inputBuffer.length > 100 ? '...' : '')
-                });
+
+                this.logger.toolParameterDebug(
+                  'JSON_BUFFER_STREAMING',
+                  activeToolStreams[blockIndex].name,
+                  {
+                    blockIndex,
+                    deltaInput,
+                    bufferLength: activeToolStreams[blockIndex].inputBuffer.length,
+                    currentBuffer:
+                      activeToolStreams[blockIndex].inputBuffer.substring(0, 100) +
+                      (activeToolStreams[blockIndex].inputBuffer.length > 100 ? '...' : ''),
+                  }
+                );
               } else {
                 // Handle object case (initial state or pre-parsed input)
                 Object.assign(activeToolStreams[blockIndex].input, deltaInput);
-                
-                this.logger.toolParameterDebug('OBJECT_MERGE_STREAMING', activeToolStreams[blockIndex].name, {
-                  blockIndex,
-                  deltaInput,
-                  currentInput: activeToolStreams[blockIndex].input,
-                  parameterCount: Object.keys(activeToolStreams[blockIndex].input).length
-                });
+
+                this.logger.toolParameterDebug(
+                  'OBJECT_MERGE_STREAMING',
+                  activeToolStreams[blockIndex].name,
+                  {
+                    blockIndex,
+                    deltaInput,
+                    currentInput: activeToolStreams[blockIndex].input,
+                    parameterCount: Object.keys(activeToolStreams[blockIndex].input).length,
+                  }
+                );
               }
             }
           }
@@ -472,23 +510,23 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
           // Handle tool use completion - execute with complete parameters
           if (chunk.contentBlockStop) {
             const blockIndex = chunk.contentBlockStop.contentBlockIndex || 0;
-            
+
             if (activeToolStreams[blockIndex] && !activeToolStreams[blockIndex].isComplete) {
               const toolStream = activeToolStreams[blockIndex];
               toolStream.isComplete = true;
-              
+
               // Parse buffered JSON if available
               if (toolStream.inputBuffer.trim()) {
                 try {
                   const parsedInput = JSON.parse(toolStream.inputBuffer);
                   if (typeof parsedInput === 'object' && parsedInput !== null) {
                     Object.assign(toolStream.input, parsedInput);
-                    
+
                     this.logger.toolParameterDebug('JSON_PARSED_SUCCESS', toolStream.name, {
                       blockIndex,
                       rawBuffer: toolStream.inputBuffer,
                       parsedInput,
-                      finalInput: toolStream.input
+                      finalInput: toolStream.input,
                     });
                   }
                 } catch (error) {
@@ -497,39 +535,40 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
                     blockIndex,
                     rawBuffer: toolStream.inputBuffer,
                     error: errorMessage,
-                    fallbackInput: toolStream.input
+                    fallbackInput: toolStream.input,
                   });
-                  
+
                   // Continue with existing input on parse error
                   if (callbacks?.onError) {
                     callbacks.onError(`JSON parse error for ${toolStream.name}: ${errorMessage}`);
                   } else {
+                    // eslint-disable-next-line no-console
                     console.log(`⚠️ JSON parse error for ${toolStream.name}: ${errorMessage}`);
                   }
                 }
               }
-              
+
               this.logger.toolParameterDebug('TOOL_USE_COMPLETED', toolStream.name, {
                 toolUseId: toolStream.toolUseId,
                 blockIndex,
                 finalInput: toolStream.input,
                 finalParameterCount: Object.keys(toolStream.input).length,
-                hadBufferedInput: toolStream.inputBuffer.length > 0
+                hadBufferedInput: toolStream.inputBuffer.length > 0,
               });
-              
+
               // Store tool use for assistant message (without results)
               toolUses.push({
                 toolUse: {
                   toolUseId: toolStream.toolUseId,
                   name: toolStream.name,
-                  input: toolStream.input
-                }
+                  input: toolStream.input,
+                },
               });
 
               // Execute tool with complete parameters
               const [serverName, actualToolName] = toolStream.name.split('__');
               const mcpClient = this.mcpClients[serverName];
-              
+
               if (mcpClient) {
                 try {
                   const toolResult = await mcpClient.executeTool(actualToolName, toolStream.input);
@@ -538,22 +577,23 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
                     serverName,
                     actualToolName,
                     input: toolStream.input,
-                    result: toolResult
+                    result: toolResult,
                   });
-                  
+
                   if (callbacks?.onToolResult) {
                     callbacks.onToolResult(toolStream.name, toolStream.toolUseId, toolResult);
                   } else {
+                    // eslint-disable-next-line no-console
                     console.log(`✅ Tool result: ${JSON.stringify(toolResult, null, 2)}`);
                   }
-                  
+
                   // Truncate tool result to prevent API input size errors
                   const truncatedResult = truncateToolResult(toolResult);
                   toolResults.push({
                     toolResult: {
                       toolUseId: toolStream.toolUseId,
-                      content: [{ text: truncatedResult }]
-                    }
+                      content: [{ text: truncatedResult }],
+                    },
                   });
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -562,37 +602,39 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
                     serverName,
                     actualToolName,
                     input: toolStream.input,
-                    error: errorMessage
+                    error: errorMessage,
                   });
-                  
+
                   if (callbacks?.onToolError) {
                     callbacks.onToolError(toolStream.name, toolStream.toolUseId, errorMessage);
                   } else {
+                    // eslint-disable-next-line no-console
                     console.log(`❌ Tool error: ${errorMessage}`);
                   }
-                  
+
                   toolResults.push({
                     toolResult: {
                       toolUseId: toolStream.toolUseId,
-                      content: [{ text: `Error executing tool: ${errorMessage}` }]
-                    }
+                      content: [{ text: `Error executing tool: ${errorMessage}` }],
+                    },
                   });
                 }
               } else {
                 const errorMessage = `MCP client not found for server ${serverName}`;
                 this.logger.error(errorMessage, { serverName, toolName: toolStream.name });
-                
+
                 if (callbacks?.onToolError) {
                   callbacks.onToolError(toolStream.name, toolStream.toolUseId, errorMessage);
                 } else {
+                  // eslint-disable-next-line no-console
                   console.log(`❌ Tool error: ${errorMessage}`);
                 }
-                
+
                 toolResults.push({
                   toolResult: {
                     toolUseId: toolStream.toolUseId,
-                    content: [{ text: `Error: ${errorMessage}` }]
-                  }
+                    content: [{ text: `Error: ${errorMessage}` }],
+                  },
                 });
               }
             }
@@ -612,7 +654,7 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
           // Add tool results as a user message to continue the conversation
           const toolResultsMessage: any = {
             role: 'user',
-            content: toolResults
+            content: toolResults,
           };
 
           // Create updated conversation history with assistant message and tool results
@@ -624,7 +666,7 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
           }
 
           this.logger.info('Tool results added, continuing conversation', {
-            toolResultCount: toolResults.length
+            toolResultCount: toolResults.length,
           });
 
           // Process another conversation turn with the tool results
@@ -637,12 +679,13 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
 
           this.logger.info('Response completed', {
             conversationLength: conversationHistory.length,
-            responseLength: currentText.length
+            responseLength: currentText.length,
           });
 
           if (callbacks?.onTurnComplete) {
             callbacks.onTurnComplete();
           } else {
+            // eslint-disable-next-line no-console
             console.log('\n');
           }
         }
@@ -650,10 +693,11 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Error in processConversationTurn', { error: errorMessage });
-      
+
       if (callbacks?.onError) {
         callbacks.onError(errorMessage);
       } else {
+        // eslint-disable-next-line no-console
         console.error('Error:', errorMessage);
       }
     }
@@ -661,12 +705,12 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
 
   async startInteractiveMode(): Promise<void> {
     this.logger.info('Starting interactive mode');
+    // eslint-disable-next-line no-console
     console.log('\n🎯 Jarvis Agent is ready! Type your messages (or "quit" to exit)');
-    
-    const readline = require('readline');
+
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     const askQuestion = (): Promise<string> => {
@@ -678,7 +722,7 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
     while (true) {
       try {
         const userInput = await askQuestion();
-        
+
         if (userInput.toLowerCase().trim() === 'quit') {
           this.logger.info('User requested quit');
           break;
@@ -690,6 +734,7 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         this.logger.error('Error in interactive mode', { error: errorMessage });
+        // eslint-disable-next-line no-console
         console.error('Error:', errorMessage);
       }
     }

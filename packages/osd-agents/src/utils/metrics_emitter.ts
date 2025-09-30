@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -20,10 +25,10 @@ export class PrometheusMetricsEmitter {
     // Create metrics file with timestamp (same format as logs)
     const timestamp = new Date().toISOString().split('T')[0];
     this.metricsFilePath = path.join(metricsDir, `agent-metrics-${timestamp}.prom`);
-    
+
     // Open stream for appending metrics
     this.metricsStream = fs.createWriteStream(this.metricsFilePath, { flags: 'a' });
-    
+
     // Write header with metadata
     this.writeHeader();
   }
@@ -45,20 +50,16 @@ export class PrometheusMetricsEmitter {
       '# TYPE langgraph_agent_tool_execution_duration_seconds histogram',
       '# HELP langgraph_agent_iterations_per_request Number of iterations per request',
       '# TYPE langgraph_agent_iterations_per_request histogram',
-      ''
+      '',
     ].join('\n');
-    
+
     this.metricsStream?.write(header + '\n');
   }
 
   /**
    * Emit a counter metric (for counting events)
    */
-  public emitCounter(
-    metricName: string,
-    value: number = 1,
-    labels?: Record<string, string>
-  ): void {
+  public emitCounter(metricName: string, value: number = 1, labels?: Record<string, string>): void {
     const labelString = this.formatLabels(labels);
     const metric = `${metricName}${labelString} ${value} ${Date.now()}\n`;
     this.metricsStream?.write(metric);
@@ -67,11 +68,7 @@ export class PrometheusMetricsEmitter {
   /**
    * Emit a gauge metric (for current values)
    */
-  public emitGauge(
-    metricName: string,
-    value: number,
-    labels?: Record<string, string>
-  ): void {
+  public emitGauge(metricName: string, value: number, labels?: Record<string, string>): void {
     const labelString = this.formatLabels(labels);
     const metric = `${metricName}${labelString} ${value} ${Date.now()}\n`;
     this.metricsStream?.write(metric);
@@ -80,26 +77,25 @@ export class PrometheusMetricsEmitter {
   /**
    * Emit a histogram metric (for distributions)
    */
-  public emitHistogram(
-    metricName: string,
-    value: number,
-    labels?: Record<string, string>
-  ): void {
+  public emitHistogram(metricName: string, value: number, labels?: Record<string, string>): void {
     const labelString = this.formatLabels(labels);
-    
+
     // Emit sum and count for histogram
     const sumMetric = `${metricName}_sum${labelString} ${value} ${Date.now()}\n`;
     const countMetric = `${metricName}_count${labelString} 1 ${Date.now()}\n`;
-    
+
     // Emit bucket values (simplified - you might want more buckets)
     const buckets = [0.1, 0.5, 1, 2, 5, 10, 30, 60];
     for (const bucket of buckets) {
       if (value <= bucket) {
-        const bucketMetric = `${metricName}_bucket${this.formatLabels({...labels, le: bucket.toString()})} 1 ${Date.now()}\n`;
+        const bucketMetric = `${metricName}_bucket${this.formatLabels({
+          ...labels,
+          le: bucket.toString(),
+        })} 1 ${Date.now()}\n`;
         this.metricsStream?.write(bucketMetric);
       }
     }
-    
+
     this.metricsStream?.write(sumMetric);
     this.metricsStream?.write(countMetric);
   }
@@ -111,11 +107,11 @@ export class PrometheusMetricsEmitter {
     if (!labels || Object.keys(labels).length === 0) {
       return '';
     }
-    
+
     const labelPairs = Object.entries(labels)
       .map(([key, value]) => `${key}="${value}"`)
       .join(',');
-    
+
     return `{${labelPairs}}`;
   }
 

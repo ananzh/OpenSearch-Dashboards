@@ -1,4 +1,12 @@
 #!/usr/bin/env node
+
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
 import { Client } from '@opensearch-project/opensearch';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -62,11 +70,11 @@ class OpenSearchIngestor {
       node: opensearchUrl,
       auth: {
         username,
-        password
+        password,
       },
       ssl: {
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false,
+      },
     });
 
     this.stateFile = path.join(__dirname, '..', '.opensearch-ingest-state.json');
@@ -88,7 +96,7 @@ class OpenSearchIngestor {
     try {
       const state = {
         processedFiles: Array.from(this.processedFiles),
-        lastRun: new Date().toISOString()
+        lastRun: new Date().toISOString(),
       };
       fs.writeFileSync(this.stateFile, JSON.stringify(state, null, 2));
     } catch (error) {
@@ -98,7 +106,7 @@ class OpenSearchIngestor {
 
   private getDailyIndexName(type: 'logs' | 'audit-logs' | 'metrics'): string {
     const today = format(new Date(), 'yyyy.MM.dd');
-    switch(type) {
+    switch (type) {
       case 'logs':
         return `ai-agent-logs-${today}`;
       case 'audit-logs':
@@ -119,13 +127,13 @@ class OpenSearchIngestor {
           body: {
             settings: {
               number_of_shards: 1,
-              number_of_replicas: 1
+              number_of_replicas: 1,
             },
             mappings: {
               properties: {
                 timestamp: {
                   type: 'date',
-                  format: 'strict_date_optional_time||epoch_millis'
+                  format: 'strict_date_optional_time||epoch_millis',
                 },
                 level: { type: 'keyword' },
                 message: { type: 'text' },
@@ -137,10 +145,10 @@ class OpenSearchIngestor {
                 metric_type: { type: 'keyword' },
                 metric_value: { type: 'float' },
                 raw: { type: 'text' },
-                ingestion_timestamp: { type: 'date' }
-              }
-            }
-          }
+                ingestion_timestamp: { type: 'date' },
+              },
+            },
+          },
         });
         console.log(`Created index: ${indexName}`);
       }
@@ -155,8 +163,12 @@ class OpenSearchIngestor {
       if (!line.trim()) return null;
 
       // Parse different log formats
-      const isoTimestampMatch = line.match(/^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]\s+(\w+):\s+(.*)/);
-      const readableTimestampMatch = line.match(/^\[([^\]]+)\]\s+(?:\[([^\]]+)\])?\s*(\w+):\s+(.*)/);
+      const isoTimestampMatch = line.match(
+        /^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]\s+(\w+):\s+(.*)/
+      );
+      const readableTimestampMatch = line.match(
+        /^\[([^\]]+)\]\s+(?:\[([^\]]+)\])?\s*(\w+):\s+(.*)/
+      );
 
       let entry: LogEntry | null = null;
 
@@ -169,7 +181,7 @@ class OpenSearchIngestor {
           source: filename.includes('audit') ? 'audit-logs' : 'logs',
           filename,
           raw: line,
-          ingestion_timestamp: new Date().toISOString()
+          ingestion_timestamp: new Date().toISOString(),
         };
       } else if (readableTimestampMatch) {
         const dateStr = readableTimestampMatch[1];
@@ -185,9 +197,9 @@ class OpenSearchIngestor {
             'MMM dd, yyyy, HH:mm:ss zzz',
             'MMM dd, yyyy, HH:mm:ss',
             'yyyy-MM-dd HH:mm:ss',
-            'MM/dd/yyyy HH:mm:ss'
+            'MM/dd/yyyy HH:mm:ss',
           ];
-          
+
           let parsedDate: Date | null = null;
           for (const formatStr of dateFormats) {
             try {
@@ -199,7 +211,7 @@ class OpenSearchIngestor {
               // Try next format
             }
           }
-          
+
           if (parsedDate && isValid(parsedDate)) {
             parsedTimestamp = parsedDate.toISOString();
           } else {
@@ -219,7 +231,7 @@ class OpenSearchIngestor {
           source: filename.includes('audit') ? 'audit-logs' : 'logs',
           filename,
           raw: line,
-          ingestion_timestamp: new Date().toISOString()
+          ingestion_timestamp: new Date().toISOString(),
         };
 
         // Extract thread_id and run_id if present
@@ -239,7 +251,7 @@ class OpenSearchIngestor {
           source: filename.includes('audit') ? 'audit-logs' : 'logs',
           filename,
           raw: line,
-          ingestion_timestamp: new Date().toISOString()
+          ingestion_timestamp: new Date().toISOString(),
         };
       }
 
@@ -278,7 +290,7 @@ class OpenSearchIngestor {
             source: 'metrics',
             filename,
             raw: line,
-            ingestion_timestamp: new Date().toISOString()
+            ingestion_timestamp: new Date().toISOString(),
           };
         } else if (typeMatch) {
           return {
@@ -288,7 +300,7 @@ class OpenSearchIngestor {
             source: 'metrics',
             filename,
             raw: line,
-            ingestion_timestamp: new Date().toISOString()
+            ingestion_timestamp: new Date().toISOString(),
           };
         }
       } else {
@@ -304,7 +316,7 @@ class OpenSearchIngestor {
             source: 'metrics',
             filename,
             raw: line,
-            ingestion_timestamp: new Date().toISOString()
+            ingestion_timestamp: new Date().toISOString(),
           };
         }
       }
@@ -315,7 +327,10 @@ class OpenSearchIngestor {
     }
   }
 
-  private async processFile(filePath: string, type: 'logs' | 'audit-logs' | 'metrics'): Promise<void> {
+  private async processFile(
+    filePath: string,
+    type: 'logs' | 'audit-logs' | 'metrics'
+  ): Promise<void> {
     if (this.processedFiles.has(filePath)) {
       console.log(`Skipping already processed file: ${filePath}`);
       return;
@@ -326,7 +341,7 @@ class OpenSearchIngestor {
     const fileStream = fs.createReadStream(filePath);
     const rl = readline.createInterface({
       input: fileStream,
-      crlfDelay: Infinity
+      crlfDelay: Infinity,
     });
 
     let batch: any[] = [];
@@ -351,7 +366,7 @@ class OpenSearchIngestor {
 
           // Add delay between batches to avoid overwhelming OpenSearch
           if (this.batchDelay > 0) {
-            await new Promise(resolve => setTimeout(resolve, this.batchDelay));
+            await new Promise((resolve) => setTimeout(resolve, this.batchDelay));
           }
         }
       }
@@ -370,10 +385,7 @@ class OpenSearchIngestor {
   private async bulkIndex(entries: any[], indexName: string, retries: number = 3): Promise<void> {
     if (entries.length === 0) return;
 
-    const body = entries.flatMap(doc => [
-      { index: { _index: indexName } },
-      doc
-    ]);
+    const body = entries.flatMap((doc) => [{ index: { _index: indexName } }, doc]);
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
@@ -393,16 +405,24 @@ class OpenSearchIngestor {
             }
           });
 
-          console.log(`Successfully indexed ${successfulDocs.length}/${entries.length} documents to ${indexName}`);
+          console.log(
+            `Successfully indexed ${successfulDocs.length}/${entries.length} documents to ${indexName}`
+          );
 
           // Retry failed documents if any
           if (failedDocs.length > 0 && attempt < retries) {
-            console.log(`Retrying ${failedDocs.length} failed documents (attempt ${attempt + 1}/${retries})...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+            console.log(
+              `Retrying ${failedDocs.length} failed documents (attempt ${
+                attempt + 1
+              }/${retries})...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
             entries = failedDocs; // Update entries for next retry
             continue;
           } else if (failedDocs.length > 0) {
-            console.error(`Failed to index ${failedDocs.length} documents after ${retries} attempts`);
+            console.error(
+              `Failed to index ${failedDocs.length} documents after ${retries} attempts`
+            );
             // Optionally save failed documents to a file for manual recovery
             this.saveFailedDocuments(failedDocs, indexName);
           }
@@ -411,14 +431,13 @@ class OpenSearchIngestor {
         }
 
         return; // Success, exit the retry loop
-
       } catch (error: any) {
         console.error(`Bulk indexing attempt ${attempt}/${retries} failed:`, error.message);
 
         if (attempt < retries) {
           const backoffTime = 1000 * attempt; // Exponential backoff
           console.log(`Waiting ${backoffTime}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, backoffTime));
+          await new Promise((resolve) => setTimeout(resolve, backoffTime));
         } else {
           console.error(`Failed to index batch after ${retries} attempts`);
           // Save failed documents for manual recovery
@@ -456,9 +475,10 @@ class OpenSearchIngestor {
     // Process logs
     const logsDir = path.join(baseDir, 'logs');
     if (fs.existsSync(logsDir)) {
-      const logFiles = fs.readdirSync(logsDir)
-        .filter(f => f.endsWith('.log'))
-        .map(f => path.join(logsDir, f));
+      const logFiles = fs
+        .readdirSync(logsDir)
+        .filter((f) => f.endsWith('.log'))
+        .map((f) => path.join(logsDir, f));
 
       for (const file of logFiles) {
         await this.processFile(file, 'logs');
@@ -468,9 +488,10 @@ class OpenSearchIngestor {
     // Process audit logs
     const auditLogsDir = path.join(baseDir, 'audit-logs');
     if (fs.existsSync(auditLogsDir)) {
-      const auditFiles = fs.readdirSync(auditLogsDir)
-        .filter(f => f.endsWith('.log'))
-        .map(f => path.join(auditLogsDir, f));
+      const auditFiles = fs
+        .readdirSync(auditLogsDir)
+        .filter((f) => f.endsWith('.log'))
+        .map((f) => path.join(auditLogsDir, f));
 
       for (const file of auditFiles) {
         await this.processFile(file, 'audit-logs');
@@ -480,9 +501,10 @@ class OpenSearchIngestor {
     // Process metrics
     const metricsDir = path.join(baseDir, 'metrics');
     if (fs.existsSync(metricsDir)) {
-      const metricFiles = fs.readdirSync(metricsDir)
-        .filter(f => f.endsWith('.prom'))
-        .map(f => path.join(metricsDir, f));
+      const metricFiles = fs
+        .readdirSync(metricsDir)
+        .filter((f) => f.endsWith('.prom'))
+        .map((f) => path.join(metricsDir, f));
 
       for (const file of metricFiles) {
         await this.processFile(file, 'metrics');
@@ -503,7 +525,7 @@ class OpenSearchIngestor {
     const dirs = [
       { path: path.join(baseDir, 'logs'), type: 'logs' as const },
       { path: path.join(baseDir, 'audit-logs'), type: 'audit-logs' as const },
-      { path: path.join(baseDir, 'metrics'), type: 'metrics' as const }
+      { path: path.join(baseDir, 'metrics'), type: 'metrics' as const },
     ];
 
     for (const dir of dirs) {
@@ -539,12 +561,12 @@ async function main() {
   let batchSize: number | undefined;
   let batchDelay: number | undefined;
 
-  const batchSizeIndex = args.findIndex(arg => arg.startsWith('--batch-size='));
+  const batchSizeIndex = args.findIndex((arg) => arg.startsWith('--batch-size='));
   if (batchSizeIndex !== -1) {
     batchSize = parseInt(args[batchSizeIndex].split('=')[1], 10);
   }
 
-  const batchDelayIndex = args.findIndex(arg => arg.startsWith('--batch-delay='));
+  const batchDelayIndex = args.findIndex((arg) => arg.startsWith('--batch-delay='));
   if (batchDelayIndex !== -1) {
     batchDelay = parseInt(args[batchDelayIndex].split('=')[1], 10);
   }

@@ -1,10 +1,12 @@
-import {
-  BedrockRuntimeClient,
-  ConverseStreamCommand,
-} from "@aws-sdk/client-bedrock-runtime";
-import { Logger } from "../../utils/logger";
-import { getPrometheusMetricsEmitter } from "../../utils/metrics-emitter";
-import { StreamingCallbacks } from "../base-agent";
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { BedrockRuntimeClient, ConverseStreamCommand } from '@aws-sdk/client-bedrock-runtime';
+import { Logger } from '../../utils/logger';
+import { getPrometheusMetricsEmitter } from '../../utils/metrics-emitter';
+import { StreamingCallbacks } from '../base-agent';
 
 export interface BedrockRequest {
   modelId: string;
@@ -33,16 +35,16 @@ export class BedrockClient {
 
   constructor(logger: Logger) {
     this.logger = logger;
-    const region = process.env.AWS_REGION || "us-east-1";
+    const region = process.env.AWS_REGION || 'us-east-1';
 
     this.client = new BedrockRuntimeClient({
-      region: region,
+      region,
       // Let our custom retry logic handle throttling with better logging
       maxAttempts: 1, // Disable SDK retries, use our callBedrockWithRetry instead
     });
 
-    this.logger.info("BedrockClient initialized", {
-      region: region,
+    this.logger.info('BedrockClient initialized', {
+      region,
       hasAwsAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
       hasAwsSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
       hasAwsProfile: !!process.env.AWS_PROFILE,
@@ -72,9 +74,9 @@ export class BedrockClient {
         return await this.client.send(command);
       } catch (error: any) {
         const isThrottling =
-          error?.name === "ThrottlingException" ||
+          error?.name === 'ThrottlingException' ||
           error?.$metadata?.httpStatusCode === 429 ||
-          error?.message?.includes("Too many tokens");
+          error?.message?.includes('Too many tokens');
 
         if (isThrottling && attempt < retries - 1) {
           // Enhanced exponential backoff with jitter
@@ -85,9 +87,9 @@ export class BedrockClient {
 
           // Friendly short info about retry
           this.logger.info(
-            `⏳ Rate limited - waiting ${Math.round(
-              delay / 1000
-            )}s before retry ${attempt + 1}/${retries - 1}`,
+            `⏳ Rate limited - waiting ${Math.round(delay / 1000)}s before retry ${attempt + 1}/${
+              retries - 1
+            }`,
             {
               delaySeconds: Math.round(delay / 1000),
             }
@@ -95,14 +97,10 @@ export class BedrockClient {
 
           // Emit metric for throttling
           const metricsEmitter = getPrometheusMetricsEmitter();
-          metricsEmitter.emitCounter(
-            "react_agent_throttling_retries_total",
-            1,
-            {
-              agent_type: "react",
-              attempt: (attempt + 1).toString(),
-            }
-          );
+          metricsEmitter.emitCounter('react_agent_throttling_retries_total', 1, {
+            agent_type: 'react',
+            attempt: (attempt + 1).toString(),
+          });
 
           await new Promise((resolve) => setTimeout(resolve, delay));
           continue;
@@ -110,20 +108,17 @@ export class BedrockClient {
 
         // Log the final error if all retries are exhausted
         if (isThrottling) {
-          this.logger.error(
-            "All retry attempts exhausted for throttling error",
-            {
-              attempts: retries,
-              errorMessage: error?.message,
-              requestId: error?.$metadata?.requestId,
-            }
-          );
+          this.logger.error('All retry attempts exhausted for throttling error', {
+            attempts: retries,
+            errorMessage: error?.message,
+            requestId: error?.$metadata?.requestId,
+          });
         }
 
         throw error;
       }
     }
-    throw new Error("Failed after all retry attempts");
+    throw new Error('Failed after all retry attempts');
   }
 
   /**
@@ -136,14 +131,14 @@ export class BedrockClient {
     // We need to preserve the complete message structure including content blocks
     const result: BedrockResponse = {
       message: {
-        role: "assistant",
+        role: 'assistant',
         content: [], // This will hold all content blocks (text and toolUse)
-        textContent: "", // Keep text separately for convenience
+        textContent: '', // Keep text separately for convenience
       },
       toolCalls: [], // Keep this for backward compatibility
     };
 
-    let currentTextBlock = "";
+    let currentTextBlock = '';
     let currentToolUseBlock: any = null;
     let hasAnyContent = false; // Track if we have any content at all
 
@@ -165,7 +160,7 @@ export class BedrockClient {
                 name: start.toolUse.name,
                 input: {},
               },
-              inputBuffer: "",
+              inputBuffer: '',
             };
 
             // Also track in toolCalls for backward compatibility
@@ -185,11 +180,7 @@ export class BedrockClient {
             currentTextBlock += delta.text;
             callbacks?.onTextDelta?.(delta.text);
             result.message.textContent += delta.text;
-          } else if (
-            delta?.toolUse &&
-            currentToolUseBlock &&
-            result.toolCalls.length > 0
-          ) {
+          } else if (delta?.toolUse && currentToolUseBlock && result.toolCalls.length > 0) {
             const lastToolCall = result.toolCalls[result.toolCalls.length - 1];
             try {
               // Handle streaming JSON input - may be incomplete
@@ -199,9 +190,7 @@ export class BedrockClient {
 
                 // Try to parse the accumulated input
                 try {
-                  const parsedInput = JSON.parse(
-                    currentToolUseBlock.inputBuffer
-                  );
+                  const parsedInput = JSON.parse(currentToolUseBlock.inputBuffer);
                   currentToolUseBlock.toolUse.input = parsedInput;
                   lastToolCall.input = parsedInput;
                 } catch (parseError) {
@@ -209,7 +198,7 @@ export class BedrockClient {
                 }
               }
             } catch (error) {
-              this.logger.warn("Error processing tool use delta", {
+              this.logger.warn('Error processing tool use delta', {
                 error: error instanceof Error ? error.message : String(error),
                 input: delta.toolUse.input,
               });
@@ -221,7 +210,7 @@ export class BedrockClient {
           // Finalize the current block and add it to content
           if (currentTextBlock) {
             result.message.content.push({ text: currentTextBlock });
-            currentTextBlock = "";
+            currentTextBlock = '';
           } else if (currentToolUseBlock) {
             // Remove the inputBuffer before adding to content
             const { inputBuffer, ...toolUseBlock } = currentToolUseBlock;
@@ -235,10 +224,8 @@ export class BedrockClient {
     // CRITICAL: If we have no content blocks at all (shouldn't happen but handle it),
     // add an empty text block to ensure valid message format
     if (result.message.content.length === 0 && !hasAnyContent) {
-      this.logger.warn(
-        "No content blocks received from Bedrock, adding empty text block"
-      );
-      result.message.content.push({ text: "" });
+      this.logger.warn('No content blocks received from Bedrock, adding empty text block');
+      result.message.content.push({ text: '' });
     }
 
     // Final cleanup - ensure all tool inputs are properly parsed
@@ -247,7 +234,7 @@ export class BedrockClient {
         try {
           toolCall.input = JSON.parse((toolCall as any).inputBuffer);
         } catch (error) {
-          this.logger.error("Failed to parse final tool input", {
+          this.logger.error('Failed to parse final tool input', {
             error: error instanceof Error ? error.message : String(error),
             buffer: (toolCall as any).inputBuffer,
             toolCall: toolCall.toolName,
@@ -283,7 +270,7 @@ export class BedrockClient {
 
     try {
       // Log the actual messages being sent with full detail
-      this.logger.info("LLM Request Messages", {
+      this.logger.info('LLM Request Messages', {
         messageCount: request.messages.length,
         messages: request.messages,
       });
@@ -292,15 +279,12 @@ export class BedrockClient {
       const startTime = Date.now();
 
       const response = await this.callBedrockWithRetry(command);
-      const processedResponse = await this.processStreamingResponse(
-        response,
-        callbacks
-      );
+      const processedResponse = await this.processStreamingResponse(response, callbacks);
 
       // Calculate duration
       const duration = Date.now() - startTime;
 
-      this.logger.info("📤 LLM Response from Bedrock", {
+      this.logger.info('📤 LLM Response from Bedrock', {
         contentBlocksCount: processedResponse.message.content.length,
         contentBlocks: processedResponse,
         durationMs: duration,
@@ -309,7 +293,7 @@ export class BedrockClient {
       return processedResponse;
     } catch (error) {
       // Enhanced error logging to capture all error details
-      this.logger.error("Error calling Bedrock", {
+      this.logger.error('Error calling Bedrock', {
         error,
         errorName: (error as any)?.name,
         errorMessage: (error as any)?.message,
@@ -322,28 +306,28 @@ export class BedrockClient {
 
       // Handle credential expiration
       if (
-        (error as any)?.name === "ExpiredTokenException" ||
-        (error as any)?.name === "CredentialsProviderError"
+        (error as any)?.name === 'ExpiredTokenException' ||
+        (error as any)?.name === 'CredentialsProviderError'
       ) {
         callbacks?.onError?.(
-          "AWS credentials expired. Please refresh your credentials and try again."
+          'AWS credentials expired. Please refresh your credentials and try again.'
         );
-        throw new Error("AWS credentials expired");
+        throw new Error('AWS credentials expired');
       }
 
       // Check if this was a throttling error that exhausted all retries
       const isThrottling =
-        (error as any)?.name === "ThrottlingException" ||
+        (error as any)?.name === 'ThrottlingException' ||
         (error as any)?.$metadata?.httpStatusCode === 429 ||
-        (error as any)?.message?.includes("Too many tokens");
+        (error as any)?.message?.includes('Too many tokens');
 
       // Provide appropriate error message to user
       const userErrorMessage = isThrottling
-        ? "The AI service is currently experiencing high demand. Please wait a moment and try again."
+        ? 'The AI service is currently experiencing high demand. Please wait a moment and try again.'
         : (error as any)?.message ||
           (error as any)?.name ||
           String(error) ||
-          "Unknown error occurred";
+          'Unknown error occurred';
 
       callbacks?.onError?.(userErrorMessage);
       throw error;

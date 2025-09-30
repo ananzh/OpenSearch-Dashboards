@@ -1,11 +1,16 @@
-import { Logger } from "../../utils/logger";
-import { ReactAgentState } from "./react-agent";
-import { BedrockClient, BedrockRequest } from "./bedrock-client";
-import { PromptManager } from "./prompt-manager";
-import { ToolExecutor } from "./tool-executor";
-import { ModelConfigManager } from "../../config/model-config";
-import { getPrometheusMetricsEmitter } from "../../utils/metrics-emitter";
-import { LLMRequestLogger } from "../../utils/llm-request-logger";
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { Logger } from '../../utils/logger';
+import { ReactAgentState } from './react-agent';
+import { BedrockClient, BedrockRequest } from './bedrock-client';
+import { PromptManager } from './prompt-manager';
+import { ToolExecutor } from './tool-executor';
+import { ModelConfigManager } from '../../config/model-config';
+import { getPrometheusMetricsEmitter } from '../../utils/metrics-emitter';
+import { LLMRequestLogger } from '../../utils/llm-request-logger';
 
 export class ReactGraphNodes {
   private logger: Logger;
@@ -35,7 +40,7 @@ export class ReactGraphNodes {
     state: ReactAgentState
   ): Promise<Partial<ReactAgentState> | Record<string, any>> {
     return {
-      currentStep: "processInput",
+      currentStep: 'processInput',
       // Preserve client inputs for downstream nodes
       clientState: state.clientState,
       clientContext: state.clientContext,
@@ -68,7 +73,7 @@ export class ReactGraphNodes {
     await this.addIterationDelay(iterations);
 
     // Log full state including client inputs
-    this.logger.info("React agent full state", {
+    this.logger.info('React agent full state', {
       clientState,
       clientContext,
       threadId,
@@ -79,17 +84,14 @@ export class ReactGraphNodes {
       hasToolResults: Object.keys(toolResults).length > 0,
     });
 
-    this.logger.info("📥 callModelNode: Starting", {
+    this.logger.info('📥 callModelNode: Starting', {
       iterations,
       maxIterations: state.maxIterations,
       messageCount: messages.length,
       lastMessageRole: messages[messages.length - 1]?.role,
       lastMessageContent: messages[messages.length - 1]?.content
-        ? JSON.stringify(messages[messages.length - 1].content).substring(
-            0,
-            100
-          )
-        : "undefined",
+        ? JSON.stringify(messages[messages.length - 1].content).substring(0, 100)
+        : 'undefined',
     });
 
     // Prepare messages for Bedrock (same as Jarvis)
@@ -101,8 +103,7 @@ export class ReactGraphNodes {
     // Check if there are tool results in the message history (properly formatted)
     const hasToolResultsInHistory = messages.some(
       (msg) =>
-        Array.isArray(msg.content) &&
-        msg.content.some((c: any) => c.toolResult !== undefined)
+        Array.isArray(msg.content) && msg.content.some((c: any) => c.toolResult !== undefined)
     );
 
     // Only disable tools if we're at max iterations to force a final response
@@ -110,9 +111,7 @@ export class ReactGraphNodes {
     const atMaxIterations = iterations >= state.maxIterations - 1;
     const shouldDisableTools = atMaxIterations;
 
-    const toolConfig = shouldDisableTools
-      ? undefined
-      : this.toolExecutor.prepareToolConfig(tools);
+    const toolConfig = shouldDisableTools ? undefined : this.toolExecutor.prepareToolConfig(tools);
 
     // Build enhanced system prompt with all client data
     const enhancedSystemPrompt = this.promptManager.injectClientDataIntoPrompt(
@@ -129,7 +128,7 @@ export class ReactGraphNodes {
       modelId: resolvedModelId,
       messages: bedrockMessages,
       systemPrompt: enhancedSystemPrompt,
-      toolConfig: toolConfig,
+      toolConfig,
       inferenceConfig: {
         maxTokens: 4096,
         temperature: 0,
@@ -139,34 +138,24 @@ export class ReactGraphNodes {
     try {
       // Emit warning and metric if we're forcing a final response due to max iterations
       if (atMaxIterations) {
-        this.logger.warn(
-          "MAX_ITERATIONS_REACHED: Forcing final response from LLM",
-          {
-            iterations,
-            maxIterations: state.maxIterations,
-            messageCount: bedrockMessages.length,
-          }
-        );
+        this.logger.warn('MAX_ITERATIONS_REACHED: Forcing final response from LLM', {
+          iterations,
+          maxIterations: state.maxIterations,
+          messageCount: bedrockMessages.length,
+        });
 
         // Emit Prometheus metric
         const metricsEmitter = getPrometheusMetricsEmitter();
-        metricsEmitter.emitCounter(
-          "react_agent_max_iterations_reached_total",
-          1,
-          {
-            agent_type: "react",
-            max_iterations: state.maxIterations.toString(),
-          }
-        );
+        metricsEmitter.emitCounter('react_agent_max_iterations_reached_total', 1, {
+          agent_type: 'react',
+          max_iterations: state.maxIterations.toString(),
+        });
       }
 
       // Capture start time for duration calculation
       const startTime = Date.now();
 
-      const processedResponse = await this.bedrockClient.makeRequest(
-        request,
-        streamingCallbacks
-      );
+      const processedResponse = await this.bedrockClient.makeRequest(request, streamingCallbacks);
 
       // Calculate duration
       const duration = Date.now() - startTime;
@@ -188,11 +177,9 @@ export class ReactGraphNodes {
 
       if (
         extractedToolCalls.length === 0 &&
-        processedResponse.message.textContent.includes("<function_calls>")
+        processedResponse.message.textContent.includes('<function_calls>')
       ) {
-        this.logger.warn(
-          "Tool calls found in text content, attempting to parse XML"
-        );
+        this.logger.warn('Tool calls found in text content, attempting to parse XML');
         extractedToolCalls = this.toolExecutor.parseToolCallsFromXML(
           processedResponse.message.textContent
         );
@@ -200,18 +187,15 @@ export class ReactGraphNodes {
         // For XML tool calls, we need to handle them differently
         // Remove the XML from the text content
         if (extractedToolCalls.length > 0) {
-          const xmlStart =
-            processedResponse.message.textContent.indexOf("<function_calls>");
+          const xmlStart = processedResponse.message.textContent.indexOf('<function_calls>');
           const xmlEnd =
-            processedResponse.message.textContent.indexOf("</function_calls>") +
-            "</function_calls>".length;
-          const cleanedText = processedResponse.message.textContent
-            .substring(0, xmlStart)
-            .trim();
+            processedResponse.message.textContent.indexOf('</function_calls>') +
+            '</function_calls>'.length;
+          const cleanedText = processedResponse.message.textContent.substring(0, xmlStart).trim();
 
           // Update the assistant message to remove XML from text blocks
           assistantMessage = {
-            role: "assistant",
+            role: 'assistant',
             content: cleanedText ? [{ text: cleanedText }] : [],
             textContent: cleanedText,
           };
@@ -229,29 +213,26 @@ export class ReactGraphNodes {
         return {
           messages: [assistantMessage], // Only return the new message, StateGraph will append it
           toolCalls: extractedToolCalls,
-          currentStep: "callModel",
+          currentStep: 'callModel',
         };
       } else if (extractedToolCalls.length === 0) {
         // Subsequent iteration with no tool calls - this is the final response
-        this.logger.info(
-          "📝 Final response: Adding assistant message without tool calls",
-          {
-            previousMessageCount: messages.length,
-            iterations,
-            hasToolCalls: false,
-          }
-        );
+        this.logger.info('📝 Final response: Adding assistant message without tool calls', {
+          previousMessageCount: messages.length,
+          iterations,
+          hasToolCalls: false,
+        });
 
         return {
           messages: [assistantMessage], // Only return the new message, StateGraph will append it
           toolCalls: extractedToolCalls,
-          currentStep: "callModel",
+          currentStep: 'callModel',
         };
       } else {
         // Subsequent iteration with tool calls - we MUST add the assistant message
         // Each set of tool calls needs its corresponding assistant message for proper pairing
         this.logger.info(
-          "📝 Continuation with tools: Adding assistant message with new tool calls",
+          '📝 Continuation with tools: Adding assistant message with new tool calls',
           {
             previousMessageCount: messages.length,
             iterations,
@@ -263,12 +244,12 @@ export class ReactGraphNodes {
         return {
           messages: [assistantMessage], // Add the assistant message with tool calls
           toolCalls: extractedToolCalls,
-          currentStep: "callModel",
+          currentStep: 'callModel',
         };
       }
     } catch (error) {
       // Enhanced error logging to capture all error details
-      this.logger.error("Error calling model", {
+      this.logger.error('Error calling model', {
         error,
         errorName: (error as any)?.name,
         errorMessage: (error as any)?.message,
@@ -281,37 +262,37 @@ export class ReactGraphNodes {
 
       // Handle credential expiration
       if (
-        (error as any)?.name === "ExpiredTokenException" ||
-        (error as any)?.name === "CredentialsProviderError"
+        (error as any)?.name === 'ExpiredTokenException' ||
+        (error as any)?.name === 'CredentialsProviderError'
       ) {
         streamingCallbacks?.onError?.(
-          "AWS credentials expired. Please refresh your credentials and try again."
+          'AWS credentials expired. Please refresh your credentials and try again.'
         );
         return {
           shouldContinue: false,
-          currentStep: "callModel",
+          currentStep: 'callModel',
         };
       }
 
       // Check if this was a throttling error that exhausted all retries
       const isThrottling =
-        (error as any)?.name === "ThrottlingException" ||
+        (error as any)?.name === 'ThrottlingException' ||
         (error as any)?.$metadata?.httpStatusCode === 429 ||
-        (error as any)?.message?.includes("Too many tokens");
+        (error as any)?.message?.includes('Too many tokens');
 
       // Provide appropriate error message to user
       const userErrorMessage = isThrottling
-        ? "The AI service is currently experiencing high demand. Please wait a moment and try again."
+        ? 'The AI service is currently experiencing high demand. Please wait a moment and try again.'
         : (error as any)?.message ||
           (error as any)?.name ||
           String(error) ||
-          "Unknown error occurred";
+          'Unknown error occurred';
 
       streamingCallbacks?.onError?.(userErrorMessage);
 
       return {
         shouldContinue: false,
-        currentStep: "callModel",
+        currentStep: 'callModel',
       };
     }
   }
@@ -339,8 +320,8 @@ export class ReactGraphNodes {
       {
         state: clientState,
         context: clientContext,
-        threadId: threadId,
-        runId: runId,
+        threadId,
+        runId,
       }
     );
 
@@ -350,7 +331,7 @@ export class ReactGraphNodes {
       return {
         messages: [], // No new messages for client tools
         toolCalls: [],
-        currentStep: "executeTools",
+        currentStep: 'executeTools',
         shouldContinue: false, // Stop here for client execution
         iterations: state.iterations, // Don't increment for client tools
       };
@@ -359,24 +340,19 @@ export class ReactGraphNodes {
     if (!result.shouldContinue || !result.toolResultMessage) {
       return {
         toolCalls: [],
-        currentStep: "executeTools",
+        currentStep: 'executeTools',
         shouldContinue: false,
       };
     }
 
     const newIterations = state.iterations + 1;
-    const willContinue =
-      newIterations < state.maxIterations && state.shouldContinue;
+    const willContinue = newIterations < state.maxIterations && state.shouldContinue;
 
     // Emit metric for iteration count
     const metricsEmitter = getPrometheusMetricsEmitter();
-    metricsEmitter.emitHistogram(
-      "react_agent_iterations_per_request",
-      newIterations,
-      {
-        agent_type: "react",
-      }
-    );
+    metricsEmitter.emitHistogram('react_agent_iterations_per_request', newIterations, {
+      agent_type: 'react',
+    });
 
     // Note: The assistant message with toolUse blocks is already in messages from callModelNode
     // We only need to add the toolResult message
@@ -384,7 +360,7 @@ export class ReactGraphNodes {
       messages: [result.toolResultMessage], // Only return the new message, StateGraph will append it
       toolResults: { ...state.toolResults, ...result.toolResults },
       toolCalls: [], // Clear tool calls after execution
-      currentStep: "executeTools",
+      currentStep: 'executeTools',
       iterations: newIterations, // Set the new iterations count
       shouldContinue: true, // Keep this true to allow the graph to decide
       lastToolExecution: Date.now(), // Track when tools were last executed
@@ -401,7 +377,7 @@ export class ReactGraphNodes {
     streamingCallbacks?.onTurnComplete?.();
 
     return {
-      currentStep: "generateResponse",
+      currentStep: 'generateResponse',
       shouldContinue: false,
     };
   }
@@ -438,11 +414,7 @@ export class ReactGraphNodes {
           return false;
         }
         // Keep messages with empty content arrays (assistant messages with only tool calls)
-        if (
-          Array.isArray(msg.content) &&
-          msg.content.length === 0 &&
-          msg.role === "assistant"
-        ) {
+        if (Array.isArray(msg.content) && msg.content.length === 0 && msg.role === 'assistant') {
           return false; // Skip truly empty assistant messages
         }
         return true;
@@ -450,12 +422,10 @@ export class ReactGraphNodes {
       .map((msg) => ({
         // Convert 'tool' role to 'user' role for Bedrock compatibility
         // Bedrock only accepts 'user' and 'assistant' roles
-        role: msg.role === "tool" ? "user" : (msg.role || "user"),
+        role: msg.role === 'tool' ? 'user' : msg.role || 'user',
         // If content is already an array (proper format), use it directly
         // This preserves toolUse and toolResult blocks
-        content: Array.isArray(msg.content)
-          ? msg.content
-          : [{ text: msg.content || "" }],
+        content: Array.isArray(msg.content) ? msg.content : [{ text: msg.content || '' }],
       }));
 
     // Debug logging to catch toolUse/toolResult mismatch
@@ -463,24 +433,18 @@ export class ReactGraphNodes {
     let toolResultCount = 0;
 
     prepared.forEach((msg, index) => {
-      if (msg.role === "assistant" && Array.isArray(msg.content)) {
+      if (msg.role === 'assistant' && Array.isArray(msg.content)) {
         const msgToolUses = msg.content.filter((c: any) => c.toolUse).length;
         toolUseCount += msgToolUses;
         if (msgToolUses > 0) {
-          this.logger.info(
-            `Message ${index} (assistant): ${msgToolUses} toolUse blocks`
-          );
+          this.logger.info(`Message ${index} (assistant): ${msgToolUses} toolUse blocks`);
         }
       }
-      if (msg.role === "user" && Array.isArray(msg.content)) {
-        const msgToolResults = msg.content.filter(
-          (c: any) => c.toolResult
-        ).length;
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
+        const msgToolResults = msg.content.filter((c: any) => c.toolResult).length;
         toolResultCount += msgToolResults;
         if (msgToolResults > 0) {
-          this.logger.info(
-            `Message ${index} (user): ${msgToolResults} toolResult blocks`
-          );
+          this.logger.info(`Message ${index} (user): ${msgToolResults} toolResult blocks`);
         }
       }
     });

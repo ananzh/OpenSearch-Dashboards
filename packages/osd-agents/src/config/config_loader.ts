@@ -1,8 +1,15 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { MCPServerConfig } from '../types/mcp-types';
 import { Logger } from '../utils/logger';
-import { BaseAGUIConfig } from '../ag-ui/base-ag-ui-adapter';
+import { BaseAGUIConfig } from '../ag_ui/base-ag-ui-adapter';
 
 export class ConfigLoader {
   private static logger = new Logger();
@@ -15,13 +22,13 @@ export class ConfigLoader {
         const configContent = readFileSync(configPath, 'utf-8');
         const configData = JSON.parse(configContent);
         const mcpConfigs = configData.mcpServers || configData;
-        
-        this.logger.info(`📋 Loaded MCP config from ${configPath}`, { 
+
+        this.logger.info(`📋 Loaded MCP config from ${configPath}`, {
           configPath,
-          serverCount: Object.keys(mcpConfigs).length 
+          serverCount: Object.keys(mcpConfigs).length,
         });
         console.log(`📋 Loaded MCP config from ${configPath}`);
-        
+
         return mcpConfigs;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -40,22 +47,22 @@ export class ConfigLoader {
       filesystem: {
         type: 'local' as const,
         command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp']
-      }
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
+      },
     };
-    
+
     this.logger.info('Using default MCP configuration', defaultConfig);
     return defaultConfig;
   }
 
   static loadServerConfig(): BaseAGUIConfig {
     return {
-      port: parseInt(process.env.AG_UI_PORT || '3001'),
+      port: parseInt(process.env.AG_UI_PORT || '3001', 10),
       host: process.env.AG_UI_HOST || 'localhost',
       cors: {
         origins: process.env.AG_UI_CORS_ORIGINS?.split(',') || ['*'],
-        credentials: process.env.AG_UI_CORS_CREDENTIALS === 'true'
-      }
+        credentials: process.env.AG_UI_CORS_CREDENTIALS === 'true',
+      },
     };
   }
 }

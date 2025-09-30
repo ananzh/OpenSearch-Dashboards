@@ -1,7 +1,12 @@
-import { StateGraph, START, END, Annotation } from "@langchain/langgraph";
-import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
-import { Logger } from "../../utils/logger";
-import { ReactAgentState } from "./react-agent";
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { StateGraph, START, END, Annotation } from '@langchain/langgraph';
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite';
+import { Logger } from '../../utils/logger';
+import { ReactAgentState } from './react-agent';
 
 // Configuration constants
 const REACT_MAX_ITERATIONS = 10; // Maximum tool execution cycles before forcing final response
@@ -14,7 +19,7 @@ const ReactStateAnnotation = Annotation.Root({
   }),
   currentStep: Annotation<string>({
     reducer: (x, y) => y || x,
-    default: () => "processInput",
+    default: () => 'processInput',
   }),
   toolCalls: Annotation<any[]>({
     reducer: (x, y) => y, // Replace instead of accumulate
@@ -84,78 +89,79 @@ export class ReactGraphBuilder {
    * Build the LangGraph state graph with nodes and edges
    */
   buildStateGraph(
-    processInputNode: (state: ReactAgentState) => Promise<Partial<ReactAgentState> | Record<string, any>>,
-    callModelNode: (state: ReactAgentState) => Promise<Partial<ReactAgentState> | Record<string, any>>,
-    executeToolsNode: (state: ReactAgentState) => Promise<Partial<ReactAgentState> | Record<string, any>>,
-    generateResponseNode: (state: ReactAgentState) => Promise<Partial<ReactAgentState> | Record<string, any>>
+    processInputNode: (
+      state: ReactAgentState
+    ) => Promise<Partial<ReactAgentState> | Record<string, any>>,
+    callModelNode: (
+      state: ReactAgentState
+    ) => Promise<Partial<ReactAgentState> | Record<string, any>>,
+    executeToolsNode: (
+      state: ReactAgentState
+    ) => Promise<Partial<ReactAgentState> | Record<string, any>>,
+    generateResponseNode: (
+      state: ReactAgentState
+    ) => Promise<Partial<ReactAgentState> | Record<string, any>>
   ): any {
     // Create state graph with Annotation
     const graph = new StateGraph(ReactStateAnnotation);
 
     // Add nodes (avoiding reserved names)
     // Cast to any to work around TypeScript strict typing with Annotation API
-    graph.addNode("processInput", processInputNode as any);
-    graph.addNode("callModel", callModelNode as any);
-    graph.addNode("executeTools", executeToolsNode as any);
-    graph.addNode("generateResponse", generateResponseNode as any);
+    graph.addNode('processInput', processInputNode as any);
+    graph.addNode('callModel', callModelNode as any);
+    graph.addNode('executeTools', executeToolsNode as any);
+    graph.addNode('generateResponse', generateResponseNode as any);
 
     // Add edges
-    graph.addEdge(START as "__start__", "processInput" as "__end__");
-    graph.addEdge("processInput" as "__start__", "callModel" as "__end__");
+    graph.addEdge(START as '__start__', 'processInput' as '__end__');
+    graph.addEdge('processInput' as '__start__', 'callModel' as '__end__');
 
     // Conditional edge from callModel
-    graph.addConditionalEdges(
-      "callModel" as any,
-      (state: ReactAgentState) => {
-        // Log the decision for debugging
-        // this.logger.info('🔄 Graph Decision: callModel -> next node', {
-        //   toolCallsCount: state.toolCalls.length,
-        //   hasToolCalls: state.toolCalls.length > 0,
-        //   iterations: state.iterations,
-        //   maxIterations: state.maxIterations,
-        //   messageCount: state.messages.length,
-        //   lastMessageRole: state.messages[state.messages.length - 1]?.role,
-        //   nextNode: state.toolCalls.length > 0 ? "executeTools" : "generateResponse"
-        // });
+    graph.addConditionalEdges('callModel' as any, (state: ReactAgentState) => {
+      // Log the decision for debugging
+      // this.logger.info('🔄 Graph Decision: callModel -> next node', {
+      //   toolCallsCount: state.toolCalls.length,
+      //   hasToolCalls: state.toolCalls.length > 0,
+      //   iterations: state.iterations,
+      //   maxIterations: state.maxIterations,
+      //   messageCount: state.messages.length,
+      //   lastMessageRole: state.messages[state.messages.length - 1]?.role,
+      //   nextNode: state.toolCalls.length > 0 ? "executeTools" : "generateResponse"
+      // });
 
-        if (state.toolCalls.length > 0) {
-          return "executeTools";
-        }
-        return "generateResponse";
+      if (state.toolCalls.length > 0) {
+        return 'executeTools';
       }
-    );
+      return 'generateResponse';
+    });
 
     // Edge from executeTools back to callModel or to response
-    graph.addConditionalEdges(
-      "executeTools" as "__start__",
-      (state: ReactAgentState) => {
-        const shouldContinue =
-          state.iterations < state.maxIterations && state.shouldContinue;
+    graph.addConditionalEdges('executeTools' as '__start__', (state: ReactAgentState) => {
+      const shouldContinue = state.iterations < state.maxIterations && state.shouldContinue;
 
-        // Log the decision for debugging
-        this.logger.info("🔄 Graph Decision: executeTools -> next node", {
-          iterations: state.iterations,
-          maxIterations: state.maxIterations,
-          shouldContinue: state.shouldContinue,
-          willContinue: shouldContinue,
-          messageCount: state.messages.length,
-          lastMessageRole: state.messages[state.messages.length - 1]?.role,
-          hasToolResults: Object.keys(state.toolResults).length > 0,
-          nextNode: shouldContinue ? "callModel" : "generateResponse",
-        });
+      // Log the decision for debugging
+      this.logger.info('🔄 Graph Decision: executeTools -> next node', {
+        iterations: state.iterations,
+        maxIterations: state.maxIterations,
+        shouldContinue: state.shouldContinue,
+        willContinue: shouldContinue,
+        messageCount: state.messages.length,
+        lastMessageRole: state.messages[state.messages.length - 1]?.role,
+        hasToolResults: Object.keys(state.toolResults).length > 0,
+        nextNode: shouldContinue ? 'callModel' : 'generateResponse',
+      });
 
-        if (shouldContinue) {
-          return "callModel";
-        }
-        return "generateResponse";
+      if (shouldContinue) {
+        return 'callModel';
       }
-    );
+      return 'generateResponse';
+    });
 
-    graph.addEdge("generateResponse" as "__start__", END as "__end__");
+    graph.addEdge('generateResponse' as '__start__', END as '__end__');
 
     // Compile the graph with SQLite checkpointer for memory persistence
     // Use in-memory SQLite database (no setup required)
-    const checkpointer = SqliteSaver.fromConnString(":memory:");
+    const checkpointer = SqliteSaver.fromConnString(':memory:');
 
     return graph.compile({ checkpointer });
   }
@@ -176,14 +182,14 @@ export class ReactGraphBuilder {
     streamingCallbacks?: any
   ): ReactAgentState {
     return {
-      messages: messages, // Use the messages directly from UI
-      currentStep: "processInput",
+      messages, // Use the messages directly from UI
+      currentStep: 'processInput',
       toolCalls: [],
       toolResults: {},
       iterations: 0,
       maxIterations: REACT_MAX_ITERATIONS,
       shouldContinue: true,
-      streamingCallbacks: streamingCallbacks,
+      streamingCallbacks,
       // Add client inputs to initial state
       clientState: additionalInputs?.state,
       clientContext: additionalInputs?.context,
@@ -200,7 +206,7 @@ export class ReactGraphBuilder {
   createGraphConfig(threadId?: string, runId?: string): any {
     return {
       configurable: {
-        thread_id: `${threadId || "session"}_${runId || Date.now()}`,
+        thread_id: `${threadId || 'session'}_${runId || Date.now()}`,
       },
     };
   }

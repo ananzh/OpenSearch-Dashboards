@@ -1,3 +1,10 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
 import { appendFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 
@@ -41,7 +48,7 @@ export abstract class BaseLogger {
     const now = Date.now();
     return {
       unix: now,
-      iso: new Date(now).toISOString()
+      iso: new Date(now).toISOString(),
     };
   }
 
@@ -58,7 +65,7 @@ export abstract class BaseLogger {
       second: '2-digit',
       hour12: false,
       timeZone: 'America/Los_Angeles',
-      timeZoneName: 'short'
+      timeZoneName: 'short',
     });
 
     // Fix potential hour 24 issue (some locales may show midnight as 24:00)
@@ -76,7 +83,7 @@ export abstract class BaseLogger {
       timeZone: 'America/Los_Angeles',
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
     });
     return pdtDateString; // Already in YYYY-MM-DD format
   }

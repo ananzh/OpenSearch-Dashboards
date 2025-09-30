@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { Logger } from '../utils/logger';
@@ -22,7 +27,7 @@ export class ModelConfigManager {
         const errorMessage = error instanceof Error ? error.message : String(error);
         this.logger.warn('Failed to load default model config, using fallback', {
           error: errorMessage,
-          fallback: this.defaultModelId
+          fallback: this.defaultModelId,
         });
       }
     }

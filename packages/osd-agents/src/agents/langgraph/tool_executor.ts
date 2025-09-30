@@ -1,9 +1,14 @@
-import { Logger } from "../../utils/logger";
-import { BaseMCPClient } from "../../mcp";
-import { StreamingCallbacks } from "../base-agent";
-import { truncateToolResult } from "../../utils/truncate-tool-result";
-import { getPrometheusMetricsEmitter } from "../../utils/metrics-emitter";
-import { LLMRequestLogger } from "../../utils/llm-request-logger";
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { Logger } from '../../utils/logger';
+import { BaseMCPClient } from '../../mcp';
+import { StreamingCallbacks } from '../base-agent';
+import { truncateToolResult } from '../../utils/truncate-tool-result';
+import { getPrometheusMetricsEmitter } from '../../utils/metrics-emitter';
+import { LLMRequestLogger } from '../../utils/llm-request-logger';
 
 export class ToolExecutor {
   private logger: Logger;
@@ -87,9 +92,7 @@ export class ToolExecutor {
 
     try {
       // Extract the function_calls block
-      const functionCallsMatch = content.match(
-        /<function_calls>([\s\S]*?)<\/function_calls>/
-      );
+      const functionCallsMatch = content.match(/<function_calls>([\s\S]*?)<\/function_calls>/);
       if (!functionCallsMatch) return toolCalls;
 
       const functionCallsXML = functionCallsMatch[1];
@@ -105,9 +108,7 @@ export class ToolExecutor {
 
         // Parse parameters
         const params: Record<string, any> = {};
-        const paramMatches = paramsXML.matchAll(
-          /<parameter name="([^"]+)">([^<]*)<\/parameter>/g
-        );
+        const paramMatches = paramsXML.matchAll(/<parameter name="([^"]+)">([^<]*)<\/parameter>/g);
 
         for (const paramMatch of paramMatches) {
           const paramName = paramMatch[1];
@@ -116,24 +117,22 @@ export class ToolExecutor {
         }
 
         // Generate a unique tool use ID
-        const toolUseId = `tooluse_${Math.random()
-          .toString(36)
-          .substring(2, 15)}`;
+        const toolUseId = `tooluse_${Math.random().toString(36).substring(2, 15)}`;
 
         toolCalls.push({
-          toolName: toolName,
-          toolUseId: toolUseId,
+          toolName,
+          toolUseId,
           input: params,
         });
 
-        this.logger.info("Parsed tool call from XML", {
+        this.logger.info('Parsed tool call from XML', {
           toolName,
           toolUseId,
           input: params,
         });
       }
     } catch (error) {
-      this.logger.error("Failed to parse tool calls from XML", {
+      this.logger.error('Failed to parse tool calls from XML', {
         error: error instanceof Error ? error.message : String(error),
         content: content.substring(0, 500),
       });
@@ -163,7 +162,7 @@ export class ToolExecutor {
   }> {
     const toolResults: Record<string, any> = {};
 
-    this.logger.info("Executing tools", {
+    this.logger.info('Executing tools', {
       toolCallsCount: toolCalls.length,
       toolNames: toolCalls.map((tc) => tc.toolName),
       toolIds: toolCalls.map((tc) => tc.toolUseId),
@@ -174,7 +173,7 @@ export class ToolExecutor {
 
     // Look for tool results in user messages (these indicate executed tools)
     const previouslyExecutedToolIds = messages
-      .filter((m) => m.role === "user")
+      .filter((m) => m.role === 'user')
       .flatMap((m) => (Array.isArray(m.content) ? m.content : []))
       .filter((c: any) => c.toolResult)
       .map((c: any) => c.toolResult.toolUseId);
@@ -184,23 +183,16 @@ export class ToolExecutor {
     );
 
     if (newToolCalls.length === 0 && toolCalls.length > 0) {
-      this.logger.warn(
-        "All tool calls have already been executed, skipping redundant execution",
-        {
-          attemptedToolCallIds: toolCallSignatures,
-          previouslyExecutedToolIds,
-        }
-      );
+      this.logger.warn('All tool calls have already been executed, skipping redundant execution', {
+        attemptedToolCallIds: toolCallSignatures,
+        previouslyExecutedToolIds,
+      });
 
       // Emit Prometheus metric for redundant tool call attempts
       const metricsEmitter = getPrometheusMetricsEmitter();
-      metricsEmitter.emitCounter(
-        "react_agent_redundant_tool_calls_total",
-        toolCalls.length,
-        {
-          agent_type: "react",
-        }
-      );
+      metricsEmitter.emitCounter('react_agent_redundant_tool_calls_total', toolCalls.length, {
+        agent_type: 'react',
+      });
 
       return {
         toolResults: {},
@@ -210,22 +202,15 @@ export class ToolExecutor {
     }
 
     // Separate client tools from MCP tools
-    const clientToolCalls = newToolCalls.filter((tc) =>
-      tc.toolName.startsWith("ag_ui__")
-    );
-    const mcpToolCalls = newToolCalls.filter(
-      (tc) => !tc.toolName.startsWith("ag_ui__")
-    );
+    const clientToolCalls = newToolCalls.filter((tc) => tc.toolName.startsWith('ag_ui__'));
+    const mcpToolCalls = newToolCalls.filter((tc) => !tc.toolName.startsWith('ag_ui__'));
 
     // Handle AG UI tools (client-executed)
     if (clientToolCalls.length > 0) {
-      this.logger.info(
-        "Client tools detected - emitting events for client execution",
-        {
-          clientToolCount: clientToolCalls.length,
-          clientTools: clientToolCalls.map((tc) => tc.toolName),
-        }
-      );
+      this.logger.info('Client tools detected - emitting events for client execution', {
+        clientToolCount: clientToolCalls.length,
+        clientTools: clientToolCalls.map((tc) => tc.toolName),
+      });
 
       // Emit events for client tools but don't wait for results
       for (const toolCall of clientToolCalls) {
@@ -249,7 +234,7 @@ export class ToolExecutor {
     for (const toolCall of mcpToolCalls) {
       const { toolName, toolUseId, input } = toolCall;
 
-      this.logger.info("MCP tool execution started", {
+      this.logger.info('MCP tool execution started', {
         toolName,
         toolUseId,
         input,
@@ -276,13 +261,12 @@ export class ToolExecutor {
 
         toolResults[toolUseId] = result;
 
-        this.logger.info("Tool execution completed", {
+        this.logger.info('Tool execution completed', {
           toolName,
           toolUseId,
           resultType: typeof result,
-          resultKeys:
-            result && typeof result === "object" ? Object.keys(result) : [],
-          resultLength: typeof result === "string" ? result.length : undefined,
+          resultKeys: result && typeof result === 'object' ? Object.keys(result) : [],
+          resultLength: typeof result === 'string' ? result.length : undefined,
         });
 
         // Log tool execution to LLM logger
@@ -296,10 +280,9 @@ export class ToolExecutor {
 
         streamingCallbacks?.onToolResult?.(toolName, toolUseId, result);
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
 
-        this.logger.error("Tool execution failed", {
+        this.logger.error('Tool execution failed', {
           toolName,
           toolUseId,
           error: errorMessage,
@@ -311,24 +294,20 @@ export class ToolExecutor {
       }
     }
 
-    this.logger.info("All tools executed", {
+    this.logger.info('All tools executed', {
       toolResultsCount: Object.keys(toolResults).length,
-      successfulTools: Object.entries(toolResults).filter(
-        ([, result]) => !result.error
-      ).length,
-      failedTools: Object.entries(toolResults).filter(
-        ([, result]) => result.error
-      ).length,
+      successfulTools: Object.entries(toolResults).filter(([, result]) => !result.error).length,
+      failedTools: Object.entries(toolResults).filter(([, result]) => result.error).length,
     });
 
     // Create user message with tool result blocks for all executed tools
     // CRITICAL: Ensure content array is not empty
     const toolResultContent = newToolCalls
-      .filter((tc) => !tc.toolName.startsWith("ag_ui__")) // Only MCP tools
+      .filter((tc) => !tc.toolName.startsWith('ag_ui__')) // Only MCP tools
       .map((tc) => {
         // Truncate tool result to prevent API input size errors
         const truncatedResult = truncateToolResult(
-          toolResults[tc.toolUseId] || { error: "No result found" }
+          toolResults[tc.toolUseId] || { error: 'No result found' }
         );
         return {
           toolResult: {
@@ -340,7 +319,7 @@ export class ToolExecutor {
 
     // Only create the message if we have tool results
     if (toolResultContent.length === 0) {
-      this.logger.warn("No tool results to send back to model");
+      this.logger.warn('No tool results to send back to model');
       return {
         toolResults: {},
         shouldContinue: false,
@@ -349,7 +328,7 @@ export class ToolExecutor {
     }
 
     const toolResultMessage = {
-      role: "user" as const,
+      role: 'user' as const,
       content: toolResultContent,
     };
 
@@ -366,36 +345,31 @@ export class ToolExecutor {
    */
   private async executeToolCall(toolName: string, input: any): Promise<any> {
     // Check if this is a client tool (should not reach here)
-    if (toolName.startsWith("ag_ui__")) {
-      this.logger.warn(
-        "Client tool reached server execution - this should not happen",
-        { toolName }
-      );
+    if (toolName.startsWith('ag_ui__')) {
+      this.logger.warn('Client tool reached server execution - this should not happen', {
+        toolName,
+      });
       return {
-        error: "Client tools should be executed by the client, not the server",
+        error: 'Client tools should be executed by the client, not the server',
         toolName,
       };
     }
 
     // Execute MCP tool call
     // Tool names come in format: serverName__toolName
-    const parts = toolName.split("__");
+    const parts = toolName.split('__');
     const serverName = parts[0];
-    const actualToolName = parts.slice(1).join("__");
+    const actualToolName = parts.slice(1).join('__');
 
     const client = this.mcpClients[serverName];
     if (!client) {
-      throw new Error(
-        `MCP server ${serverName} not found for tool ${toolName}`
-      );
+      throw new Error(`MCP server ${serverName} not found for tool ${toolName}`);
     }
 
     const tools = client.getTools();
     const tool = tools.find((t) => t.name === actualToolName);
     if (!tool) {
-      throw new Error(
-        `Tool ${actualToolName} not found in server ${serverName}`
-      );
+      throw new Error(`Tool ${actualToolName} not found in server ${serverName}`);
     }
 
     return await client.executeTool(actualToolName, input);

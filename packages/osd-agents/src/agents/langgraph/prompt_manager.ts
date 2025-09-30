@@ -1,12 +1,18 @@
-import { readFileSync, existsSync } from "fs";
-import { join } from "path";
-import { Logger } from "../../utils/logger";
-import { BaseMCPClient } from "../../mcp";
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import * as yaml from 'js-yaml';
+import { Logger } from '../../utils/logger';
+import { BaseMCPClient } from '../../mcp';
 
 export class PromptManager {
   private logger: Logger;
   private mcpClients: Record<string, BaseMCPClient>;
-  private baseSystemPrompt: string = "";
+  private baseSystemPrompt: string = '';
 
   constructor(logger: Logger, mcpClients: Record<string, BaseMCPClient>) {
     this.logger = logger;
@@ -19,21 +25,18 @@ export class PromptManager {
   loadSystemPrompt(customSystemPrompt?: string): void {
     if (customSystemPrompt) {
       this.baseSystemPrompt = this.enhanceSystemPrompt(customSystemPrompt);
-      this.logger.info(
-        "Using enhanced custom system prompt with dynamic content",
-        {
-          customPromptLength: customSystemPrompt.length,
-          finalPromptLength: this.baseSystemPrompt.length,
-          customPromptPreview: customSystemPrompt.substring(0, 200) + "...",
-        }
-      );
+      this.logger.info('Using enhanced custom system prompt with dynamic content', {
+        customPromptLength: customSystemPrompt.length,
+        finalPromptLength: this.baseSystemPrompt.length,
+        customPromptPreview: customSystemPrompt.substring(0, 200) + '...',
+      });
     } else {
       // Always use dynamic system prompt that describes actual MCP tools
       this.baseSystemPrompt = this.getDefaultSystemPrompt();
-      this.logger.info("Using dynamic system prompt with MCP tools", {
+      this.logger.info('Using dynamic system prompt with MCP tools', {
         promptLength: this.baseSystemPrompt.length,
         connectedServers: Object.keys(this.mcpClients).length,
-        promptPreview: this.baseSystemPrompt.substring(0, 200) + "...",
+        promptPreview: this.baseSystemPrompt.substring(0, 200) + '...',
       });
     }
   }
@@ -74,12 +77,9 @@ ${JSON.stringify(clientState, null, 2)}
 - **Dataset**: If \`dataContext.dataset.title\` exists, use it as the index pattern for OpenSearch queries
 - **Query**: The \`query\` field contains the current PPL query shown in the UI - modify it when users request query changes
 `;
-      prompt = prompt.replace("{{CLIENT_STATE}}", stateContent);
+      prompt = prompt.replace('{{CLIENT_STATE}}', stateContent);
     } else {
-      prompt = prompt.replace(
-        "{{CLIENT_STATE}}",
-        "// No client state provided"
-      );
+      prompt = prompt.replace('{{CLIENT_STATE}}', '// No client state provided');
     }
 
     // Inject client context with usage guidance
@@ -98,12 +98,9 @@ ${JSON.stringify(clientContext, null, 2)}
 - Consider this context when making decisions or providing responses
 - Context is read-only and should not be modified
 `;
-      prompt = prompt.replace("{{CLIENT_CONTEXT}}", contextContent);
+      prompt = prompt.replace('{{CLIENT_CONTEXT}}', contextContent);
     } else {
-      prompt = prompt.replace(
-        "{{CLIENT_CONTEXT}}",
-        "// No client context provided"
-      );
+      prompt = prompt.replace('{{CLIENT_CONTEXT}}', '// No client context provided');
     }
 
     // Inject AG UI tools (client-executed tools)
@@ -121,9 +118,9 @@ ${this.formatClientTools(clientTools)}
 - This allows for asynchronous, non-blocking tool execution
 - Use these tools for UI interactions, state updates, and client-side operations
 `;
-      prompt = prompt.replace("{{AG_UI_TOOLS}}", toolsContent);
+      prompt = prompt.replace('{{AG_UI_TOOLS}}', toolsContent);
     } else {
-      prompt = prompt.replace("{{AG_UI_TOOLS}}", "// No client tools provided");
+      prompt = prompt.replace('{{AG_UI_TOOLS}}', '// No client tools provided');
     }
 
     return prompt;
@@ -131,20 +128,19 @@ ${this.formatClientTools(clientTools)}
 
   private getDefaultSystemPrompt(): string {
     // Load observability agent template and inject dynamic MCP tool information
-    const aiAgentPromptPath = join(__dirname, "../../prompts/observability-prompt.md");
+    const aiAgentPromptPath = join(__dirname, '../../prompts/observability-prompt.md');
 
     if (!existsSync(aiAgentPromptPath)) {
-      this.logger.warn("observability-prompt.md not found, falling back to basic prompt");
+      this.logger.warn('observability-prompt.md not found, falling back to basic prompt');
       return this.getFallbackSystemPrompt();
     }
 
     try {
-      let aiAgentPrompt = readFileSync(aiAgentPromptPath, "utf-8");
+      const aiAgentPrompt = readFileSync(aiAgentPromptPath, 'utf-8');
       return this.enhanceSystemPrompt(aiAgentPrompt);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error("Failed to load observability-prompt.md", {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Failed to load observability-prompt.md', {
         error: errorMessage,
       });
       return this.getFallbackSystemPrompt();
@@ -159,15 +155,12 @@ ${this.formatClientTools(clientTools)}
     // Only replace MCP and validation placeholders during initialization
     // Client-specific placeholders (CLIENT_STATE, CLIENT_CONTEXT, AG_UI_TOOLS)
     // are preserved for runtime injection via injectClientDataIntoPrompt
-    let enhancedPrompt = prompt.replace(
-      "{{MCP_TOOL_DESCRIPTIONS}}",
-      toolDescriptions
-    );
+    let enhancedPrompt = prompt.replace('{{MCP_TOOL_DESCRIPTIONS}}', toolDescriptions);
 
     // Only replace TOOL_PARAMETER_VALIDATION_RULES if the placeholder exists
-    if (enhancedPrompt.includes("{{TOOL_PARAMETER_VALIDATION_RULES}}")) {
+    if (enhancedPrompt.includes('{{TOOL_PARAMETER_VALIDATION_RULES}}')) {
       enhancedPrompt = enhancedPrompt.replace(
-        "{{TOOL_PARAMETER_VALIDATION_RULES}}",
+        '{{TOOL_PARAMETER_VALIDATION_RULES}}',
         toolValidationRules
       );
     }
@@ -180,12 +173,10 @@ ${this.formatClientTools(clientTools)}
       .map((tool) => {
         const params = tool.parameters
           ? `\n  Parameters: ${JSON.stringify(tool.parameters, null, 2)}`
-          : "\n  Parameters: None";
-        return `- **${tool.name}**: ${
-          tool.description || "No description"
-        }${params}`;
+          : '\n  Parameters: None';
+        return `- **${tool.name}**: ${tool.description || 'No description'}${params}`;
       })
-      .join("\n");
+      .join('\n');
   }
 
   private getFallbackSystemPrompt(): string {
@@ -250,7 +241,7 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
 
   private generateToolDescriptions(): string {
     if (Object.keys(this.mcpClients).length === 0) {
-      return "No MCP tools currently available.";
+      return 'No MCP tools currently available.';
     }
 
     const descriptions: string[] = [];
@@ -262,40 +253,35 @@ Remember: Tool parameter validation errors should trigger immediate self-correct
 
         for (const tool of serverTools) {
           let toolDescription = `- **${tool.name}**: ${
-            tool.description || "No description available"
+            tool.description || 'No description available'
           }`;
 
-          if (
-            tool.inputSchema.required &&
-            tool.inputSchema.required.length > 0
-          ) {
-            toolDescription += `\n  - Required parameters: ${tool.inputSchema.required.join(
-              ", "
-            )}`;
+          if (tool.inputSchema.required && tool.inputSchema.required.length > 0) {
+            toolDescription += `\n  - Required parameters: ${tool.inputSchema.required.join(', ')}`;
           }
 
           descriptions.push(toolDescription);
         }
-        descriptions.push(""); // Add blank line between servers
+        descriptions.push(''); // Add blank line between servers
       }
     }
 
-    return descriptions.join("\n");
+    return descriptions.join('\n');
   }
 
   private getOpenSearchClusterContext(): string {
     // Check if OpenSearch MCP server is connected
-    if (!this.mcpClients["opensearch-mcp-server"]) {
-      return "";
+    if (!this.mcpClients['opensearch-mcp-server']) {
+      return '';
     }
 
     try {
       const clusters = this.getAvailableOpenSearchClusters();
       if (clusters.length === 0) {
-        return "";
+        return '';
       }
 
-      const clusterInfo = clusters.map((cluster) => `- ${cluster}`).join("\n");
+      const clusterInfo = clusters.map((cluster) => `- ${cluster}`).join('\n');
 
       return `
 OPENSEARCH CLUSTER INFORMATION:
@@ -310,52 +296,39 @@ IMPORTANT: When using OpenSearch tools, you MUST specify which cluster to use wi
 
 Example: If user says "search the osd-ops cluster", use opensearch_cluster_name: "osd-ops" for subsequent OpenSearch operations.`;
     } catch (error) {
-      this.logger.debug("Could not get OpenSearch cluster context", { error });
-      return "";
+      this.logger.debug('Could not get OpenSearch cluster context', { error });
+      return '';
     }
   }
 
   private getAvailableOpenSearchClusters(): string[] {
     try {
-      const fs = require("fs");
-      const yaml = require("js-yaml");
-      const path = require("path");
-
       // Get config path from MCP server configuration
-      const opensearchConfig =
-        this.mcpClients["opensearch-mcp-server"]?.getConfig();
+      const opensearchConfig = this.mcpClients['opensearch-mcp-server']?.getConfig();
       if (!opensearchConfig?.args) {
         return [];
       }
 
-      const configIndex = opensearchConfig.args.findIndex(
-        (arg) => arg === "--config"
-      );
-      if (
-        configIndex === -1 ||
-        configIndex + 1 >= opensearchConfig.args.length
-      ) {
+      const configIndex = opensearchConfig.args.findIndex((arg) => arg === '--config');
+      if (configIndex === -1 || configIndex + 1 >= opensearchConfig.args.length) {
         return [];
       }
 
-      const configPath = path.resolve(
-        process.cwd(),
-        opensearchConfig.args[configIndex + 1]
-      );
-      if (!fs.existsSync(configPath)) {
+      const configPath = join(process.cwd(), opensearchConfig.args[configIndex + 1]);
+      if (!existsSync(configPath)) {
         return [];
       }
 
-      const configContent = fs.readFileSync(configPath, "utf8");
-      const config = yaml.load(configContent);
+      const configContent = readFileSync(configPath, 'utf8');
+      const config = yaml.load(configContent) as any;
 
-      if (config?.clusters && typeof config.clusters === "object") {
+      if (config?.clusters && typeof config.clusters === 'object') {
         return Object.keys(config.clusters);
       }
 
       return [];
     } catch (error) {
-      this.logger.debug("Error reading OpenSearch clusters", { error });
+      this.logger.debug('Error reading OpenSearch clusters', { error });
       return [];
     }
   }

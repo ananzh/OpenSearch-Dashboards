@@ -1,16 +1,23 @@
-import { BaseMCPClient, LocalMCPClient, HTTPMCPClient } from "../../mcp/index";
-import { MCPServerConfig } from "../../types/mcp-types";
-import { Logger } from "../../utils/logger";
-import { BaseAgent, StreamingCallbacks } from "../base-agent";
-import readline from "readline";
-import { LLMRequestLogger } from "../../utils/llm-request-logger";
-import { BedrockClient } from "./bedrock-client";
-import { PromptManager } from "./prompt-manager";
-import { ReactGraphBuilder } from "./react-graph-builder";
-import { ToolExecutor } from "./tool-executor";
-import { ReactGraphNodes } from "./react-graph-nodes";
-import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
-import { StateGraph } from "@langchain/langgraph";
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
+import readline from 'readline';
+import { BedrockRuntimeClient } from '@aws-sdk/client-bedrock-runtime';
+import { StateGraph } from '@langchain/langgraph';
+import { BaseMCPClient, LocalMCPClient, HTTPMCPClient } from '../../mcp/index';
+import { MCPServerConfig } from '../../types/mcp-types';
+import { Logger } from '../../utils/logger';
+import { BaseAgent, StreamingCallbacks } from '../base-agent';
+import { LLMRequestLogger } from '../../utils/llm-request-logger';
+import { BedrockClient } from './bedrock-client';
+import { PromptManager } from './prompt-manager';
+import { ReactGraphBuilder } from './react-graph-builder';
+import { ToolExecutor } from './tool-executor';
+import { ReactGraphNodes } from './react-graph-nodes';
 
 // Configuration constants
 const REACT_MAX_ITERATIONS = 10; // Maximum tool execution cycles before forcing final response
@@ -77,18 +84,18 @@ export class ReactAgent implements BaseAgent {
       this.toolExecutor
     );
 
-    this.logger.info("ReAct Agent initialized with component architecture");
+    this.logger.info('ReAct Agent initialized with component architecture');
   }
 
   getAgentType(): string {
-    return "react";
+    return 'react';
   }
 
   async initialize(
     configs: Record<string, MCPServerConfig>,
     customSystemPrompt?: string
   ): Promise<void> {
-    this.logger.info("Initializing ReAct Agent", {
+    this.logger.info('Initializing ReAct Agent', {
       serverCount: Object.keys(configs).length,
       servers: Object.keys(configs),
     });
@@ -99,7 +106,7 @@ export class ReactAgent implements BaseAgent {
 
       // Create appropriate client based on config type
       let client: BaseMCPClient;
-      if (config.type === "http") {
+      if (config.type === 'http') {
         client = new HTTPMCPClient(config, name, this.logger);
       } else {
         client = new LocalMCPClient(config, name, this.logger);
@@ -109,9 +116,7 @@ export class ReactAgent implements BaseAgent {
       this.mcpClients[name] = client;
 
       const tools = client.getTools();
-      this.logger.info(
-        `Connected to ${name}, available tools: ${tools.length}`
-      );
+      this.logger.info(`Connected to ${name}, available tools: ${tools.length}`);
     }
 
     // Update prompt manager with connected MCP clients
@@ -132,7 +137,7 @@ export class ReactAgent implements BaseAgent {
 
     this.buildStateGraph();
 
-    this.logger.info("ReAct Agent initialization complete", {
+    this.logger.info('ReAct Agent initialization complete', {
       totalTools: this.getAllTools().length,
     });
   }
@@ -145,10 +150,6 @@ export class ReactAgent implements BaseAgent {
       this.graphNodes.generateResponseNode.bind(this.graphNodes)
     );
   }
-
-
-
-
 
   async processMessageWithCallbacks(
     messages: any[], // Full conversation history from UI
@@ -175,14 +176,14 @@ export class ReactAgent implements BaseAgent {
 
       // Always initialize LLM logger for this run (even without IDs)
       this.llmLogger.startRun(
-        additionalInputs?.runId || "unknown-run",
-        additionalInputs?.threadId || "unknown-thread"
+        additionalInputs?.runId || 'unknown-run',
+        additionalInputs?.threadId || 'unknown-thread'
       );
 
       // Create initial state with the full conversation history
       const initialState: ReactAgentState = {
-        messages: messages, // Use the messages directly from UI
-        currentStep: "processInput",
+        messages, // Use the messages directly from UI
+        currentStep: 'processInput',
         toolCalls: [],
         toolResults: {},
         iterations: 0,
@@ -201,16 +202,15 @@ export class ReactAgent implements BaseAgent {
       // Run the graph - unique config per request for stateless operation
       const config = {
         configurable: {
-          thread_id: `${additionalInputs?.threadId || "session"}_${
+          thread_id: `${additionalInputs?.threadId || 'session'}_${
             additionalInputs?.runId || Date.now()
           }`,
         },
       };
       await this.compiledGraph.invoke(initialState, config);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error("Error processing message with callbacks", {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Error processing message with callbacks', {
         error: errorMessage,
       });
       callbacks.onError?.(errorMessage);
@@ -220,7 +220,7 @@ export class ReactAgent implements BaseAgent {
   async sendMessage(message: string): Promise<void> {
     // For CLI mode - create a simple message array with just the user message
     // In CLI mode, we don't maintain conversation history (stateless)
-    const messages = [{ role: "user", content: [{ text: message }] }];
+    const messages = [{ role: 'user', content: [{ text: message }] }];
 
     const callbacks: StreamingCallbacks = {
       onTextStart: (text: string) => {
@@ -230,25 +230,20 @@ export class ReactAgent implements BaseAgent {
         process.stdout.write(delta);
       },
       onToolUseStart: (toolName: string, _toolUseId: string, input: any) => {
-        console.log(
-          `\n🔧 Using tool: ${toolName.split("__").pop() || toolName}`
-        );
+        console.log(`\n🔧 Using tool: ${toolName.split('__').pop() || toolName}`);
         console.log(`   Input: ${JSON.stringify(input, null, 2)}`);
       },
       onToolResult: (toolName: string, _toolUseId: string, result: any) => {
-        console.log(
-          `✅ Tool result:`,
-          JSON.stringify(result, null, 2).substring(0, 500)
-        );
+        console.log(`✅ Tool result:`, JSON.stringify(result, null, 2).substring(0, 500));
       },
       onToolError: (toolName: string, _toolUseId: string, error: string) => {
         console.log(`❌ Tool error:`, error);
       },
       onTurnComplete: () => {
-        console.log("\n");
+        console.log('\n');
       },
       onError: (error: string) => {
-        console.error("Error:", error);
+        console.error('Error:', error);
       },
     };
 
@@ -260,25 +255,25 @@ export class ReactAgent implements BaseAgent {
   }
 
   async startInteractiveMode(): Promise<void> {
-    console.log("🤖 ReAct Agent Ready!");
-    console.log("📊 Using ReAct pattern (Reasoning + Acting) with MCP tools");
+    console.log('🤖 ReAct Agent Ready!');
+    console.log('📊 Using ReAct pattern (Reasoning + Acting) with MCP tools');
     console.log('💡 Type your message or "exit" to quit\n');
 
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: "> ",
+      prompt: '> ',
     });
 
     // Return a Promise that resolves only when user quits
     return new Promise<void>((resolve) => {
       this.rl!.prompt();
 
-      this.rl!.on("line", async (line) => {
+      this.rl!.on('line', async (line) => {
         const input = line.trim();
 
-        if (input.toLowerCase() === "exit" || input.toLowerCase() === "quit") {
-          console.log("👋 Goodbye!");
+        if (input.toLowerCase() === 'exit' || input.toLowerCase() === 'quit') {
+          console.log('👋 Goodbye!');
           this.cleanup();
           resolve(); // Resolve the Promise instead of calling process.exit(0)
           return;
@@ -291,15 +286,15 @@ export class ReactAgent implements BaseAgent {
         this.rl!.prompt();
       });
 
-      this.rl!.on("close", () => {
-        console.log("\n👋 Goodbye!");
+      this.rl!.on('close', () => {
+        console.log('\n👋 Goodbye!');
         this.cleanup();
         resolve(); // Resolve the Promise instead of calling process.exit(0)
       });
     });
   }
 
-  get systemPrompt(): string {
+  public get systemPrompt(): string {
     return this.promptManager.getBaseSystemPrompt();
   }
 
@@ -313,6 +308,6 @@ export class ReactAgent implements BaseAgent {
       client.disconnect();
     }
 
-    this.logger.info("ReAct Agent cleanup completed");
+    this.logger.info('ReAct Agent cleanup completed');
   }
 }

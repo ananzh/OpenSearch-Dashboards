@@ -1,4 +1,11 @@
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
+import { writeFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 
 interface LLMRequest {
@@ -96,8 +103,8 @@ export class LLMRequestLogger {
       totalMetrics: {
         totalDuration: 0,
         totalIterations: 0,
-        totalToolCalls: 0
-      }
+        totalToolCalls: 0,
+      },
     };
     this.currentIteration = null;
   }
@@ -129,15 +136,15 @@ export class LLMRequestLogger {
       iterationNumber,
       request: {
         ...request,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       response: {
         ...response,
         timestamp: new Date().toISOString(),
-        duration
+        duration,
       },
       toolExecutions: [],
-      duration
+      duration,
     };
 
     this.currentIteration = iteration;
@@ -173,7 +180,7 @@ export class LLMRequestLogger {
       result,
       duration,
       success,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.currentIteration.toolExecutions.push(toolExecution);
@@ -194,7 +201,8 @@ export class LLMRequestLogger {
     if (metrics) {
       if (metrics.totalTokens) this.lastRunData.totalMetrics.totalTokens = metrics.totalTokens;
       if (metrics.promptTokens) this.lastRunData.totalMetrics.promptTokens = metrics.promptTokens;
-      if (metrics.completionTokens) this.lastRunData.totalMetrics.completionTokens = metrics.completionTokens;
+      if (metrics.completionTokens)
+        this.lastRunData.totalMetrics.completionTokens = metrics.completionTokens;
     }
 
     this.saveToFile();
@@ -214,11 +222,14 @@ export class LLMRequestLogger {
 
     this.lastRunData.errors.push({
       timestamp: new Date().toISOString(),
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      } : error
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            }
+          : error,
     });
 
     this.saveToFile();
@@ -240,7 +251,10 @@ export class LLMRequestLogger {
 
     // Also clear the file
     if (existsSync(this.logFile)) {
-      writeFileSync(this.logFile, JSON.stringify({ cleared: true, timestamp: new Date().toISOString() }, null, 2));
+      writeFileSync(
+        this.logFile,
+        JSON.stringify({ cleared: true, timestamp: new Date().toISOString() }, null, 2)
+      );
     }
   }
 
@@ -268,7 +282,8 @@ export class LLMRequestLogger {
     }
 
     try {
-      const data = require(this.logFile);
+      const content = readFileSync(this.logFile, 'utf8');
+      const data = JSON.parse(content);
       if (data && !data.cleared) {
         this.lastRunData = data;
         return data;

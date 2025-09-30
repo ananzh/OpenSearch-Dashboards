@@ -1,23 +1,30 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { join } from 'path';
-import { BaseLogger } from './base-logger';
 import { BaseEvent } from '@ag-ui/core';
+import { BaseLogger } from './base-logger';
 
 /**
  * Audit logger for AG UI events - creates request-specific log files
  */
 export class AGUIAuditLogger extends BaseLogger {
-  private activeRequests = new Map<string, {
-    threadId: string;
-    runId: string;
-    requestId?: string;
-    logFile: string;
-    startTime: number;
-  }>();
+  private activeRequests = new Map<
+    string,
+    {
+      threadId: string;
+      runId: string;
+      requestId?: string;
+      logFile: string;
+      startTime: number;
+    }
+  >();
 
   constructor(auditDir: string = join(__dirname, '../../audit-logs')) {
     super(auditDir);
   }
-
 
   /**
    * Start audit logging for a request
@@ -33,7 +40,7 @@ export class AGUIAuditLogger extends BaseLogger {
       runId,
       requestId,
       logFile,
-      startTime: timestamp.unix
+      startTime: timestamp.unix,
     });
 
     const entry = {
@@ -43,7 +50,7 @@ export class AGUIAuditLogger extends BaseLogger {
       event_type: 'REQUEST_START',
       thread_id: threadId,
       run_id: runId,
-      request_id: requestId
+      request_id: requestId,
     };
 
     this.writeToFile(logFile, JSON.stringify(entry) + '\n');
@@ -74,8 +81,8 @@ export class AGUIAuditLogger extends BaseLogger {
         type: event.type,
         timestamp: event.timestamp,
         timestamp_human: this.toHumanTimestamp(event.timestamp),
-        ...this.sanitizeEvent(event)
-      }
+        ...this.sanitizeEvent(event),
+      },
     };
 
     this.writeToFile(request.logFile, JSON.stringify(entry) + '\n');
@@ -102,7 +109,7 @@ export class AGUIAuditLogger extends BaseLogger {
       thread_id: threadId,
       run_id: runId,
       request_id: request.requestId,
-      http_request: requestData
+      http_request: requestData,
     };
 
     this.writeToFile(request.logFile, JSON.stringify(entry) + '\n');
@@ -128,7 +135,7 @@ export class AGUIAuditLogger extends BaseLogger {
       event_type: 'VALIDATION_ERROR',
       thread_id: threadId,
       run_id: runId,
-      validation_errors: errors
+      validation_errors: errors,
     };
 
     this.writeToFile(request.logFile, JSON.stringify(entry) + '\n');
@@ -137,7 +144,12 @@ export class AGUIAuditLogger extends BaseLogger {
   /**
    * End audit logging for a request
    */
-  endRequest(threadId: string, runId: string, outcome: 'success' | 'error' | 'cancelled', errorMessage?: string): void {
+  endRequest(
+    threadId: string,
+    runId: string,
+    outcome: 'success' | 'error' | 'cancelled',
+    errorMessage?: string
+  ): void {
     const requestKey = `${threadId}_${runId}`;
     const request = this.activeRequests.get(requestKey);
 
@@ -156,7 +168,7 @@ export class AGUIAuditLogger extends BaseLogger {
       request_id: request.requestId,
       outcome,
       duration_ms: duration,
-      error_message: errorMessage || null
+      error_message: errorMessage || null,
     };
 
     this.writeToFile(request.logFile, JSON.stringify(entry) + '\n');

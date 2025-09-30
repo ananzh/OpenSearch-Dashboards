@@ -1,14 +1,21 @@
 #!/usr/bin/env ts-node
 
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
 /**
  * Universal Agent CLI with Bedrock ConverseStream API and MCP Server Integration
- * 
+ *
  * This script creates any agent that:
  * 1. Uses AWS Bedrock ConverseStream API for real-time responses
  * 2. Connects to local MCP servers via stdio
  * 3. Uses agent-specific system prompts
  * 4. Handles tool calls through MCP protocol
- * 
+ *
  * Supports multiple agent types: jarvis, langgraph, strands (future)
  */
 
@@ -24,18 +31,19 @@ dotenv.config();
 // Main execution
 async function main() {
   const logger = new Logger();
-  
+
   // Parse CLI arguments for agent selection
   const args = process.argv.slice(2);
-  const agentTypeIndex = args.findIndex(arg => arg === '--agent' || arg === '-a');
-  
+  const agentTypeIndex = args.findIndex((arg) => arg === '--agent' || arg === '-a');
+
   // Get agent type from multiple sources (CLI args, env var, or default)
-  const agentType = agentTypeIndex !== -1 && args[agentTypeIndex + 1] 
-    ? args[agentTypeIndex + 1]
-    : process.env.AGENT_TYPE || 
-      args[0] || // Legacy support for direct agent type as first arg
-      AgentFactory.getDefaultAgentType();
-  
+  const agentType =
+    agentTypeIndex !== -1 && args[agentTypeIndex + 1]
+      ? args[agentTypeIndex + 1]
+      : process.env.AGENT_TYPE ||
+        args[0] || // Legacy support for direct agent type as first arg
+        AgentFactory.getDefaultAgentType();
+
   logger.info(`🚀 Starting ${agentType} Agent with MCP Integration`);
   console.log(`🚀 Starting ${agentType} Agent with MCP Integration...\n`);
 
@@ -46,7 +54,7 @@ async function main() {
     const agent = AgentFactory.createAgent(agentType);
 
     // Check for custom system prompt file path from environment variable
-    let customSystemPrompt: string | undefined = undefined;
+    let customSystemPrompt: string | undefined;
     const systemPromptPath = process.env.SYSTEM_PROMPT;
     if (systemPromptPath) {
       try {
@@ -58,7 +66,10 @@ async function main() {
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error('Failed to load system prompt file', { path: systemPromptPath, error: errorMessage });
+        logger.error('Failed to load system prompt file', {
+          path: systemPromptPath,
+          error: errorMessage,
+        });
       }
     }
 
@@ -68,7 +79,7 @@ async function main() {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Failed to start agent', { error: errorMessage, agentType });
     console.error('Failed to start agent:', errorMessage);
-    
+
     if (errorMessage.includes('Unknown agent type')) {
       const availableAgents = AgentFactory.getAvailableAgents();
       console.log('\nAvailable agent types:');
