@@ -2,19 +2,16 @@
 /build
 /dist
 /coverage
-CLAUDE.md
-settings.local.json
+/audit-logs
+/logs
+/metrics
 
 # Environment variables
 .env
-.claude
+opensearch-config.yml
 
 # MCP Configuration (may contain API keys)
 **/mcp-config.json
-
-# Logs
-**/logs/
-*.log
 
 # OS generated files
 .DS_Store
@@ -25,17 +22,3 @@ settings.local.json
 ehthumbs.db
 Thumbs.db
 
-opensearch-config.yml
-
-design.excalidraw
-HOLMESGPT*
-
-*/prompts/*
-
-*/docs/*
-
-metrics/*
-
-*/.vscode/*
-
-plantuml.jar

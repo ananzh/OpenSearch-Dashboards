@@ -150,7 +150,7 @@ export class CoActAgent implements BaseAgent {
     if (customSystemPrompt) {
       this.systemPrompt = customSystemPrompt;
     } else {
-      const promptPath = join(__dirname, '../../prompts/observability-prompt.md');
+      const promptPath = join(__dirname, '../../prompts/observability_prompt.md');
 
       try {
         if (existsSync(promptPath)) {

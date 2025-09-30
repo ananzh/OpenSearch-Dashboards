@@ -91,10 +91,10 @@ export class JarvisAgent implements BaseAgent {
 
   private getDefaultSystemPrompt(): string {
     // Load observability agent template and inject dynamic MCP tool information
-    const aiAgentPromptPath = join(__dirname, '../../prompts/observability-prompt.md');
+    const aiAgentPromptPath = join(__dirname, '../../prompts/observability_prompt.md');
 
     if (!existsSync(aiAgentPromptPath)) {
-      this.logger.warn('observability-prompt.md not found, falling back to basic prompt');
+      this.logger.warn('observability_prompt.md not found, falling back to basic prompt');
       return this.getFallbackSystemPrompt();
     }
 
@@ -103,7 +103,7 @@ export class JarvisAgent implements BaseAgent {
       return this.enhanceSystemPrompt(aiAgentPrompt);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error('Failed to load observability-prompt.md', { error: errorMessage });
+      this.logger.error('Failed to load observability_prompt.md', { error: errorMessage });
       return this.getFallbackSystemPrompt();
     }
   }
