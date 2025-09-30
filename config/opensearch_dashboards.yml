@@ -395,4 +395,4 @@
 # datasetManagement.aliasedAsIndexPattern: false
 
 # Enable Chat Plugin
-chat.enabled: true
+# chat.enabled: true
