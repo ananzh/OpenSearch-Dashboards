@@ -4,9 +4,7 @@
  */
 
 import { BaseAgent } from './base_agent';
-import { JarvisAgent } from './jarvis/jarvis_agent';
 import { ReactAgent } from './langgraph/react_agent';
-import { CoActAgent } from './langgraph/coact_agent';
 
 export class AgentFactory {
   /**
@@ -17,20 +15,9 @@ export class AgentFactory {
     const normalizedType = type.toLowerCase().trim();
 
     switch (normalizedType) {
-      case 'jarvis':
-        return new JarvisAgent();
-
       case 'langgraph':
       case 'react':
         return new ReactAgent();
-
-      case 'coact':
-        return new CoActAgent();
-
-      // TODO: Phase 3 - Implement Strands agent
-      // case 'strands':
-      //   const { StrandsAgent } = require('./strands/strands-agent');
-      //   return new StrandsAgent();
 
       default:
         throw new Error(
@@ -43,7 +30,7 @@ export class AgentFactory {
    * Get list of all available agent types
    */
   static getAvailableAgents(): string[] {
-    return ['jarvis', 'langgraph', 'react', 'coact'];
+    return ['react'];
   }
 
   /**
@@ -57,6 +44,6 @@ export class AgentFactory {
    * Get the default agent type
    */
   static getDefaultAgentType(): string {
-    return 'jarvis';
+    return 'react';
   }
 }
