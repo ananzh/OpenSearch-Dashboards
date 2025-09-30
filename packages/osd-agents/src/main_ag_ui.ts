@@ -58,7 +58,7 @@ class BaseAGUIServer {
 
     this.adapter = new BaseAGUIAdapter(agent, config, this.logger, this.auditLogger);
     this.logger.info(`Using BaseAGUIAdapter for ${agentType} agent`);
-    
+
     this.httpServer = new HTTPServer(config, this.adapter, this.logger, this.auditLogger);
   }
 

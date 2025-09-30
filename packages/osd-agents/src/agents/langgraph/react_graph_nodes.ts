@@ -427,8 +427,8 @@ export class ReactGraphNodes {
         // This preserves toolUse and toolResult blocks
         // Filter out empty text blocks to prevent ValidationException
         content: Array.isArray(msg.content)
-          ? msg.content.filter((block: any) => !block.text || block.text.trim() !== "")
-          : [{ text: msg.content || "" }].filter((block: any) => block.text.trim() !== ""),
+          ? msg.content.filter((block: any) => !block.text || block.text.trim() !== '')
+          : [{ text: msg.content || '' }].filter((block: any) => block.text.trim() !== ''),
       }));
 
     // Debug logging to catch toolUse/toolResult mismatch

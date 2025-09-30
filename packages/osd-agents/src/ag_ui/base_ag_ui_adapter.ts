@@ -9,7 +9,7 @@
  * Agent-agnostic adapter that bridges any agent implementing BaseAgent interface
  * with the AG UI protocol using official AG UI types.
  * This adapter converts agent interactions into AG UI compliant events and messages.
- * 
+ *
  *  *
  * ## Event Flow Pattern
  *
@@ -73,7 +73,7 @@ import { BaseAgent, StreamingCallbacks } from '../agents/base_agent';
 import { MCPServerConfig } from '../types/mcp_types';
 import { Logger } from '../utils/logger';
 import { AGUIAuditLogger } from '../utils/ag_ui_audit_logger';
-import { TextMessageManager } from "./managers/text-message-manager";
+import { TextMessageManager } from './managers/text_message_manager';
 
 export interface BaseAGUIConfig {
   port?: number;
@@ -248,11 +248,7 @@ export class BaseAGUIAdapter {
       }
 
       // Start text message stream using TextMessageManager
-      const messageId = this.textMessageManager.startMessage(
-        observer,
-        input.threadId,
-        input.runId
-      );
+      const messageId = this.textMessageManager.startMessage(observer, input.threadId, input.runId);
 
       // Run the agent with streaming integration
       // Pass the full messages array instead of extracting text
@@ -461,14 +457,14 @@ export class BaseAGUIAdapter {
           }
 
           // Emit proper TOOL_CALL_START event with parentMessageId
-          const actualToolName = toolName.split("__")[1] || toolName;
+          const actualToolName = toolName.split('__')[1] || toolName;
 
           this.emitAndAuditEvent(
             {
               type: EventType.TOOL_CALL_START,
               toolCallId: toolUseId,
               toolCallName: actualToolName,
-              parentMessageId: parentMessageId, // Add parentMessageId field as per AG UI spec
+              parentMessageId, // Add parentMessageId field as per AG UI spec
               timestamp: Date.now(),
             } as ToolCallStartEvent,
             observer,
@@ -500,14 +496,13 @@ export class BaseAGUIAdapter {
             threadId,
             runId
           );
-
         },
         onToolResult: (toolName: string, toolUseId: string, result: any) => {
           // Update tool completion tracking
           this.toolCallsCompleted++;
           this.toolCallsPending = Math.max(0, this.toolCallsPending - 1);
 
-          const actualToolName = toolName.split("__")[1] || toolName;
+          const actualToolName = toolName.split('__')[1] || toolName;
 
           // 1. End current text message if still active (should not be active due to interruption)
           if (this.textMessageManager.isMessageActive()) {
@@ -533,7 +528,6 @@ export class BaseAGUIAdapter {
             // All tools completed - start new text message for continuation
             this.textMessageManager.resumeAfterTools(observer, threadId, runId);
           }
-
         },
         onToolError: (toolName: string, toolUseId: string, error: string) => {
           // Emit RUN_ERROR for tool failures

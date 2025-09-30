@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * TextMessageManager
  *
@@ -24,7 +29,7 @@ import {
   TextMessageContentEvent,
   TextMessageEndEvent,
 } from '@ag-ui/core';
-import { AGUIAuditLogger } from '../../utils/ag-ui-audit-logger';
+import { AGUIAuditLogger } from '../../utils/ag_ui_audit_logger';
 
 export class TextMessageManager {
   private currentMessageId?: string;

@@ -225,7 +225,7 @@ export class BedrockClient {
     // log a warning but don't add empty text block to avoid ValidationException
     if (result.message.content.length === 0 && !hasAnyContent) {
       this.logger.warn(
-        "No content blocks received from Bedrock - this may indicate an issue with the response"
+        'No content blocks received from Bedrock - this may indicate an issue with the response'
       );
     }
 
