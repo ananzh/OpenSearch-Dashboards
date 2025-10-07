@@ -5,7 +5,7 @@
 
 /* eslint-disable no-console */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CoreStart } from '../../../../core/public';
 import { useChatContext } from '../contexts/chat_context';
 import { ChatEventHandler } from '../services/chat_event_handler';
@@ -62,6 +62,13 @@ function ChatWindowContent({
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
 
+  // Use ref to store current timeline for stable callback
+  const timelineRef = useRef<Message[]>([]);
+  timelineRef.current = timeline;
+
+  // Create stable callback that reads from ref
+  const getTimelineCallback = useCallback(() => timelineRef.current, []);
+
   // Create the event handler using useMemo
   const eventHandler = useMemo(
     () =>
@@ -70,9 +77,9 @@ function ChatWindowContent({
         chatService,
         setTimeline,
         setIsStreaming,
-        () => timeline
+        getTimelineCallback
       ),
-    [service, chatService, timeline] // Only recreate if services change
+    [service, chatService, getTimelineCallback] // All dependencies are stable
   );
 
   // Register actions

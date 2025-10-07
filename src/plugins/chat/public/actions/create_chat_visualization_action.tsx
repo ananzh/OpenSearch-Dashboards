@@ -180,46 +180,47 @@ export function useCreateChatVisualizationAction() {
     useAssistantAction !== NOOP_ASSISTANT_ACTION_HOOK
   );
 
-  useAssistantAction<CreateChatVisualizationArgs>({
+  const actionConfig = {
     name: 'create_chat_visualization',
+    enabled: true,
     description:
       'Create a visualization in chat from the most recent query results. Supports auto-detection of chart types or specific chart type requests. Must be used after execute_ppl_query.',
     parameters: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         chartType: {
-          type: 'string',
+          type: 'string' as const,
           enum: ['line', 'bar', 'area', 'pie', 'metric', 'heatmap', 'scatter', 'table'],
           description:
             'Specific chart type to create. If not provided, will auto-detect based on data and user intent',
         },
         title: {
-          type: 'string',
+          type: 'string' as const,
           description: 'Optional title for the visualization',
         },
         description: {
-          type: 'string',
+          type: 'string' as const,
           description: 'Optional description - can be used to infer chart type from user intent',
         },
         autoDetect: {
-          type: 'boolean',
+          type: 'boolean' as const,
           description: 'Whether to automatically detect the best chart type (default: true)',
         },
         dataSource: {
-          type: 'string',
+          type: 'string' as const,
           enum: ['latest_query', 'provided_data'],
           description: 'Source of data for visualization (default: latest_query)',
         },
         data: {
-          type: 'object',
+          type: 'object' as const,
           description: 'Optional: provide data directly instead of using latest query results',
           properties: {
             hits: {
-              type: 'array',
+              type: 'array' as const,
               description: 'Array of OpenSearch hits with _source data',
             },
             fieldSchema: {
-              type: 'array',
+              type: 'array' as const,
               description: 'Array of field schemas with name and type',
             },
           },
@@ -227,16 +228,13 @@ export function useCreateChatVisualizationAction() {
       },
       required: [],
     },
-
-    handler: async (args) => {
+    handler: async (args: CreateChatVisualizationArgs) => {
       console.log('[useCreateChatVisualizationAction] Handler called with args:', args);
-      // Delegate to the helper function
       const result = await createChatVisualization(args);
       console.log('[useCreateChatVisualizationAction] Handler result:', result);
       return result;
     },
-
-    render: ({ status, args, result }) => {
+    render: ({ status, args, result }: any) => {
       if (!args) return null;
 
       const getStatusColor = () => {
@@ -304,7 +302,14 @@ export function useCreateChatVisualizationAction() {
         </EuiPanel>
       );
     },
-  });
+  };
+
+  console.log(
+    '[useCreateChatVisualizationAction] About to call useAssistantAction with config:',
+    actionConfig
+  );
+
+  useAssistantAction<CreateChatVisualizationArgs>(actionConfig);
 }
 
 /**
