@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { EuiPanel, EuiText, EuiSpacer, EuiCode, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
-import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { useOpenSearchDashboards } from '../../../opensearch_dashboards_react/public';
 import { ChatDataProcessor } from '../components/visualization/utils/data_processor';
 import { ChartIntentParser } from '../components/visualization/utils/intent_parser';
 import { VegaSpecGenerator } from '../components/visualization/specs/vega_spec_generator';
@@ -371,7 +371,7 @@ const ExpressionRenderer: React.FC<any> = ({ expression, searchContext, onRender
   const [Component, setComponent] = React.useState<any>(null);
 
   React.useEffect(() => {
-    import('../../../../expressions/public').then(({ ReactExpressionRenderer }) => {
+    import('../../../expressions/public').then(({ ReactExpressionRenderer }) => {
       setComponent(() => ReactExpressionRenderer);
     });
   }, []);

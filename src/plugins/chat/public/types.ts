@@ -13,6 +13,7 @@ export interface ChatPluginSetup {}
 
 export interface ChatPluginStart {
   chatService: ChatService | undefined;
+  createVisualization?: (args: any) => Promise<any>;
 }
 
 export interface AppPluginStartDependencies {

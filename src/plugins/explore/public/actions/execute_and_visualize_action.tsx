@@ -6,7 +6,7 @@
 import React from 'react';
 import { EuiPanel, EuiText, EuiSpacer, EuiCode, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
 import { useDispatch } from 'react-redux';
-import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react/public';
+import { useOpenSearchDashboards } from '../../../opensearch_dashboards_react/public';
 import { ExploreServices } from '../types';
 import { loadQueryActionCreator } from '../application/utils/state_management/actions/query_editor/load_query';
 import { useSetEditorTextWithQuery } from '../application/hooks';
@@ -113,7 +113,7 @@ export function useExecuteAndVisualizeAction(
         }
 
         // Step 3: Call Chat's visualization helper function
-        const chatVisualizationResult = await callChatVisualization({
+        const chatVisualizationResult = await callChatVisualization(services, {
           data: {
             hits: currentResults.hits.hits,
             fieldSchema: currentResults.fieldSchema || [],
@@ -221,15 +221,18 @@ export function useExecuteAndVisualizeAction(
 }
 
 /**
- * Call Chat's visualization helper function
+ * Call Chat's visualization helper function through plugin service
  */
-async function callChatVisualization(args: any) {
+async function callChatVisualization(services: ExploreServices, args: any) {
   try {
-    // Import and call the chat visualization helper
-    const { createChatVisualization } = await import(
-      '../../../../chat/public/actions/create_chat_visualization_action'
-    );
-    return await createChatVisualization(args);
+    if (!services.chat?.createVisualization) {
+      return {
+        success: false,
+        error: 'Chat plugin visualization service not available.',
+      };
+    }
+
+    return await services.chat.createVisualization(args);
   } catch (error) {
     console.error('Failed to call chat visualization:', error);
     return {
@@ -255,7 +258,7 @@ const ChatVisualizationRenderer: React.FC<{ result: any }> = ({ result }) => {
   const [ExpressionRenderer, setExpressionRenderer] = React.useState<any>(null);
 
   React.useEffect(() => {
-    import('../../../../expressions/public').then(({ ReactExpressionRenderer }) => {
+    import('../../../expressions/public').then(({ ReactExpressionRenderer }) => {
       setExpressionRenderer(() => ReactExpressionRenderer);
     });
   }, []);

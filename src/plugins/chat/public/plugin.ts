@@ -9,6 +9,7 @@ import { ChatPluginSetup, ChatPluginStart, AppPluginStartDependencies } from './
 import { ChatService } from './services/chat_service';
 import { ChatHeaderButton } from './components/chat_header_button';
 import { toMountPoint } from '../../opensearch_dashboards_react/public';
+import { createChatVisualization } from './actions/create_chat_visualization_action';
 
 /**
  * @experimental
@@ -88,6 +89,7 @@ export class ChatPlugin implements Plugin<ChatPluginSetup, ChatPluginStart> {
 
     return {
       chatService: this.chatService,
+      createVisualization: createChatVisualization,
     };
   }
 
