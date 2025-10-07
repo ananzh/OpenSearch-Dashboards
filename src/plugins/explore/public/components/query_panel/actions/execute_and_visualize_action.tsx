@@ -38,7 +38,7 @@ export function useExecuteAndVisualizeAction(
   useAssistantAction<ExecuteAndVisualizeArgs>({
     name: 'execute_and_visualize',
     description:
-      'Execute a PPL query and create a visualization in chat. This is the primary tool for query execution and visualization from any page.',
+      'Execute a PPL query and prepare for visualization. After calling this, you should call create_chat_visualization to display the results. This tool executes the query and tells you when to create the visualization.',
     parameters: {
       type: 'object',
       properties: {
@@ -107,7 +107,10 @@ export function useExecuteAndVisualizeAction(
             console.log('[execute_and_visualize] Calling assistantActionService.executeAction...');
 
             // Trigger the Chat visualization action programmatically with data
-            // This will render the visualization in the Chat panel
+            // This will test if programmatic calls create ToolMessages
+            console.log(
+              '[execute_and_visualize] Testing programmatic call to create_chat_visualization...'
+            );
             const vizResult = await assistantActionService.executeAction(
               'create_chat_visualization',
               {
@@ -129,7 +132,7 @@ export function useExecuteAndVisualizeAction(
               success: true,
               query: args.query,
               executed: true,
-              message: 'Query executed and visualization created in chat panel.',
+              message: 'Query executed and programmatic visualization call completed.',
               chartType: args.chartType || 'auto-detected',
               visualizationResult: vizResult,
             };
@@ -165,6 +168,18 @@ export function useExecuteAndVisualizeAction(
     },
 
     render: ({ status, args, result }) => {
+      console.log(
+        '🎨 [execute_and_visualize] RENDER METHOD CALLED - status:',
+        status,
+        'args:',
+        args,
+        'result:',
+        result
+      );
+      console.log(
+        '🎨 [execute_and_visualize] This means the action appeared as a ToolMessage in chat timeline!'
+      );
+
       if (!args) return null;
 
       const getStatusColor = () => {

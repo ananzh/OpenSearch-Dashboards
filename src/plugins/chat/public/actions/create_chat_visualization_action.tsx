@@ -180,129 +180,145 @@ export function useCreateChatVisualizationAction() {
     useAssistantAction !== NOOP_ASSISTANT_ACTION_HOOK
   );
 
-  const actionConfig = {
-    name: 'create_chat_visualization',
-    enabled: true,
-    description:
-      'Create a visualization in chat from the most recent query results. Supports auto-detection of chart types or specific chart type requests. Must be used after execute_ppl_query.',
-    parameters: {
-      type: 'object' as const,
-      properties: {
-        chartType: {
-          type: 'string' as const,
-          enum: ['line', 'bar', 'area', 'pie', 'metric', 'heatmap', 'scatter', 'table'],
-          description:
-            'Specific chart type to create. If not provided, will auto-detect based on data and user intent',
-        },
-        title: {
-          type: 'string' as const,
-          description: 'Optional title for the visualization',
-        },
-        description: {
-          type: 'string' as const,
-          description: 'Optional description - can be used to infer chart type from user intent',
-        },
-        autoDetect: {
-          type: 'boolean' as const,
-          description: 'Whether to automatically detect the best chart type (default: true)',
-        },
-        dataSource: {
-          type: 'string' as const,
-          enum: ['latest_query', 'provided_data'],
-          description: 'Source of data for visualization (default: latest_query)',
-        },
-        data: {
-          type: 'object' as const,
-          description: 'Optional: provide data directly instead of using latest query results',
-          properties: {
-            hits: {
-              type: 'array' as const,
-              description: 'Array of OpenSearch hits with _source data',
-            },
-            fieldSchema: {
-              type: 'array' as const,
-              description: 'Array of field schemas with name and type',
+  // Use useMemo to prevent recreating action config on every render
+  const actionConfig = React.useMemo(
+    () => ({
+      name: 'create_chat_visualization',
+      enabled: true,
+      description:
+        'Create a visualization in chat from the most recent query results. Supports auto-detection of chart types or specific chart type requests. Must be used after execute_ppl_query.',
+      parameters: {
+        type: 'object' as const,
+        properties: {
+          chartType: {
+            type: 'string' as const,
+            enum: ['line', 'bar', 'area', 'pie', 'metric', 'heatmap', 'scatter', 'table'],
+            description:
+              'Specific chart type to create. If not provided, will auto-detect based on data and user intent',
+          },
+          title: {
+            type: 'string' as const,
+            description: 'Optional title for the visualization',
+          },
+          description: {
+            type: 'string' as const,
+            description: 'Optional description - can be used to infer chart type from user intent',
+          },
+          autoDetect: {
+            type: 'boolean' as const,
+            description: 'Whether to automatically detect the best chart type (default: true)',
+          },
+          dataSource: {
+            type: 'string' as const,
+            enum: ['latest_query', 'provided_data'],
+            description: 'Source of data for visualization (default: latest_query)',
+          },
+          data: {
+            type: 'object' as const,
+            description: 'Optional: provide data directly instead of using latest query results',
+            properties: {
+              hits: {
+                type: 'array' as const,
+                description: 'Array of OpenSearch hits with _source data',
+              },
+              fieldSchema: {
+                type: 'array' as const,
+                description: 'Array of field schemas with name and type',
+              },
             },
           },
         },
+        required: [],
       },
-      required: [],
-    },
-    handler: async (args: CreateChatVisualizationArgs) => {
-      console.log('[useCreateChatVisualizationAction] Handler called with args:', args);
-      const result = await createChatVisualization(args);
-      console.log('[useCreateChatVisualizationAction] Handler result:', result);
-      return result;
-    },
-    render: ({ status, args, result }: any) => {
-      if (!args) return null;
+      handler: async (args: CreateChatVisualizationArgs) => {
+        console.log('[useCreateChatVisualizationAction] Handler called with args:', args);
+        const result = await createChatVisualization(args);
+        console.log('[useCreateChatVisualizationAction] Handler result:', result);
+        return result;
+      },
+      render: ({ status, args, result }: any) => {
+        console.log(
+          '🎨 [create_chat_visualization] RENDER METHOD CALLED - status:',
+          status,
+          'args:',
+          args,
+          'result:',
+          result
+        );
+        console.log(
+          '🎨 [create_chat_visualization] This means the action appeared as a ToolMessage in chat timeline!'
+        );
 
-      const getStatusColor = () => {
-        if (status === 'failed' || (result && !result.success)) return 'danger';
-        if (status === 'complete' && result?.success) return 'success';
-        return 'subdued';
-      };
+        if (!args) return null;
 
-      const getStatusIcon = () => {
-        if (status === 'failed' || (result && !result.success)) return '✗';
-        if (status === 'executing') return '⟳';
-        return '📊';
-      };
+        const getStatusColor = () => {
+          if (status === 'failed' || (result && !result.success)) return 'danger';
+          if (status === 'complete' && result?.success) return 'success';
+          return 'subdued';
+        };
 
-      return (
-        <EuiPanel paddingSize="s" color={getStatusColor()}>
-          <EuiFlexGroup alignItems="center" gutterSize="s">
-            <EuiFlexItem grow={false}>
-              <EuiText size="s">
-                <strong>{getStatusIcon()}</strong>
-              </EuiText>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiText size="s">
-                {status === 'executing' && 'Creating visualization...'}
-                {status === 'complete' && result?.message}
-                {status === 'failed' && (result?.error || 'Failed to create visualization')}
-              </EuiText>
-            </EuiFlexItem>
-          </EuiFlexGroup>
+        const getStatusIcon = () => {
+          if (status === 'failed' || (result && !result.success)) return '✗';
+          if (status === 'executing') return '⟳';
+          return '📊';
+        };
 
-          {args.title && (
-            <>
-              <EuiSpacer size="xs" />
-              <EuiText size="s">
-                <strong>Title:</strong> {args.title}
-              </EuiText>
-            </>
-          )}
+        return (
+          <EuiPanel paddingSize="s" color={getStatusColor()}>
+            <EuiFlexGroup alignItems="center" gutterSize="s">
+              <EuiFlexItem grow={false}>
+                <EuiText size="s">
+                  <strong>{getStatusIcon()}</strong>
+                </EuiText>
+              </EuiFlexItem>
+              <EuiFlexItem>
+                <EuiText size="s">
+                  {status === 'executing' && 'Creating visualization...'}
+                  {status === 'complete' && result?.message}
+                  {status === 'failed' && (result?.error || 'Failed to create visualization')}
+                </EuiText>
+              </EuiFlexItem>
+            </EuiFlexGroup>
 
-          <EuiSpacer size="xs" />
-          <EuiText size="xs">
-            <EuiCode transparentBackground>
-              {result?.chartType && `Type: ${result.chartType}`}
-              {result?.dataPoints && ` | Points: ${result.dataPoints}`}
-              {result?.autoDetected && ' | Auto-detected'}
-              {result?.userRequested && ' | User requested'}
-            </EuiCode>
-          </EuiText>
+            {args.title && (
+              <>
+                <EuiSpacer size="xs" />
+                <EuiText size="s">
+                  <strong>Title:</strong> {args.title}
+                </EuiText>
+              </>
+            )}
 
-          {/* Render the actual visualization when complete and successful */}
-          {status === 'complete' && result?.success && result?.expression && (
-            <>
-              <EuiSpacer size="s" />
-              <div style={{ height: '350px', width: '100%' }}>
-                <ExpressionRenderer
-                  expression={result.expression}
-                  searchContext={{}}
-                  onRender={() => {}}
-                  onError={(error: any) => console.error('Expression render error:', error)}
-                />
-              </div>
-            </>
-          )}
-        </EuiPanel>
-      );
-    },
-  };
+            <EuiSpacer size="xs" />
+            <EuiText size="xs">
+              <EuiCode transparentBackground>
+                {result?.chartType && `Type: ${result.chartType}`}
+                {result?.dataPoints && ` | Points: ${result.dataPoints}`}
+                {result?.autoDetected && ' | Auto-detected'}
+                {result?.userRequested && ' | User requested'}
+              </EuiCode>
+            </EuiText>
+
+            {/* Render the actual visualization when complete and successful */}
+            {status === 'complete' && result?.success && result?.expression && (
+              <>
+                <EuiSpacer size="s" />
+                <div style={{ height: '350px', width: '100%' }}>
+                  <ExpressionRenderer
+                    expression={result.expression}
+                    searchContext={{}}
+                    onRender={() => {}}
+                    onError={(error: any) => console.error('Expression render error:', error)}
+                  />
+                </div>
+              </>
+            )}
+          </EuiPanel>
+        );
+      },
+    }),
+    []
+  ); // Empty dependency array since the action config is static
 
   console.log(
     '[useCreateChatVisualizationAction] About to call useAssistantAction with config:',

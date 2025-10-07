@@ -117,26 +117,42 @@ export class AssistantActionService {
   };
 
   executeAction = async (name: string, args: any) => {
-    console.log('[AssistantActionService] executeAction called for:', name, 'with args:', args);
+    console.log(
+      '🔧 [AssistantActionService] PROGRAMMATIC executeAction called for:',
+      name,
+      'with args:',
+      args
+    );
+    console.log(
+      '🔧 [AssistantActionService] This is a programmatic call - NO ToolMessage will be created in chat timeline'
+    );
     const currentState = this.state$.getValue();
     console.log(
-      '[AssistantActionService] Available actions:',
+      '🔧 [AssistantActionService] Available actions:',
       Array.from(currentState.actions.keys())
     );
 
     const action = currentState.actions.get(name);
     if (!action) {
-      console.log('[AssistantActionService] Action not found:', name);
+      console.log('🔧 [AssistantActionService] Action not found:', name);
       throw new Error(`Action ${name} not found`);
     }
     if (!action.handler) {
-      console.log('[AssistantActionService] Action has no handler:', name);
+      console.log('🔧 [AssistantActionService] Action has no handler:', name);
       throw new Error(`Action ${name} has no handler`);
     }
 
-    console.log('[AssistantActionService] Executing action handler for:', name);
+    console.log(
+      '🔧 [AssistantActionService] Executing action handler for:',
+      name,
+      '(programmatically)'
+    );
     const result = await action.handler(args);
-    console.log('[AssistantActionService] Action result:', result);
+    console.log(
+      '🔧 [AssistantActionService] PROGRAMMATIC action result:',
+      result,
+      '- This result will NOT appear in chat timeline'
+    );
     return result;
   };
 

@@ -209,6 +209,14 @@ export class ChatEventHandler {
    */
   private handleToolCallStart(event: ToolCallStartEvent): void {
     const { toolCallId, toolCallName, parentMessageId } = event;
+    console.log(
+      '[ChatEventHandler] Tool call started - toolCallId:',
+      toolCallId,
+      'toolName:',
+      toolCallName,
+      'parentMessageId:',
+      parentMessageId
+    );
 
     // Update tool call state in AssistantActionService
     this.assistantActionService.updateToolCallState(toolCallId, {
@@ -296,14 +304,31 @@ export class ChatEventHandler {
         });
 
         // Add tool result message to timeline
+        console.log(
+          '[ChatEventHandler] Creating ToolMessage for toolCallId:',
+          toolCallId,
+          'toolName:',
+          toolCallName,
+          'result:',
+          result
+        );
         const toolMessage: ToolMessage = {
           id: `tool-result-${toolCallId}`,
           role: 'tool',
           content: typeof result.data === 'string' ? result.data : JSON.stringify(result.data),
           toolCallId,
         };
+        console.log('[ChatEventHandler] ToolMessage created:', toolMessage);
 
-        this.onTimelineUpdate((prev) => [...prev, toolMessage]);
+        this.onTimelineUpdate((prev) => {
+          console.log(
+            '[ChatEventHandler] Adding ToolMessage to timeline. Current timeline length:',
+            prev.length,
+            'New message:',
+            toolMessage
+          );
+          return [...prev, toolMessage];
+        });
 
         // Send tool result back to assistant if chatService is available
         if (this.chatService && (this.chatService as any).sendToolResult) {
