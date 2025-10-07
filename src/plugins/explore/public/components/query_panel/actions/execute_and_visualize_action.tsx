@@ -6,10 +6,11 @@
 import React from 'react';
 import { EuiPanel, EuiText, EuiSpacer, EuiCode, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
 import { useDispatch } from 'react-redux';
-import { useOpenSearchDashboards } from '../../../opensearch_dashboards_react/public';
-import { ExploreServices } from '../types';
-import { loadQueryActionCreator } from '../application/utils/state_management/actions/query_editor/load_query';
-import { useSetEditorTextWithQuery } from '../application/hooks';
+import { useOpenSearchDashboards } from '../../../../../opensearch_dashboards_react/public';
+import { ExploreServices } from '../../../types';
+import { loadQueryActionCreator } from '../../../application/utils/state_management/actions/query_editor/load_query';
+import { useSetEditorTextWithQuery } from '../../../application/hooks';
+import { useTabResults } from '../../../application/utils/hooks/use_tab_results';
 
 interface ExecuteAndVisualizeArgs {
   query: string;
@@ -26,6 +27,7 @@ export function useExecuteAndVisualizeAction(
 ) {
   const { services } = useOpenSearchDashboards<ExploreServices>();
   const dispatch = useDispatch();
+  const { results } = useTabResults();
 
   const useAssistantAction =
     services.contextProvider?.hooks?.useAssistantAction || NOOP_ASSISTANT_ACTION_HOOK;
@@ -65,87 +67,43 @@ export function useExecuteAndVisualizeAction(
 
     handler: async (args) => {
       try {
-        // Step 1: Execute the PPL query in Explore
+        // Step 1: Execute the PPL query in Explore (same as ppl_execute_query_action)
         dispatch(loadQueryActionCreator(services, setEditorTextWithQuery, args.query));
 
-        // Wait for query execution to complete
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        // Step 2: Get results from Redux store
-        // We need to access the current results from the store
-        // This is a temporary solution - in production we'd want a more robust way
-        const exploreStore =
-          (window as any).__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ ||
-          (window as any).__REDUX_STORE__ ||
-          null;
-
-        // Fallback: try to get from global context or service
-        let currentResults = null;
-        try {
-          // Access results through service if available
-          if (services?.data?.search) {
-            // We'll rely on the global context store for now
-            const contextStore = (window as any).assistantContextStore;
-            if (contextStore) {
-              const contexts = contextStore.getAllContexts();
-              const queryResultContext = contexts.find(
-                (ctx: any) =>
-                  ctx.description?.includes('query results') || ctx.type === 'query_results'
-              );
-              if (queryResultContext?.value) {
-                currentResults =
-                  typeof queryResultContext.value === 'string'
-                    ? JSON.parse(queryResultContext.value)
-                    : queryResultContext.value;
-              }
-            }
-          }
-        } catch (error) {
-          console.warn('Could not access query results from context:', error);
-        }
-
-        if (!currentResults || !currentResults.hits) {
-          return {
-            success: false,
-            error: 'No query results available. Please check your query and try again.',
-            query: args.query,
-          };
-        }
-
-        // Step 3: Call Chat's visualization helper function
-        const chatVisualizationResult = await callChatVisualization(services, {
-          data: {
-            hits: currentResults.hits.hits,
-            fieldSchema: currentResults.fieldSchema || [],
-          },
+        // Step 2: Create visualization using Chat service
+        // Note: We'll call this after the query execution starts, the visualization will
+        // wait for results to be available or handle the case gracefully
+        const chatVisualizationResult = await callChatVisualization(services, results, {
           chartType: args.chartType,
           title: args.title,
           description: args.description,
           autoDetect: args.autoDetect,
-          dataSource: 'provided_data',
         });
 
-        if (!chatVisualizationResult.success) {
+        // Check if visualization creation was successful
+        if (chatVisualizationResult && chatVisualizationResult.success) {
           return {
-            success: false,
-            error: chatVisualizationResult.error,
+            success: true,
             query: args.query,
+            executed: true,
+            chartType: chatVisualizationResult.chartType,
+            dataPoints: chatVisualizationResult.dataPoints,
+            autoDetected: chatVisualizationResult.autoDetected,
+            userRequested: chatVisualizationResult.userRequested,
+            message: `Query executed successfully. ${chatVisualizationResult.message}`,
+            title: args.title,
+            visualizationResult: chatVisualizationResult,
+          };
+        } else {
+          // Fallback: query executed but visualization failed
+          return {
+            success: true, // Query execution was successful
+            query: args.query,
+            executed: true,
+            message: 'Query executed successfully, but visualization could not be created.',
+            visualizationError: chatVisualizationResult?.error || 'Unknown visualization error',
           };
         }
-
-        return {
-          success: true,
-          query: args.query,
-          executed: true,
-          chartType: chatVisualizationResult.chartType,
-          dataPoints: chatVisualizationResult.dataPoints,
-          autoDetected: chatVisualizationResult.autoDetected,
-          userRequested: chatVisualizationResult.userRequested,
-          message: `Query executed successfully. ${chatVisualizationResult.message}`,
-          title: args.title,
-          // Include visualization data for rendering in chat
-          visualizationResult: chatVisualizationResult,
-        };
       } catch (error) {
         return {
           success: false,
@@ -207,6 +165,16 @@ export function useExecuteAndVisualizeAction(
             </EuiCode>
           </EuiText>
 
+          {/* Show visualization error if query succeeded but visualization failed */}
+          {result?.visualizationError && (
+            <>
+              <EuiSpacer size="xs" />
+              <EuiText size="xs" color="subdued">
+                Visualization: {result.visualizationError}
+              </EuiText>
+            </>
+          )}
+
           {/* Render the actual visualization when complete and successful */}
           {status === 'complete' && result?.success && result?.visualizationResult && (
             <>
@@ -223,7 +191,16 @@ export function useExecuteAndVisualizeAction(
 /**
  * Call Chat's visualization helper function through plugin service
  */
-async function callChatVisualization(services: ExploreServices, args: any) {
+async function callChatVisualization(
+  services: ExploreServices,
+  results: any,
+  args: {
+    chartType?: string;
+    title?: string;
+    description?: string;
+    autoDetect?: boolean;
+  }
+) {
   try {
     if (!services.chat?.createVisualization) {
       return {
@@ -232,7 +209,25 @@ async function callChatVisualization(services: ExploreServices, args: any) {
       };
     }
 
-    return await services.chat.createVisualization(args);
+    // Check if we have results to visualize
+    if (!results || !results.hits?.hits) {
+      return {
+        success: false,
+        error: 'No query results available for visualization. Please run a query first.',
+      };
+    }
+
+    return await services.chat.createVisualization({
+      data: {
+        hits: results.hits.hits,
+        fieldSchema: results.fieldSchema || [],
+      },
+      chartType: args.chartType,
+      title: args.title,
+      description: args.description,
+      autoDetect: args.autoDetect,
+      dataSource: 'provided_data',
+    });
   } catch (error) {
     console.error('Failed to call chat visualization:', error);
     return {
@@ -258,7 +253,7 @@ const ChatVisualizationRenderer: React.FC<{ result: any }> = ({ result }) => {
   const [ExpressionRenderer, setExpressionRenderer] = React.useState<any>(null);
 
   React.useEffect(() => {
-    import('../../../expressions/public').then(({ ReactExpressionRenderer }) => {
+    import('../../../../../expressions/public').then(({ ReactExpressionRenderer }) => {
       setExpressionRenderer(() => ReactExpressionRenderer);
     });
   }, []);
