@@ -69,18 +69,28 @@ export function useExecuteAndVisualizeAction(
     },
 
     handler: async (args) => {
+      console.log('[execute_and_visualize] Starting execution with args:', args);
+
       try {
         // Step 1: Execute the PPL query in Explore (same as ppl_execute_query_action)
+        console.log('[execute_and_visualize] Dispatching query:', args.query);
         dispatch(loadQueryActionCreator(services, setEditorTextWithQuery, args.query));
 
         // Step 2: Trigger Chat visualization action to render in Chat panel
         if (assistantActionService) {
+          console.log(
+            '[execute_and_visualize] AssistantActionService available, waiting for results...'
+          );
+
           try {
             // Wait a moment for query results to be available in Redux store
             await new Promise((resolve) => setTimeout(resolve, 2000));
 
+            console.log('[execute_and_visualize] Checking results after wait, results:', results);
+
             // Check if we have results to pass
             if (!results || !results.hits?.hits) {
+              console.log('[execute_and_visualize] No results available yet');
               return {
                 success: true,
                 query: args.query,
@@ -90,19 +100,30 @@ export function useExecuteAndVisualizeAction(
               };
             }
 
+            console.log(
+              '[execute_and_visualize] Results available, hits count:',
+              results.hits.hits.length
+            );
+            console.log('[execute_and_visualize] Calling assistantActionService.executeAction...');
+
             // Trigger the Chat visualization action programmatically with data
             // This will render the visualization in the Chat panel
-            await assistantActionService.executeAction('create_chat_visualization', {
-              chartType: args.chartType,
-              title: args.title,
-              description: args.description,
-              autoDetect: args.autoDetect,
-              dataSource: 'provided_data',
-              data: {
-                hits: results.hits.hits,
-                fieldSchema: results.fieldSchema || [],
-              },
-            });
+            const vizResult = await assistantActionService.executeAction(
+              'create_chat_visualization',
+              {
+                chartType: args.chartType,
+                title: args.title,
+                description: args.description,
+                autoDetect: args.autoDetect,
+                dataSource: 'provided_data',
+                data: {
+                  hits: results.hits.hits,
+                  fieldSchema: results.fieldSchema || [],
+                },
+              }
+            );
+
+            console.log('[execute_and_visualize] Visualization result:', vizResult);
 
             return {
               success: true,
@@ -110,6 +131,7 @@ export function useExecuteAndVisualizeAction(
               executed: true,
               message: 'Query executed and visualization created in chat panel.',
               chartType: args.chartType || 'auto-detected',
+              visualizationResult: vizResult,
             };
           } catch (visualizationError) {
             return {

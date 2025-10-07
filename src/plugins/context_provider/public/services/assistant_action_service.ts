@@ -67,6 +67,7 @@ export class AssistantActionService {
   }
 
   registerAction = (action: AssistantAction) => {
+    console.log('[AssistantActionService] Registering action:', action.name);
     const currentState = this.state$.getValue();
     const existingAction = currentState.actions.get(action.name);
 
@@ -83,12 +84,18 @@ export class AssistantActionService {
 
     // Only trigger updates if something actually changed
     if (hasChanged) {
+      console.log(
+        '[AssistantActionService] Action changed, updating state. Registered actions:',
+        Array.from(newActions.keys())
+      );
       const toolDefinitions = this.createToolDefinitions(newActions);
       this.state$.next({
         ...currentState,
         actions: newActions,
         toolDefinitions,
       });
+    } else {
+      console.log('[AssistantActionService] Action unchanged, skipping state update');
     }
   };
 
@@ -110,15 +117,27 @@ export class AssistantActionService {
   };
 
   executeAction = async (name: string, args: any) => {
+    console.log('[AssistantActionService] executeAction called for:', name, 'with args:', args);
     const currentState = this.state$.getValue();
+    console.log(
+      '[AssistantActionService] Available actions:',
+      Array.from(currentState.actions.keys())
+    );
+
     const action = currentState.actions.get(name);
     if (!action) {
+      console.log('[AssistantActionService] Action not found:', name);
       throw new Error(`Action ${name} not found`);
     }
     if (!action.handler) {
+      console.log('[AssistantActionService] Action has no handler:', name);
       throw new Error(`Action ${name} has no handler`);
     }
-    return action.handler(args);
+
+    console.log('[AssistantActionService] Executing action handler for:', name);
+    const result = await action.handler(args);
+    console.log('[AssistantActionService] Action result:', result);
+    return result;
   };
 
   updateToolCallState = (id: string, state: Partial<ToolCallState>) => {

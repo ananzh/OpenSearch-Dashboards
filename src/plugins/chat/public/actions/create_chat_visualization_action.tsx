@@ -49,6 +49,8 @@ const NOOP_ASSISTANT_ACTION_HOOK = (_action: any) => {};
  * This can be called by other plugins without registering as a tool
  */
 export async function createChatVisualization(args: CreateChatVisualizationArgs) {
+  console.log('[createChatVisualization] Starting with args:', args);
+
   try {
     // Step 1: Parse user intent for chart type
     let requestedChartType = args.chartType;
@@ -60,8 +62,13 @@ export async function createChatVisualization(args: CreateChatVisualizationArgs)
 
     // Step 2: Get data from specified source
     let queryResults: QueryResult | null = null;
+    console.log('[createChatVisualization] DataSource:', args.dataSource, 'HasData:', !!args.data);
 
     if (args.dataSource === 'provided_data' && args.data) {
+      console.log(
+        '[createChatVisualization] Using provided data, hits count:',
+        args.data.hits?.length
+      );
       // Use provided data directly
       queryResults = {
         hits: {
@@ -71,11 +78,15 @@ export async function createChatVisualization(args: CreateChatVisualizationArgs)
         fieldSchema: args.data.fieldSchema || [],
       };
     } else {
+      console.log('[createChatVisualization] Getting latest query results...');
       // Get from latest query results (plugin-agnostic)
       queryResults = await getLatestQueryResults({});
     }
 
+    console.log('[createChatVisualization] Query results:', queryResults);
+
     if (!queryResults || !queryResults.hits?.hits) {
+      console.log('[createChatVisualization] No query results available');
       return {
         success: false,
         error:
@@ -158,10 +169,16 @@ export async function createChatVisualization(args: CreateChatVisualizationArgs)
 }
 
 export function useCreateChatVisualizationAction() {
+  console.log('[useCreateChatVisualizationAction] Hook initializing...');
   const { services } = useOpenSearchDashboards();
 
   const useAssistantAction =
     services.contextProvider?.hooks?.useAssistantAction || NOOP_ASSISTANT_ACTION_HOOK;
+
+  console.log(
+    '[useCreateChatVisualizationAction] useAssistantAction available:',
+    useAssistantAction !== NOOP_ASSISTANT_ACTION_HOOK
+  );
 
   useAssistantAction<CreateChatVisualizationArgs>({
     name: 'create_chat_visualization',
@@ -212,8 +229,11 @@ export function useCreateChatVisualizationAction() {
     },
 
     handler: async (args) => {
+      console.log('[useCreateChatVisualizationAction] Handler called with args:', args);
       // Delegate to the helper function
-      return await createChatVisualization(args);
+      const result = await createChatVisualization(args);
+      console.log('[useCreateChatVisualizationAction] Handler result:', result);
+      return result;
     },
 
     render: ({ status, args, result }) => {
