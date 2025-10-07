@@ -32,6 +32,7 @@ import { ChatMessages } from './chat_messages';
 import { ChatInput } from './chat_input';
 import { ContextTreeView } from './context_tree_view';
 import { useGraphTimeseriesDataAction } from '../actions/graph_timeseries_data_action';
+import { useCreateChatVisualizationAction } from '../actions/create_chat_visualization_action';
 
 interface ChatWindowProps {
   layoutMode?: ChatLayoutMode;
@@ -76,6 +77,7 @@ function ChatWindowContent({
 
   // Register actions
   useGraphTimeseriesDataAction();
+  useCreateChatVisualizationAction();
 
   // Context is now handled by RFC hooks - no need for context manager
   // The chat service will get context directly from assistantContextStore

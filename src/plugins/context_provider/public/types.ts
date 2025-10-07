@@ -37,6 +37,7 @@ export interface AssistantContextStore {
 
 export interface ContextProviderStart {
   getAssistantContextStore(): AssistantContextStore;
+  getAssistantActionService(): any; // AssistantActionService - avoiding direct import for now
   hooks: {
     usePageContext: (options?: any) => string;
     useDynamicContext: (contextOptions: any) => string;

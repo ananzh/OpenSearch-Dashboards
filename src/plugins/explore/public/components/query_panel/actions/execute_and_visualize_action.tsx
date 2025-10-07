@@ -29,6 +29,9 @@ export function useExecuteAndVisualizeAction(
   const dispatch = useDispatch();
   const { results } = useTabResults();
 
+  // Get assistant action service through contextProvider (optional)
+  const assistantActionService = services.contextProvider?.getAssistantActionService?.();
+
   const useAssistantAction =
     services.contextProvider?.hooks?.useAssistantAction || NOOP_ASSISTANT_ACTION_HOOK;
 
@@ -70,38 +73,64 @@ export function useExecuteAndVisualizeAction(
         // Step 1: Execute the PPL query in Explore (same as ppl_execute_query_action)
         dispatch(loadQueryActionCreator(services, setEditorTextWithQuery, args.query));
 
-        // Step 2: Create visualization using Chat service
-        // Note: We'll call this after the query execution starts, the visualization will
-        // wait for results to be available or handle the case gracefully
-        const chatVisualizationResult = await callChatVisualization(services, results, {
-          chartType: args.chartType,
-          title: args.title,
-          description: args.description,
-          autoDetect: args.autoDetect,
-        });
+        // Step 2: Trigger Chat visualization action to render in Chat panel
+        if (assistantActionService) {
+          try {
+            // Wait a moment for query results to be available in Redux store
+            await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        // Check if visualization creation was successful
-        if (chatVisualizationResult && chatVisualizationResult.success) {
+            // Check if we have results to pass
+            if (!results || !results.hits?.hits) {
+              return {
+                success: true,
+                query: args.query,
+                executed: true,
+                message:
+                  'Query executed successfully, but results are not yet available for visualization.',
+              };
+            }
+
+            // Trigger the Chat visualization action programmatically with data
+            // This will render the visualization in the Chat panel
+            await assistantActionService.executeAction('create_chat_visualization', {
+              chartType: args.chartType,
+              title: args.title,
+              description: args.description,
+              autoDetect: args.autoDetect,
+              dataSource: 'provided_data',
+              data: {
+                hits: results.hits.hits,
+                fieldSchema: results.fieldSchema || [],
+              },
+            });
+
+            return {
+              success: true,
+              query: args.query,
+              executed: true,
+              message: 'Query executed and visualization created in chat panel.',
+              chartType: args.chartType || 'auto-detected',
+            };
+          } catch (visualizationError) {
+            return {
+              success: true, // Query execution was successful
+              query: args.query,
+              executed: true,
+              message: 'Query executed successfully, but visualization could not be created.',
+              visualizationError:
+                visualizationError instanceof Error
+                  ? visualizationError.message
+                  : 'Unknown visualization error',
+            };
+          }
+        } else {
+          // AssistantActionService not available (contextProvider or chat plugin disabled)
           return {
             success: true,
             query: args.query,
             executed: true,
-            chartType: chatVisualizationResult.chartType,
-            dataPoints: chatVisualizationResult.dataPoints,
-            autoDetected: chatVisualizationResult.autoDetected,
-            userRequested: chatVisualizationResult.userRequested,
-            message: `Query executed successfully. ${chatVisualizationResult.message}`,
-            title: args.title,
-            visualizationResult: chatVisualizationResult,
-          };
-        } else {
-          // Fallback: query executed but visualization failed
-          return {
-            success: true, // Query execution was successful
-            query: args.query,
-            executed: true,
-            message: 'Query executed successfully, but visualization could not be created.',
-            visualizationError: chatVisualizationResult?.error || 'Unknown visualization error',
+            message:
+              'Query executed successfully. Context provider or chat plugin not available for visualization.',
           };
         }
       } catch (error) {
@@ -175,101 +204,12 @@ export function useExecuteAndVisualizeAction(
             </>
           )}
 
-          {/* Render the actual visualization when complete and successful */}
-          {status === 'complete' && result?.success && result?.visualizationResult && (
-            <>
-              <EuiSpacer size="s" />
-              <ChatVisualizationRenderer result={result.visualizationResult} />
-            </>
-          )}
+          {/* Note: Visualization renders in the Chat panel, not here */}
         </EuiPanel>
       );
     },
   });
 }
 
-/**
- * Call Chat's visualization helper function through plugin service
- */
-async function callChatVisualization(
-  services: ExploreServices,
-  results: any,
-  args: {
-    chartType?: string;
-    title?: string;
-    description?: string;
-    autoDetect?: boolean;
-  }
-) {
-  try {
-    if (!services.chat?.createVisualization) {
-      return {
-        success: false,
-        error: 'Chat plugin visualization service not available.',
-      };
-    }
-
-    // Check if we have results to visualize
-    if (!results || !results.hits?.hits) {
-      return {
-        success: false,
-        error: 'No query results available for visualization. Please run a query first.',
-      };
-    }
-
-    return await services.chat.createVisualization({
-      data: {
-        hits: results.hits.hits,
-        fieldSchema: results.fieldSchema || [],
-      },
-      chartType: args.chartType,
-      title: args.title,
-      description: args.description,
-      autoDetect: args.autoDetect,
-      dataSource: 'provided_data',
-    });
-  } catch (error) {
-    console.error('Failed to call chat visualization:', error);
-    return {
-      success: false,
-      error: 'Failed to create visualization. Chat plugin may not be available.',
-    };
-  }
-}
-
-/**
- * Component to render the chat visualization result
- */
-const ChatVisualizationRenderer: React.FC<{ result: any }> = ({ result }) => {
-  if (!result?.expression) {
-    return (
-      <EuiText size="s" color="subdued">
-        Visualization data not available
-      </EuiText>
-    );
-  }
-
-  // Import and render the visualization expression
-  const [ExpressionRenderer, setExpressionRenderer] = React.useState<any>(null);
-
-  React.useEffect(() => {
-    import('../../../../../expressions/public').then(({ ReactExpressionRenderer }) => {
-      setExpressionRenderer(() => ReactExpressionRenderer);
-    });
-  }, []);
-
-  if (!ExpressionRenderer) {
-    return <EuiText size="s">Loading visualization...</EuiText>;
-  }
-
-  return (
-    <div style={{ height: '350px', width: '100%' }}>
-      <ExpressionRenderer
-        expression={result.expression}
-        searchContext={{}}
-        onRender={() => {}}
-        onError={(error: any) => console.error('Expression render error:', error)}
-      />
-    </div>
-  );
-};
+// Visualization rendering is handled by the Chat plugin itself
+// The visualization will appear in the Chat panel via the programmatically triggered action
