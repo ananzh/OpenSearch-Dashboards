@@ -408,10 +408,17 @@
 # explore.discoverTraces.enabled: true
 
 # @experimental Set the enabled value to true and provide an AG-UI agent to enable chat
-# chat:
-  # enabled: true
+chat:
+  enabled: true
+  agUiUrl: "http://localhost:3000"
   # agUiUrl: "http://your-ai-agent-url:port"
 
 # @experimental Set the value to true to enable context provider
-# contextProvider:
-#   enabled: true
+contextProvider:
+  enabled: true
+
+
+workspace.enabled: true
+opensearch.ignoreVersionMismatch: true
+data_source.enabled: true
+data.savedQueriesNewUI.enabled: true  

@@ -14,6 +14,7 @@ import {
 } from '../../application/utils/state_management/selectors';
 import { QueryPanelGeneratedQuery } from './query_panel_generated_query';
 import { usePPLExecuteQueryAction } from './actions/ppl_execute_query_action';
+import { useExecuteAndVisualizeAction } from '../../actions/execute_and_visualize_action';
 import { useSetEditorTextWithQuery } from '../../application/hooks';
 import './query_panel.scss';
 
@@ -27,6 +28,9 @@ const QueryPanel = () => {
 
   // Register the PPL execute query action for assistant integration
   usePPLExecuteQueryAction(setEditorTextWithQuery);
+
+  // Register the execute and visualize bridge action
+  useExecuteAndVisualizeAction(setEditorTextWithQuery);
 
   return (
     <EuiPanel paddingSize="s">

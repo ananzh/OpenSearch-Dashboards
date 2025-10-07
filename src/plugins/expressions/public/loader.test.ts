@@ -117,7 +117,7 @@ describe('ExpressionLoader', () => {
   });
 
   it('emits on loading$ on initial load and on updates', async () => {
-    const expressionLoader = new ExpressionLoader(element, expressionString, {});
+    const expressionLoader = new (element, expressionString, {});
     const loadingPromise = expressionLoader.loading$.pipe(toArray()).toPromise();
     expressionLoader.update('test');
     expressionLoader.update('');

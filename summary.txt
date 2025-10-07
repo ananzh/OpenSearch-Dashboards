@@ -1,0 +1,35 @@
+OpenSearch Dashboards 3.3: Introducing Experimental AI Features
+
+OpenSearch Dashboards 3.3 introduces experimental AI capabilities that transform how users interact with their data through intelligent context awareness, conversational interfaces, and seamless agent integration. This release brings three major AI features: the Context Provider plugin for automatic context capture, the OSD-Agents package with a reference AI agent (Observo), and an enhanced Chat UI that creates an intelligent assistant experience on the Discover page. [Learn more about OpenSearch Dashboards AI features](https://opensearch.org/docs/latest/dashboards/ai-features/)
+
+## How AI Integration Works
+
+The AI features use the AG-UI protocol, an emerging open standard that enables seamless agent swapping without vendor lock-in. When you interact with the chat interface, it automatically understands your current page context—selected traces, filtered logs, time ranges—and can execute actions like updating queries and creating visualizations based on conversational requests. The system ships with Observo, a reference ReAct-based LangGraph agent, and supports integration with specialized agents like HolmesGPT for advanced root cause analysis. [Learn more about AG-UI protocol](https://github.com/ag-ui/protocol)
+
+## Quick Setup
+
+Enable AI features by adding configuration flags to your `opensearch_dashboards.yml`: set `chat.enabled: true`, `chat.agUiUrl: "http://localhost:3000"`, `contextProvider.enabled: true`, and `explore.enabled: true`. To run the reference agent server, navigate to `packages/osd-agents`, configure AWS credentials, and start the AG-UI server with `npm run start:ag-ui react`. The AI features integrate seamlessly with the new workspace and data source architecture. [View setup documentation](https://opensearch.org/docs/latest/dashboards/ai-setup/)
+
+## Context Provider: Intelligent Context Awareness
+
+The Context Provider plugin automatically captures user interactions and page state, making them available to AI systems through React hooks. It provides three key hooks: `usePageContext()` for URL-based state capture, `useDynamicContext()` for React state integration, and `useAssistantAction()` for defining AI tools. This architecture allows any plugin to become context-aware by implementing these hooks, enabling the chat interface to understand and interact with plugin-specific data and actions. [Explore Context Provider API](https://opensearch.org/docs/latest/dashboards/context-provider/)
+
+## OSD-Agents: Flexible AI Architecture
+
+The osd-agents package provides utilities and scripts for AI agent integration with OpenSearch Dashboards. It serves as a bridge between OpenSearch Dashboards and external AI systems, offering AG-UI compatibility and development tools. The package includes integration scripts, configuration management tools, and the reference Observo agent implementation. This experimental foundation enables developers to build and integrate custom AI agents while maintaining compatibility with the AG-UI standard. [View OSD-Agents documentation](https://opensearch.org/docs/latest/dashboards/osd-agents/)
+
+## Enhanced Chat Experience
+
+The Chat plugin delivers an AI-powered conversational interface that integrates with Context Provider and OSD-Agents systems. It provides real-time streaming responses using Server-Sent Events, automatic context integration through interactive context pills, and tool execution capabilities. Users can ask natural language questions about their data, and the AI assistant can execute queries, create visualizations, and perform analysis operations directly within the interface. [Try the Chat interface](https://opensearch.org/docs/latest/dashboards/chat/)
+
+## Real-World Use Cases
+
+AI features dramatically enhance observability workflows by providing context-aware assistance as users navigate traces and logs. Users can ask questions like "What is this error?" or request queries for selected trace IDs, while the AI automatically captures current view state and filter selections. The system can execute queries, create visualizations, and analyze data based on conversational requests, making complex analysis accessible through natural language interaction. [See use case examples](https://opensearch.org/docs/latest/dashboards/ai-use-cases/)
+
+## Get Started Today
+
+OpenSearch Dashboards 3.3's AI features represent a significant step toward intelligent, context-aware data exploration. The combination of automatic context capture, flexible agent architecture, and conversational interfaces creates a powerful foundation for AI-assisted observability workflows. These experimental features invite community exploration of new possibilities in human-AI collaboration for data analysis. Download OpenSearch Dashboards 3.3 and experience the future of conversational, contextual, and intelligent observability. [Download OpenSearch Dashboards 3.3](https://opensearch.org/downloads.html)
+
+---
+
+*Note: All AI features in OpenSearch Dashboards 3.3 are experimental and subject to change in future releases. We encourage community feedback to help shape the future of AI-powered observability.*
