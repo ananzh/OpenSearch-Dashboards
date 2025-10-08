@@ -10,6 +10,7 @@ import { MessageRow } from './message_row';
 import { ToolCallRow } from './tool_call_row';
 import { ErrorRow } from './error_row';
 import type { Message, AssistantMessage, ToolMessage, ToolCall } from '../../common/types';
+import { AssistantActionContext } from '../../../context_provider/public';
 import './chat_messages.scss';
 
 type TimelineItem = Message;
@@ -31,6 +32,9 @@ interface ChatMessagesProps {
   timeline: Message[];
   isStreaming: boolean;
   onResendMessage?: (message: Message) => void;
+  // Enhanced props from AssistantActionService
+  toolCallStates?: Map<string, any>;
+  getActionRenderer?: (name: string) => React.ComponentType<any> | undefined;
 }
 
 export const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -38,6 +42,8 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
   timeline,
   isStreaming,
   onResendMessage,
+  toolCallStates,
+  getActionRenderer,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // Context is now handled by RFC hooks and context pills
@@ -49,12 +55,24 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [timeline]);
+  }, [timeline.length]); // Only scroll when timeline length changes, not content
 
-  // Context is now handled by RFC hooks - no subscriptions needed
+  // Create stable context value for child components
+  const contextValue = React.useMemo(
+    () => ({
+      toolCallStates: toolCallStates || new Map(),
+      getActionRenderer: getActionRenderer || (() => undefined),
+    }),
+    [toolCallStates, getActionRenderer]
+  );
+
+  // Stabilize the timeline to prevent unnecessary re-renders
+  const stableTimeline = React.useMemo(() => timeline, [timeline]);
+
+  // Removed excessive logging to prevent performance issues
 
   return (
-    <>
+    <AssistantActionContext.Provider value={contextValue}>
       {/* Context Tree View: Hiding this for now. Uncomment for development */}
       {/* <div className="chatMessages__context">
         <ContextTreeView staticContext={staticContext} dynamicContext={dynamicContext} />
@@ -71,7 +89,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
           </div>
         )}
 
-        {timeline.map((message) => {
+        {stableTimeline.map((message) => {
           // Handle different message types
           if (message.role === 'user') {
             return <MessageRow key={message.id} message={message} onResend={onResendMessage} />;
@@ -104,24 +122,21 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                 {/* Tool calls below the message */}
                 {assistantMsg.toolCalls?.map((toolCall) => {
                   // Find corresponding tool result
-                  const toolResult = timeline.find(
+                  const toolResult = stableTimeline.find(
                     (m): m is ToolMessage =>
                       m.role === 'tool' && (m as ToolMessage).toolCallId === toolCall.id
                   );
 
-                  return (
-                    <ToolCallRow
-                      key={toolCall.id}
-                      toolCall={{
-                        type: 'tool_call',
-                        id: toolCall.id,
-                        toolName: toolCall.function.name,
-                        status: getToolStatus(toolCall, toolResult),
-                        result: toolResult?.content,
-                        timestamp: Date.now(), // Not used in display
-                      }}
-                    />
-                  );
+                  const toolCallRow = {
+                    type: 'tool_call' as const,
+                    id: toolCall.id,
+                    toolName: toolCall.function.name,
+                    status: getToolStatus(toolCall, toolResult),
+                    result: toolResult?.content,
+                    timestamp: Date.now(), // Not used in display
+                  };
+
+                  return <ToolCallRow key={toolCall.id} toolCall={toolCallRow} />;
                 })}
               </div>
             );
@@ -156,6 +171,6 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
 
         <div ref={messagesEndRef} />
       </div>
-    </>
+    </AssistantActionContext.Provider>
   );
 };

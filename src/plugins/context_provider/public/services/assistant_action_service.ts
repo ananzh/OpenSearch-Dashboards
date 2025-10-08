@@ -126,7 +126,6 @@ export class AssistantActionService {
   }
 
   registerAction = (action: AssistantAction) => {
-    console.log('[AssistantActionService] Registering action:', action.name);
     const currentState = this.state$.getValue();
     const existingAction = currentState.actions.get(action.name);
 
@@ -143,18 +142,12 @@ export class AssistantActionService {
 
     // Only trigger updates if something actually changed
     if (hasChanged) {
-      console.log(
-        '[AssistantActionService] Action changed, updating state. Registered actions:',
-        Array.from(newActions.keys())
-      );
       const toolDefinitions = this.createToolDefinitions(newActions);
       this.state$.next({
         ...currentState,
         actions: newActions,
         toolDefinitions,
       });
-    } else {
-      console.log('[AssistantActionService] Action unchanged, skipping state update');
     }
   };
 
@@ -176,23 +169,12 @@ export class AssistantActionService {
   };
 
   executeAction = async (name: string, args: any, executionId?: string) => {
-    console.log(
-      '🔧 [AssistantActionService] executeAction called for:',
-      name,
-      'with args:',
-      args,
-      'executionId:',
-      executionId
-    );
-
     const currentState = this.state$.getValue();
     const action = currentState.actions.get(name);
     if (!action) {
-      console.log('🔧 [AssistantActionService] Action not found:', name);
       throw new Error(`Action ${name} not found`);
     }
     if (!action.handler) {
-      console.log('🔧 [AssistantActionService] Action has no handler:', name);
       throw new Error(`Action ${name} has no handler`);
     }
 
@@ -213,43 +195,28 @@ export class AssistantActionService {
       enhancedArgs.__fullSharedData = this.getAllSharedData(activeExecutionId);
 
       enhancedArgs.__executionId = activeExecutionId;
-      console.log(
-        `[AssistantActionService] Injected lightweight and full shared data for execution: ${activeExecutionId}`
-      );
     }
 
     try {
-      console.log('🔧 [AssistantActionService] Executing action handler for:', name);
       const result = await action.handler(enhancedArgs);
 
       // Store result for next tool in the chain
       if (activeExecutionId && this.interToolDataService && result) {
         this.interToolDataService.storeToolResult(activeExecutionId, name, result);
-        console.log(
-          `[AssistantActionService] Stored result for tool '${name}' in execution ${activeExecutionId}`
-        );
 
         // Check if tool chain is complete
         if (result.success && !result.nextAction) {
           this.interToolDataService.completeExecution(activeExecutionId);
-          console.log(`[AssistantActionService] Marked execution ${activeExecutionId} as complete`);
         }
       }
 
       // Return lightweight result to AI context to prevent model input overflow
       const lightweightResult = this.createLightweightResult(name, result);
-      console.log(
-        '🔧 [AssistantActionService] Returning lightweight result to AI:',
-        lightweightResult
-      );
       return lightweightResult;
     } catch (error) {
       // Mark execution as failed
       if (activeExecutionId && this.interToolDataService) {
         this.interToolDataService.failExecution(activeExecutionId);
-        console.log(
-          `[AssistantActionService] Marked execution ${activeExecutionId} as failed due to error`
-        );
       }
       throw error;
     }
@@ -277,36 +244,9 @@ export class AssistantActionService {
   };
 
   getActionRenderer = (name: string) => {
-    console.log('🎯 [AssistantActionService] getActionRenderer called for:', name);
-
     const currentState = this.state$.getValue();
-    console.log('🎯 [AssistantActionService] Current state:', {
-      totalActions: currentState.actions.size,
-      actionNames: Array.from(currentState.actions.keys()),
-    });
-
     const action = currentState.actions.get(name);
-    console.log('🎯 [AssistantActionService] Action lookup result:', {
-      actionName: name,
-      hasAction: !!action,
-      hasRenderMethod: !!action?.render,
-      actionDetails: action
-        ? {
-            name: action.name,
-            description: action.description,
-            enabled: action.enabled,
-          }
-        : null,
-    });
-
-    const renderer = action?.render;
-    console.log('🎯 [AssistantActionService] Returning renderer:', {
-      actionName: name,
-      hasRenderer: !!renderer,
-      rendererType: typeof renderer,
-    });
-
-    return renderer;
+    return action?.render;
   };
 
   private createToolDefinitions = (actions: Map<string, AssistantAction>): ToolDefinition[] => {

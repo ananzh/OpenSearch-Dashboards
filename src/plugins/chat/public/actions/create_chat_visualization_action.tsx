@@ -177,27 +177,10 @@ export async function createChatVisualization(args: CreateChatVisualizationArgs)
 }
 
 export function useCreateChatVisualizationAction() {
-  console.log('🛠️ [useCreateChatVisualizationAction] ===== HOOK ENTRY =====');
-  console.log('[useCreateChatVisualizationAction] Hook initializing...');
   const { services } = useOpenSearchDashboards();
-
-  console.log(
-    '[useCreateChatVisualizationAction] Available services:',
-    Object.keys(services || {})
-  );
-  console.log(
-    '[useCreateChatVisualizationAction] contextProvider available:',
-    !!services.contextProvider
-  );
-  console.log('[useCreateChatVisualizationAction] expressions available:', !!services.expressions);
 
   const useAssistantAction =
     services.contextProvider?.hooks?.useAssistantAction || NOOP_ASSISTANT_ACTION_HOOK;
-
-  console.log(
-    '[useCreateChatVisualizationAction] useAssistantAction available:',
-    useAssistantAction !== NOOP_ASSISTANT_ACTION_HOOK
-  );
 
   // Use useMemo to prevent recreating action config on every render
   const actionConfig = React.useMemo(
@@ -379,11 +362,19 @@ export function useCreateChatVisualizationAction() {
                   <ExpressionRenderer
                     expression={result.expression}
                     searchContext={{}}
+                    uiState={{}}
+                    disableCaching={true}
                     onRender={() => {}}
                     onError={(error: any) => console.error('Expression render error:', error)}
+                    renderError={(message, error) => (
+                      <EuiText color="danger">
+                        {message || 'Error rendering visualization'}: {error?.message}
+                      </EuiText>
+                    )}
                   />
                 </div>
-                <EuiSpacer size="s" />
+                {/* Add to Dashboard functionality temporarily disabled due to import path issues */}
+                {/* <EuiSpacer size="s" />
                 <EuiFlexGroup justifyContent="flexEnd">
                   <EuiFlexItem grow={false}>
                     <AddToDashboardButton
@@ -391,32 +382,29 @@ export function useCreateChatVisualizationAction() {
                       title={result.title || args?.title || 'Chat Visualization'}
                     />
                   </EuiFlexItem>
-                </EuiFlexGroup>
+                </EuiFlexGroup> */}
               </>
             )}
           </EuiPanel>
         );
       },
     }),
-    []
-  ); // Empty dependency array since the action config is static
-
-  console.log(
-    '[useCreateChatVisualizationAction] About to call useAssistantAction with config:',
-    actionConfig
+    [useAssistantAction] // Only depend on the actual hook function
   );
 
-  console.log(
-    '[useCreateChatVisualizationAction] useAssistantAction function:',
-    useAssistantAction
-  );
-
-  try {
-    useAssistantAction<CreateChatVisualizationArgs>(actionConfig);
-    console.log('[useCreateChatVisualizationAction] useAssistantAction called successfully');
-  } catch (error) {
-    console.error('[useCreateChatVisualizationAction] Error calling useAssistantAction:', error);
-  }
+  // Use useEffect to register the action only once
+  React.useEffect(() => {
+    if (useAssistantAction && useAssistantAction !== NOOP_ASSISTANT_ACTION_HOOK) {
+      try {
+        useAssistantAction<CreateChatVisualizationArgs>(actionConfig);
+      } catch (error) {
+        console.error(
+          '[useCreateChatVisualizationAction] Error calling useAssistantAction:',
+          error
+        );
+      }
+    }
+  }, [useAssistantAction, actionConfig]);
 }
 
 /**
@@ -525,45 +513,34 @@ const AddToDashboardButton: React.FC<{
       });
 
       if (savedVisualization && savedVisualization.id) {
-        // Use the same utility function as explore plugin
-        const { addToDashboard } = await import(
-          '../../../../explore/public/components/visualizations/utils/add_to_dashboard'
-        );
+        // Use dashboard service to create a new dashboard and add the visualization
+        const dashboardService = services.dashboard;
+        if (!dashboardService) {
+          throw new Error('Dashboard service not available');
+        }
 
-        // For simplicity, let's create a new dashboard
-        // In a more complete implementation, you'd show a modal to choose existing vs new dashboard
-        const dashboardId = await addToDashboard(
-          services.dashboard,
-          { id: savedVisualization.id, type: 'visualization' },
-          'new',
-          {
-            newDashboardName: `Dashboard with ${title}`,
-            createDashboardOptions: {
-              isTitleDuplicateConfirmed: false,
-              onTitleDuplicate: () => {},
-            },
-          }
-        );
-
-        if (dashboardId) {
-          // Show success notification
-          const dashboardUrl = services.core.application.getUrlForApp('dashboards', {
-            path: `#/view/${dashboardId}`,
+        try {
+          // Create a new dashboard with the visualization
+          const dashboardUrl = await createDashboardWithVisualization({
+            visualizationId: savedVisualization.id,
+            title: `Dashboard with ${title}`,
+            dashboardService,
           });
 
+          // Show success notification
           services.toastNotifications?.add({
             title: 'Visualization Added to Dashboard',
             color: 'success',
             iconType: 'check',
-            text: `Successfully added "${title}" to a new dashboard. ${
-              dashboardUrl ? 'View Dashboard' : ''
-            }`,
+            text: `Successfully created dashboard with "${title}".`,
           });
 
-          // Optionally navigate to dashboard
+          // Open the new dashboard
           if (dashboardUrl) {
             window.open(dashboardUrl, '_blank');
           }
+        } catch (dashboardError) {
+          throw new Error(`Failed to create dashboard: ${dashboardError.message}`);
         }
       }
     } catch (error) {
@@ -591,6 +568,74 @@ const AddToDashboardButton: React.FC<{
     </EuiButtonEmpty>
   );
 };
+
+/**
+ * Create a dashboard with a visualization using dashboard service API
+ */
+async function createDashboardWithVisualization({
+  visualizationId,
+  title,
+  dashboardService,
+}: {
+  visualizationId: string;
+  title: string;
+  dashboardService: any;
+}): Promise<string | null> {
+  try {
+    // Get the saved dashboard loader
+    const loader = dashboardService.getSavedDashboardLoader();
+
+    // Create a new dashboard
+    const newDashboard = await loader.get();
+
+    // Set dashboard properties
+    newDashboard.title = title;
+    newDashboard.description = 'Dashboard created from chat visualization';
+
+    // Create panel configuration
+    const panelId = `chat-viz-${Date.now()}`;
+    const panel = {
+      version: '8.0.0', // Use appropriate version
+      id: visualizationId,
+      type: 'visualization',
+      panelIndex: panelId,
+      gridData: {
+        i: panelId,
+        x: 0,
+        y: 0,
+        w: 24, // Half width
+        h: 15, // Standard height
+      },
+    };
+
+    // Add panel to dashboard
+    newDashboard.panelsJSON = JSON.stringify([panel]);
+
+    // Save the dashboard
+    const savedDashboard = await newDashboard.save({
+      isTitleDuplicateConfirmed: false,
+      onTitleDuplicate: () => {},
+    });
+
+    if (savedDashboard && savedDashboard.id) {
+      // Generate dashboard URL
+      const dashboardUrlGenerator = dashboardService.dashboardUrlGenerator;
+      if (dashboardUrlGenerator) {
+        return await dashboardUrlGenerator.createUrl({
+          dashboardId: savedDashboard.id,
+        });
+      }
+
+      // Fallback URL construction
+      return `/app/dashboards#/view/${savedDashboard.id}`;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error creating dashboard with visualization:', error);
+    throw error;
+  }
+}
 
 /**
  * Create a saved visualization object from an expression
@@ -644,43 +689,67 @@ async function createSavedVisualization({
 }
 
 // Import ExpressionRenderer lazily to avoid circular dependencies
-const ExpressionRenderer: React.FC<any> = ({ expression, searchContext, onRender, onError }) => {
-  console.log('🎨 [ExpressionRenderer] Component called with expression:', expression);
-  const [Component, setComponent] = React.useState<any>(null);
+const ExpressionRenderer: React.FC<any> = React.memo(
+  ({ expression, searchContext, uiState, disableCaching, onRender, onError, renderError }) => {
+    const [Component, setComponent] = React.useState<any>(null);
 
-  React.useEffect(() => {
-    console.log('🎨 [ExpressionRenderer] Loading ReactExpressionRenderer...');
-    import('../../../expressions/public')
-      .then(({ ReactExpressionRenderer }) => {
-        console.log(
-          '🎨 [ExpressionRenderer] ReactExpressionRenderer loaded:',
-          ReactExpressionRenderer
-        );
-        setComponent(() => ReactExpressionRenderer);
-      })
-      .catch((error) => {
-        console.error('🎨 [ExpressionRenderer] Failed to load ReactExpressionRenderer:', error);
-      });
-  }, []);
-
-  if (!Component) {
-    console.log('🎨 [ExpressionRenderer] Component not loaded yet, showing loading...');
-    return <EuiText size="s">Loading visualization...</EuiText>;
-  }
-
-  console.log('🎨 [ExpressionRenderer] Rendering with Component:', Component);
-  return (
-    <Component
-      expression={expression}
-      searchContext={searchContext}
-      onRender={() => {
-        console.log('🎨 [ExpressionRenderer] onRender called');
-        onRender && onRender();
-      }}
-      onError={(error) => {
-        console.error('🎨 [ExpressionRenderer] onError called:', error);
+    // Stabilize the callback functions to prevent re-renders
+    const handleRenderError = React.useCallback(
+      (error: any) => {
+        console.error('🎨 [ExpressionRenderer] onRenderError called:', error);
         onError && onError(error);
-      }}
-    />
-  );
-};
+      },
+      [onError]
+    );
+
+    const handleEvent = React.useCallback(
+      (event: any) => {
+        if (event.name === 'render') {
+          onRender && onRender();
+        }
+      },
+      [onRender]
+    );
+
+    // Load ReactExpressionRenderer only once
+    React.useEffect(() => {
+      if (!Component) {
+        import('../../../expressions/public')
+          .then(({ ReactExpressionRenderer }) => {
+            setComponent(() => ReactExpressionRenderer);
+          })
+          .catch((error) => {
+            console.error('🎨 [ExpressionRenderer] Failed to load ReactExpressionRenderer:', error);
+          });
+      }
+    }, [Component]);
+
+    // Stabilize props to prevent unnecessary re-renders
+    const stableProps = React.useMemo(
+      () => ({
+        expression,
+        searchContext: searchContext || {},
+        uiState: uiState || {},
+        disableCaching: disableCaching || true,
+        onRenderError: handleRenderError,
+        renderError,
+        onEvent: handleEvent,
+      }),
+      [
+        expression,
+        searchContext,
+        uiState,
+        disableCaching,
+        handleRenderError,
+        renderError,
+        handleEvent,
+      ]
+    );
+
+    if (!Component) {
+      return <EuiText size="s">Loading visualization...</EuiText>;
+    }
+
+    return <Component {...stableProps} />;
+  }
+);

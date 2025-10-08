@@ -216,17 +216,43 @@ export class VegaSpecGenerator {
   private static generateMetricChart(data: ProcessedVisualizationData, options: any): any {
     const { transformedData, numericalColumns } = data;
 
-    // Calculate aggregate value
-    const valueField = this.getFieldName(numericalColumns[0]);
-    const values = transformedData
-      .map((row) => row[valueField])
-      .filter((v) => typeof v === 'number');
-    const totalValue = values.reduce((sum, val) => sum + val, 0);
+    // For metric charts, we typically want to show either:
+    // 1. Count of records (for "total log count" type metrics)
+    // 2. Sum of values (for aggregated metrics)
+    // 3. Average, max, min, etc.
+
+    // Determine metric type from title
+    const title = options.title || 'Metric';
+    const isCountMetric =
+      title.toLowerCase().includes('count') || title.toLowerCase().includes('total');
+
+    let metricValue: number;
+    let metricType: string;
+
+    if (isCountMetric) {
+      // For count metrics, show the number of data points
+      metricValue = transformedData.length;
+      metricType = 'count';
+    } else if (numericalColumns.length > 0) {
+      // For non-count metrics, calculate aggregate value from the first numerical column
+      const valueField = this.getFieldName(numericalColumns[0]);
+      const values = transformedData
+        .map((row) => row[valueField])
+        .filter((v) => typeof v === 'number' && !isNaN(v));
+
+      // Default to sum, but could be extended to support avg, max, min based on options
+      metricValue = values.reduce((sum, val) => sum + val, 0);
+      metricType = 'sum';
+    } else {
+      // Fallback to count if no numerical columns
+      metricValue = transformedData.length;
+      metricType = 'count';
+    }
 
     return {
       $schema: VEGASCHEMA,
-      title: options.title || 'Metric',
-      data: { values: [{ value: totalValue }] },
+      title,
+      data: { values: [{ value: metricValue, type: metricType }] },
       mark: {
         type: 'text',
         fontSize: 40,
@@ -235,7 +261,11 @@ export class VegaSpecGenerator {
         baseline: 'middle',
       },
       encoding: {
-        text: { field: 'value', type: 'quantitative', format: '.2f' },
+        text: {
+          field: 'value',
+          type: 'quantitative',
+          format: metricType === 'count' ? 'd' : '.2f', // Use integer format for counts
+        },
       },
     };
   }

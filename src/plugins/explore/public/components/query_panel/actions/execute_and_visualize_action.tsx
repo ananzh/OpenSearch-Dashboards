@@ -99,32 +99,21 @@ export function useExecuteAndVisualizeAction(
     },
 
     handler: async (args) => {
-      console.log('[execute_and_visualize] Starting execution with args:', args);
-
       try {
         // Step 1: Execute the PPL query in Explore (same as ppl_execute_query_action)
-        console.log('[execute_and_visualize] Dispatching query:', args.query);
         dispatch(loadQueryActionCreator(services, setEditorTextWithQuery, args.query));
 
         // Wait for query results to be available in Redux store
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        console.log('[execute_and_visualize] Checking results after wait, results:', results);
-
         // Check if we have results to pass
         if (!results || !results.hits?.hits) {
-          console.log('[execute_and_visualize] No results available yet');
           return {
             success: false,
             error: 'Query executed but results are not yet available for visualization.',
             query: args.query,
           };
         }
-
-        console.log(
-          '[execute_and_visualize] Results available, hits count:',
-          results.hits.hits.length
-        );
 
         // Create lightweight response for AI context
         const lightweightResponse = {
@@ -170,18 +159,6 @@ export function useExecuteAndVisualizeAction(
     },
 
     render: ({ status, args, result }) => {
-      console.log(
-        '🎨 [execute_and_visualize] RENDER METHOD CALLED - status:',
-        status,
-        'args:',
-        args,
-        'result:',
-        result
-      );
-      console.log(
-        '🎨 [execute_and_visualize] This means the action appeared as a ToolMessage in chat timeline!'
-      );
-
       if (!args) return null;
 
       const getStatusColor = () => {
