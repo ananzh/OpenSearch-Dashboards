@@ -4,7 +4,15 @@
  */
 
 import React from 'react';
-import { EuiPanel, EuiText, EuiSpacer, EuiCode, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
+import {
+  EuiPanel,
+  EuiText,
+  EuiSpacer,
+  EuiCode,
+  EuiFlexGroup,
+  EuiFlexItem,
+  EuiButtonEmpty,
+} from '@elastic/eui';
 import { useOpenSearchDashboards } from '../../../opensearch_dashboards_react/public';
 import { ChatDataProcessor } from '../components/visualization/utils/data_processor';
 import { ChartIntentParser } from '../components/visualization/utils/intent_parser';
@@ -169,8 +177,19 @@ export async function createChatVisualization(args: CreateChatVisualizationArgs)
 }
 
 export function useCreateChatVisualizationAction() {
+  console.log('🛠️ [useCreateChatVisualizationAction] ===== HOOK ENTRY =====');
   console.log('[useCreateChatVisualizationAction] Hook initializing...');
   const { services } = useOpenSearchDashboards();
+
+  console.log(
+    '[useCreateChatVisualizationAction] Available services:',
+    Object.keys(services || {})
+  );
+  console.log(
+    '[useCreateChatVisualizationAction] contextProvider available:',
+    !!services.contextProvider
+  );
+  console.log('[useCreateChatVisualizationAction] expressions available:', !!services.expressions);
 
   const useAssistantAction =
     services.contextProvider?.hooks?.useAssistantAction || NOOP_ASSISTANT_ACTION_HOOK;
@@ -275,9 +294,16 @@ export function useCreateChatVisualizationAction() {
 
         const result = await createChatVisualization(enhancedArgs);
         console.log('[useCreateChatVisualizationAction] Handler result:', result);
+        console.log('[useCreateChatVisualizationAction] Result analysis:');
+        console.log('  - success:', result.success);
+        console.log('  - expression exists:', !!result.expression);
+        console.log('  - expression length:', result.expression?.length);
+        console.log('  - title:', result.title);
+        console.log('  - chartType:', result.chartType);
         return result;
       },
       render: ({ status, args, result }: any) => {
+        console.log('🎨🎨🎨 [create_chat_visualization] ===== RENDER METHOD ENTRY =====');
         console.log(
           '🎨 [create_chat_visualization] RENDER METHOD CALLED - status:',
           status,
@@ -289,6 +315,11 @@ export function useCreateChatVisualizationAction() {
         console.log(
           '🎨 [create_chat_visualization] This means the action appeared as a ToolMessage in chat timeline!'
         );
+        console.log('🎨 [create_chat_visualization] Checking render conditions:');
+        console.log('  - status === "complete":', status === 'complete');
+        console.log('  - result?.success:', result?.success);
+        console.log('  - result?.expression exists:', !!result?.expression);
+        console.log('  - result?.expression value:', result?.expression);
 
         if (!args) return null;
 
@@ -352,6 +383,15 @@ export function useCreateChatVisualizationAction() {
                     onError={(error: any) => console.error('Expression render error:', error)}
                   />
                 </div>
+                <EuiSpacer size="s" />
+                <EuiFlexGroup justifyContent="flexEnd">
+                  <EuiFlexItem grow={false}>
+                    <AddToDashboardButton
+                      expression={result.expression}
+                      title={result.title || args?.title || 'Chat Visualization'}
+                    />
+                  </EuiFlexItem>
+                </EuiFlexGroup>
               </>
             )}
           </EuiPanel>
@@ -366,7 +406,17 @@ export function useCreateChatVisualizationAction() {
     actionConfig
   );
 
-  useAssistantAction<CreateChatVisualizationArgs>(actionConfig);
+  console.log(
+    '[useCreateChatVisualizationAction] useAssistantAction function:',
+    useAssistantAction
+  );
+
+  try {
+    useAssistantAction<CreateChatVisualizationArgs>(actionConfig);
+    console.log('[useCreateChatVisualizationAction] useAssistantAction called successfully');
+  } catch (error) {
+    console.error('[useCreateChatVisualizationAction] Error calling useAssistantAction:', error);
+  }
 }
 
 /**
@@ -448,26 +498,189 @@ function validateChartTypeForData(chartType: ChartType, data: ProcessedVisualiza
   }
 }
 
+/**
+ * AddToDashboard Button Component for Chat Visualizations
+ */
+const AddToDashboardButton: React.FC<{
+  expression: string;
+  title: string;
+}> = ({ expression, title }) => {
+  const { services } = useOpenSearchDashboards();
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const handleAddToDashboard = async () => {
+    if (!services.dashboard) {
+      console.error('Dashboard service not available');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Create a saved visualization from the expression
+      const savedVisualization = await createSavedVisualization({
+        title,
+        expression,
+        services,
+      });
+
+      if (savedVisualization && savedVisualization.id) {
+        // Use the same utility function as explore plugin
+        const { addToDashboard } = await import(
+          '../../../../explore/public/components/visualizations/utils/add_to_dashboard'
+        );
+
+        // For simplicity, let's create a new dashboard
+        // In a more complete implementation, you'd show a modal to choose existing vs new dashboard
+        const dashboardId = await addToDashboard(
+          services.dashboard,
+          { id: savedVisualization.id, type: 'visualization' },
+          'new',
+          {
+            newDashboardName: `Dashboard with ${title}`,
+            createDashboardOptions: {
+              isTitleDuplicateConfirmed: false,
+              onTitleDuplicate: () => {},
+            },
+          }
+        );
+
+        if (dashboardId) {
+          // Show success notification
+          const dashboardUrl = services.core.application.getUrlForApp('dashboards', {
+            path: `#/view/${dashboardId}`,
+          });
+
+          services.toastNotifications?.add({
+            title: 'Visualization Added to Dashboard',
+            color: 'success',
+            iconType: 'check',
+            text: `Successfully added "${title}" to a new dashboard. ${
+              dashboardUrl ? 'View Dashboard' : ''
+            }`,
+          });
+
+          // Optionally navigate to dashboard
+          if (dashboardUrl) {
+            window.open(dashboardUrl, '_blank');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to add visualization to dashboard:', error);
+      services.toastNotifications?.add({
+        title: 'Failed to Add to Dashboard',
+        color: 'danger',
+        iconType: 'alert',
+        text: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <EuiButtonEmpty
+      size="s"
+      onClick={handleAddToDashboard}
+      isLoading={isLoading}
+      iconType="dashboardApp"
+      data-test-subj="addToDashboardButton"
+    >
+      Add to Dashboard
+    </EuiButtonEmpty>
+  );
+};
+
+/**
+ * Create a saved visualization object from an expression
+ */
+async function createSavedVisualization({
+  title,
+  expression,
+  services,
+}: {
+  title: string;
+  expression: string;
+  services: any;
+}) {
+  try {
+    // Create a saved object for the visualization
+    const savedObjectsClient = services.savedObjects?.client;
+    if (!savedObjectsClient) {
+      throw new Error('SavedObjects client not available');
+    }
+
+    // Create the visualization saved object
+    const visualizationAttributes = {
+      title,
+      visState: JSON.stringify({
+        type: 'vega',
+        params: {
+          spec: expression, // The Vega expression/spec
+        },
+      }),
+      uiStateJSON: '{}',
+      description: 'Visualization created from chat',
+      version: 1,
+      kibanaSavedObjectMeta: {
+        searchSourceJSON: JSON.stringify({
+          query: {
+            match_all: {},
+          },
+        }),
+      },
+    };
+
+    const result = await savedObjectsClient.create('visualization', visualizationAttributes, {
+      id: `chat-viz-${Date.now()}`,
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Failed to create saved visualization:', error);
+    throw error;
+  }
+}
+
 // Import ExpressionRenderer lazily to avoid circular dependencies
 const ExpressionRenderer: React.FC<any> = ({ expression, searchContext, onRender, onError }) => {
+  console.log('🎨 [ExpressionRenderer] Component called with expression:', expression);
   const [Component, setComponent] = React.useState<any>(null);
 
   React.useEffect(() => {
-    import('../../../expressions/public').then(({ ReactExpressionRenderer }) => {
-      setComponent(() => ReactExpressionRenderer);
-    });
+    console.log('🎨 [ExpressionRenderer] Loading ReactExpressionRenderer...');
+    import('../../../expressions/public')
+      .then(({ ReactExpressionRenderer }) => {
+        console.log(
+          '🎨 [ExpressionRenderer] ReactExpressionRenderer loaded:',
+          ReactExpressionRenderer
+        );
+        setComponent(() => ReactExpressionRenderer);
+      })
+      .catch((error) => {
+        console.error('🎨 [ExpressionRenderer] Failed to load ReactExpressionRenderer:', error);
+      });
   }, []);
 
   if (!Component) {
+    console.log('🎨 [ExpressionRenderer] Component not loaded yet, showing loading...');
     return <EuiText size="s">Loading visualization...</EuiText>;
   }
 
+  console.log('🎨 [ExpressionRenderer] Rendering with Component:', Component);
   return (
     <Component
       expression={expression}
       searchContext={searchContext}
-      onRender={onRender}
-      onError={onError}
+      onRender={() => {
+        console.log('🎨 [ExpressionRenderer] onRender called');
+        onRender && onRender();
+      }}
+      onError={(error) => {
+        console.error('🎨 [ExpressionRenderer] onError called:', error);
+        onError && onError(error);
+      }}
     />
   );
 };

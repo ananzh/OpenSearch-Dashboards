@@ -24,6 +24,7 @@ interface ChatHeaderButtonProps {
   chatService: ChatService;
   contextProvider?: ContextProviderStart;
   charts?: any;
+  expressions?: any;
 }
 
 export const ChatHeaderButton: React.FC<ChatHeaderButtonProps> = ({
@@ -31,6 +32,7 @@ export const ChatHeaderButton: React.FC<ChatHeaderButtonProps> = ({
   chatService,
   contextProvider,
   charts,
+  expressions,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [layoutMode, setLayoutMode] = useState<ChatLayoutMode>(ChatLayoutMode.SIDECAR);
@@ -146,7 +148,9 @@ export const ChatHeaderButton: React.FC<ChatHeaderButtonProps> = ({
         }`}
       >
         <div className="chatHeaderButton__content">
-          <OpenSearchDashboardsContextProvider services={{ core, contextProvider, charts }}>
+          <OpenSearchDashboardsContextProvider
+            services={{ core, contextProvider, charts, expressions }}
+          >
             <GlobalAssistantProvider
               onToolsUpdated={(tools) => {
                 // Tools updated in chat

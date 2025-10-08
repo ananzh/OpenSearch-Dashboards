@@ -62,11 +62,25 @@ export const MessageRowWithTools: React.FC<MessageRowWithToolsProps> = ({
             <>
               <EuiSpacer size="m" />
               <div className="messageRow__toolCalls">
-                {message.toolCalls.map((toolCallId) => (
-                  <div key={toolCallId} className="messageRow__toolCall">
-                    <ToolCallRenderer toolCallId={toolCallId} />
-                  </div>
-                ))}
+                {(() => {
+                  console.log('🗨️ [MessageRowWithTools] Rendering tool calls for message:', {
+                    messageId: message.id,
+                    role: message.role,
+                    toolCallIds: message.toolCalls,
+                    toolCallCount: message.toolCalls.length,
+                  });
+                  return message.toolCalls.map((toolCallId) => {
+                    console.log(
+                      '🗨️ [MessageRowWithTools] Creating ToolCallRenderer for:',
+                      toolCallId
+                    );
+                    return (
+                      <div key={toolCallId} className="messageRow__toolCall">
+                        <ToolCallRenderer toolCallId={toolCallId} />
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </>
           )}

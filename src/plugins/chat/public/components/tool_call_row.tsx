@@ -23,11 +23,30 @@ interface ToolCallRowProps {
 }
 
 export const ToolCallRow: React.FC<ToolCallRowProps> = ({ toolCall }) => {
+  console.log('🧱 [ToolCallRow] ENTRY - toolCall:', {
+    id: toolCall.id,
+    toolName: toolCall.toolName,
+    status: toolCall.status,
+    hasResult: !!toolCall.result,
+  });
+
   // Always call useContext at the top level - React Hook rules
   const context = useContext(AssistantActionContext);
 
   // Try to get custom renderer if context is available
+  console.log('🧱 [ToolCallRow] Checking for custom renderer:', {
+    hasContext: !!context,
+    hasGetActionRenderer: !!context?.getActionRenderer,
+    toolName: toolCall.toolName,
+  });
+
   const renderer = context?.getActionRenderer?.(toolCall.toolName);
+
+  console.log('🧱 [ToolCallRow] Custom renderer lookup result:', {
+    toolName: toolCall.toolName,
+    hasRenderer: !!renderer,
+    rendererType: typeof renderer,
+  });
 
   // Direct graph rendering for graph_timeseries_data tool
   if (toolCall.toolName === 'graph_timeseries_data') {
@@ -256,7 +275,18 @@ export const ToolCallRow: React.FC<ToolCallRowProps> = ({ toolCall }) => {
     context &&
     renderer &&
     (toolCall.toolName === 'request_user_confirmation' || // Always render for user confirmation
-      (toolCall.status === 'completed' && toolCall.result && toolCall.toolName === 'ppl_query')); // Other completed tools
+      (toolCall.status === 'completed' && toolCall.result)); // Any completed tool with a custom renderer
+
+  console.log('🧱 [ToolCallRow] shouldUseCustomRenderer evaluation:', {
+    toolName: toolCall.toolName,
+    hasContext: !!context,
+    hasRenderer: !!renderer,
+    status: toolCall.status,
+    hasResult: !!toolCall.result,
+    isUserConfirmation: toolCall.toolName === 'request_user_confirmation',
+    isCompletedWithResult: toolCall.status === 'completed' && !!toolCall.result,
+    shouldUseCustomRenderer,
+  });
 
   if (shouldUseCustomRenderer) {
     // For user confirmation, we don't need to parse result - just pass the status and args
@@ -271,6 +301,56 @@ export const ToolCallRow: React.FC<ToolCallRowProps> = ({ toolCall }) => {
           })}
         </div>
       );
+    }
+
+    // For visualization tools, handle with proper args structure
+    if (toolCall.toolName === 'create_chat_visualization') {
+      // Get args from context if available
+      const toolArgs = context?.toolCallStates?.get(toolCall.id)?.args;
+
+      console.log('🧱 [ToolCallRow] CALLING create_chat_visualization custom renderer!', {
+        toolCallId: toolCall.id,
+        status: toolCall.status,
+        hasResult: !!toolCall.result,
+        hasArgs: !!toolArgs,
+        resultLength: toolCall.result?.length,
+      });
+
+      try {
+        const parsedResult = toolCall.result ? JSON.parse(toolCall.result) : undefined;
+        console.log('🧱 [ToolCallRow] Parsed result for visualization:', {
+          success: parsedResult?.success,
+          hasExpression: !!parsedResult?.expression,
+          chartType: parsedResult?.chartType,
+        });
+
+        const rendererProps = {
+          status: toolCall.status === 'running' ? 'executing' : 'complete',
+          args: toolArgs,
+          result: parsedResult,
+          error: toolCall.status === 'error' ? toolCall.result : undefined,
+        };
+
+        console.log('🧱 [ToolCallRow] Calling renderer with props:', rendererProps);
+        const rendererResult = renderer(rendererProps);
+
+        console.log('🧱 [ToolCallRow] Renderer returned:', {
+          hasResult: !!rendererResult,
+          resultType: typeof rendererResult,
+        });
+
+        return <div className="toolCallRow">{rendererResult}</div>;
+      } catch (error) {
+        console.error(
+          '🧱 [ToolCallRow] Error in create_chat_visualization custom renderer:',
+          error
+        );
+        return (
+          <div className="toolCallRow">
+            <div>Error rendering visualization: {error.message}</div>
+          </div>
+        );
+      }
     }
 
     // For other tools, try to parse JSON result

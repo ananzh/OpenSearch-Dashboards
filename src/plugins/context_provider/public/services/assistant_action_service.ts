@@ -277,10 +277,36 @@ export class AssistantActionService {
   };
 
   getActionRenderer = (name: string) => {
+    console.log('🎯 [AssistantActionService] getActionRenderer called for:', name);
+
     const currentState = this.state$.getValue();
+    console.log('🎯 [AssistantActionService] Current state:', {
+      totalActions: currentState.actions.size,
+      actionNames: Array.from(currentState.actions.keys()),
+    });
+
     const action = currentState.actions.get(name);
-    // Service getActionRenderer called
-    return action?.render;
+    console.log('🎯 [AssistantActionService] Action lookup result:', {
+      actionName: name,
+      hasAction: !!action,
+      hasRenderMethod: !!action?.render,
+      actionDetails: action
+        ? {
+            name: action.name,
+            description: action.description,
+            enabled: action.enabled,
+          }
+        : null,
+    });
+
+    const renderer = action?.render;
+    console.log('🎯 [AssistantActionService] Returning renderer:', {
+      actionName: name,
+      hasRenderer: !!renderer,
+      rendererType: typeof renderer,
+    });
+
+    return renderer;
   };
 
   private createToolDefinitions = (actions: Map<string, AssistantAction>): ToolDefinition[] => {
