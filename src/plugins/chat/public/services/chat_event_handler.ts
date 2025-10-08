@@ -308,7 +308,7 @@ export class ChatEventHandler {
           '[ChatEventHandler] Creating ToolMessage for toolCallId:',
           toolCallId,
           'toolName:',
-          toolCallName,
+          toolCall.function.name,
           'result:',
           result
         );

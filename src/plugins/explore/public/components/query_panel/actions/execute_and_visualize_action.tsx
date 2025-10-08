@@ -38,7 +38,7 @@ export function useExecuteAndVisualizeAction(
   useAssistantAction<ExecuteAndVisualizeArgs>({
     name: 'execute_and_visualize',
     description:
-      'Execute a PPL query and prepare for visualization. After calling this, you should call create_chat_visualization to display the results. This tool executes the query and tells you when to create the visualization.',
+      'Execute a PPL query and prepare data for visualization. After calling this tool successfully, you should immediately call create_chat_visualization to display the results in chat. This is step 1 of 2 for query execution with visualization.',
     parameters: {
       type: 'object',
       properties: {
@@ -106,35 +106,29 @@ export function useExecuteAndVisualizeAction(
             );
             console.log('[execute_and_visualize] Calling assistantActionService.executeAction...');
 
-            // Trigger the Chat visualization action programmatically with data
-            // This will test if programmatic calls create ToolMessages
+            // Query executed successfully, instruct AI to call create_chat_visualization next
             console.log(
-              '[execute_and_visualize] Testing programmatic call to create_chat_visualization...'
+              '[execute_and_visualize] Query completed successfully. Results ready for visualization.'
             );
-            const vizResult = await assistantActionService.executeAction(
-              'create_chat_visualization',
-              {
-                chartType: args.chartType,
-                title: args.title,
-                description: args.description,
-                autoDetect: args.autoDetect,
-                dataSource: 'provided_data',
-                data: {
-                  hits: results.hits.hits,
-                  fieldSchema: results.fieldSchema || [],
-                },
-              }
-            );
-
-            console.log('[execute_and_visualize] Visualization result:', vizResult);
 
             return {
               success: true,
               query: args.query,
               executed: true,
-              message: 'Query executed and programmatic visualization call completed.',
+              dataPoints: results.hits.hits.length,
+              message:
+                'Query executed successfully. Data is ready for visualization. Call create_chat_visualization to display the results.',
               chartType: args.chartType || 'auto-detected',
-              visualizationResult: vizResult,
+              nextAction: {
+                tool: 'create_chat_visualization',
+                reason: 'Query results are ready for visualization',
+                recommendedArgs: {
+                  chartType: args.chartType,
+                  title: args.title,
+                  description: args.description,
+                  autoDetect: args.autoDetect,
+                },
+              },
             };
           } catch (visualizationError) {
             return {
