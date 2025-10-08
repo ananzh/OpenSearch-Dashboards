@@ -83,7 +83,7 @@ function ChatWindowContent({
   );
 
   // Register actions
-  useGraphTimeseriesDataAction();
+  //useGraphTimeseriesDataAction();
   useCreateChatVisualizationAction();
 
   // Context is now handled by RFC hooks - no need for context manager

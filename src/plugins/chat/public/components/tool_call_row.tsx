@@ -23,11 +23,20 @@ interface ToolCallRowProps {
 }
 
 export const ToolCallRow: React.FC<ToolCallRowProps> = ({ toolCall }) => {
+  console.log('🧱 [ToolCallRow] ENTRY - toolCall:', toolCall.toolName, toolCall.status);
+
   // Always call useContext at the top level - React Hook rules
   const context = useContext(AssistantActionContext);
 
   // Try to get custom renderer if context is available
+  console.log(
+    '🧱 [ToolCallRow] Context available:',
+    !!context,
+    'getActionRenderer:',
+    !!context?.getActionRenderer
+  );
   const renderer = context?.getActionRenderer?.(toolCall.toolName);
+  console.log('🧱 [ToolCallRow] Renderer found for', toolCall.toolName, ':', !!renderer);
 
   // Direct graph rendering for graph_timeseries_data tool
   if (toolCall.toolName === 'graph_timeseries_data') {
@@ -275,11 +284,17 @@ export const ToolCallRow: React.FC<ToolCallRowProps> = ({ toolCall }) => {
 
     // For visualization tools, handle with proper args structure
     if (toolCall.toolName === 'create_chat_visualization') {
+      console.log('🧱 [ToolCallRow] Processing create_chat_visualization');
       // Get args from context if available
       const toolArgs = context?.toolCallStates?.get(toolCall.id)?.args;
 
       try {
         const parsedResult = toolCall.result ? JSON.parse(toolCall.result) : undefined;
+        console.log('🧱 [ToolCallRow] Parsed result:', {
+          success: parsedResult?.success,
+          hasExpression: !!parsedResult?.expression,
+          chartType: parsedResult?.chartType,
+        });
 
         const rendererProps = {
           status: toolCall.status === 'running' ? 'executing' : 'complete',
@@ -288,7 +303,9 @@ export const ToolCallRow: React.FC<ToolCallRowProps> = ({ toolCall }) => {
           error: toolCall.status === 'error' ? toolCall.result : undefined,
         };
 
+        console.log('🧱 [ToolCallRow] Calling renderer with props:', rendererProps);
         const rendererResult = renderer(rendererProps);
+        console.log('🧱 [ToolCallRow] Renderer returned:', !!rendererResult);
 
         return <div className="toolCallRow">{rendererResult}</div>;
       } catch (error) {

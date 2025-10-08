@@ -178,61 +178,59 @@ export async function createChatVisualization(args: CreateChatVisualizationArgs)
 
 export function useCreateChatVisualizationAction() {
   const { services } = useOpenSearchDashboards();
-
   const useAssistantAction =
     services.contextProvider?.hooks?.useAssistantAction || NOOP_ASSISTANT_ACTION_HOOK;
 
-  // Use useMemo to prevent recreating action config on every render
-  const actionConfig = React.useMemo(
-    () => ({
-      name: 'create_chat_visualization',
-      enabled: true,
-      description:
-        'Create a visualization in chat from the most recent query results. Supports auto-detection of chart types or specific chart type requests. Must be used after execute_ppl_query.',
-      parameters: {
-        type: 'object' as const,
-        properties: {
-          chartType: {
-            type: 'string' as const,
-            enum: ['line', 'bar', 'area', 'pie', 'metric', 'heatmap', 'scatter', 'table'],
-            description:
-              'Specific chart type to create. If not provided, will auto-detect based on data and user intent',
-          },
-          title: {
-            type: 'string' as const,
-            description: 'Optional title for the visualization',
-          },
-          description: {
-            type: 'string' as const,
-            description: 'Optional description - can be used to infer chart type from user intent',
-          },
-          autoDetect: {
-            type: 'boolean' as const,
-            description: 'Whether to automatically detect the best chart type (default: true)',
-          },
-          dataSource: {
-            type: 'string' as const,
-            enum: ['latest_query', 'provided_data'],
-            description: 'Source of data for visualization (default: latest_query)',
-          },
-          data: {
-            type: 'object' as const,
-            description: 'Optional: provide data directly instead of using latest query results',
-            properties: {
-              hits: {
-                type: 'array' as const,
-                description: 'Array of OpenSearch hits with _source data',
-              },
-              fieldSchema: {
-                type: 'array' as const,
-                description: 'Array of field schemas with name and type',
-              },
+  // Register action directly like useGraphTimeseriesDataAction does
+  useAssistantAction<CreateChatVisualizationArgs>({
+    name: 'create_chat_visualization',
+    enabled: true,
+    description:
+      'Create a visualization in chat from the most recent query results. Supports auto-detection of chart types or specific chart type requests. Must be used after execute_ppl_query.',
+    parameters: {
+      type: 'object' as const,
+      properties: {
+        chartType: {
+          type: 'string' as const,
+          enum: ['line', 'bar', 'area', 'pie', 'metric', 'heatmap', 'scatter', 'table'],
+          description:
+            'Specific chart type to create. If not provided, will auto-detect based on data and user intent',
+        },
+        title: {
+          type: 'string' as const,
+          description: 'Optional title for the visualization',
+        },
+        description: {
+          type: 'string' as const,
+          description: 'Optional description - can be used to infer chart type from user intent',
+        },
+        autoDetect: {
+          type: 'boolean' as const,
+          description: 'Whether to automatically detect the best chart type (default: true)',
+        },
+        dataSource: {
+          type: 'string' as const,
+          enum: ['latest_query', 'provided_data'],
+          description: 'Source of data for visualization (default: latest_query)',
+        },
+        data: {
+          type: 'object' as const,
+          description: 'Optional: provide data directly instead of using latest query results',
+          properties: {
+            hits: {
+              type: 'array' as const,
+              description: 'Array of OpenSearch hits with _source data',
+            },
+            fieldSchema: {
+              type: 'array' as const,
+              description: 'Array of field schemas with name and type',
             },
           },
         },
-        required: [],
       },
-      handler: async (args: CreateChatVisualizationArgs) => {
+      required: [],
+    },
+    handler: async (args: CreateChatVisualizationArgs) => {
         console.log('[useCreateChatVisualizationAction] Handler called with args:', args);
 
         // Check if we have shared data from execution context
@@ -286,6 +284,12 @@ export function useCreateChatVisualizationAction() {
         return result;
       },
       render: ({ status, args, result }: any) => {
+        console.log(
+          '🎨🎨🎨 [create_chat_visualization] RENDER METHOD CALLED - status:',
+          status,
+          'result exists:',
+          !!result
+        );
         console.log('🎨🎨🎨 [create_chat_visualization] ===== RENDER METHOD ENTRY =====');
         console.log(
           '🎨 [create_chat_visualization] RENDER METHOD CALLED - status:',
@@ -388,23 +392,7 @@ export function useCreateChatVisualizationAction() {
           </EuiPanel>
         );
       },
-    }),
-    [useAssistantAction] // Only depend on the actual hook function
-  );
-
-  // Use useEffect to register the action only once
-  React.useEffect(() => {
-    if (useAssistantAction && useAssistantAction !== NOOP_ASSISTANT_ACTION_HOOK) {
-      try {
-        useAssistantAction<CreateChatVisualizationArgs>(actionConfig);
-      } catch (error) {
-        console.error(
-          '[useCreateChatVisualizationAction] Error calling useAssistantAction:',
-          error
-        );
-      }
-    }
-  }, [useAssistantAction, actionConfig]);
+  });
 }
 
 /**
@@ -691,6 +679,10 @@ async function createSavedVisualization({
 // Import ExpressionRenderer lazily to avoid circular dependencies
 const ExpressionRenderer: React.FC<any> = React.memo(
   ({ expression, searchContext, uiState, disableCaching, onRender, onError, renderError }) => {
+    console.log(
+      '🎨 [ExpressionRenderer] Component created with expression:',
+      expression?.substring(0, 100)
+    );
     const [Component, setComponent] = React.useState<any>(null);
 
     // Stabilize the callback functions to prevent re-renders
@@ -713,9 +705,12 @@ const ExpressionRenderer: React.FC<any> = React.memo(
 
     // Load ReactExpressionRenderer only once
     React.useEffect(() => {
+      console.log('🎨 [ExpressionRenderer] useEffect - Component exists:', !!Component);
       if (!Component) {
+        console.log('🎨 [ExpressionRenderer] Loading ReactExpressionRenderer...');
         import('../../../expressions/public')
           .then(({ ReactExpressionRenderer }) => {
+            console.log('🎨 [ExpressionRenderer] Successfully loaded ReactExpressionRenderer');
             setComponent(() => ReactExpressionRenderer);
           })
           .catch((error) => {
@@ -747,9 +742,11 @@ const ExpressionRenderer: React.FC<any> = React.memo(
     );
 
     if (!Component) {
+      console.log('🎨 [ExpressionRenderer] Component not loaded yet, showing loading...');
       return <EuiText size="s">Loading visualization...</EuiText>;
     }
 
+    console.log('🎨 [ExpressionRenderer] Rendering with Component and props:', stableProps);
     return <Component {...stableProps} />;
   }
 );

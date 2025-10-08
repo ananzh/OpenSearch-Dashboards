@@ -244,8 +244,19 @@ export class AssistantActionService {
   };
 
   getActionRenderer = (name: string) => {
+    console.log('🎯 [AssistantActionService] getActionRenderer called for:', name);
     const currentState = this.state$.getValue();
+    console.log(
+      '🎯 [AssistantActionService] Available actions:',
+      Array.from(currentState.actions.keys())
+    );
     const action = currentState.actions.get(name);
+    console.log(
+      '🎯 [AssistantActionService] Found action:',
+      !!action,
+      'Has render:',
+      !!action?.render
+    );
     return action?.render;
   };
 
