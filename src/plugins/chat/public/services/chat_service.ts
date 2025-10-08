@@ -6,7 +6,11 @@
 import { Observable } from 'rxjs';
 import { AgUiAgent } from './ag_ui_agent';
 import { RunAgentInput, Message, UserMessage, ToolMessage } from '../../common/types';
-import type { ToolDefinition } from '../../../context_provider/public';
+import type {
+  ToolDefinition,
+  InterToolDataService,
+  AssistantActionService,
+} from '../../../context_provider/public';
 
 export interface ChatState {
   messages: Message[];
@@ -21,10 +25,24 @@ export class ChatService {
   public events$: any;
   private activeRequests: Set<string> = new Set();
   private requestCounter: number = 0;
+  private interToolDataService?: InterToolDataService;
+  private assistantActionService?: AssistantActionService;
 
   constructor(serverUrl?: string) {
     this.agent = new AgUiAgent(serverUrl);
     this.threadId = this.generateThreadId();
+  }
+
+  /**
+   * Set the data sharing services (called by ChatWindow or plugin)
+   */
+  setDataSharingServices(
+    interToolDataService: InterToolDataService,
+    assistantActionService: AssistantActionService
+  ): void {
+    this.interToolDataService = interToolDataService;
+    this.assistantActionService = assistantActionService;
+    console.log('[ChatService] Data sharing services configured');
   }
 
   private generateThreadId(): string {
@@ -73,11 +91,28 @@ export class ChatService {
   }> {
     const requestId = this.generateRequestId();
 
+    // Clean up previous execution contexts for this session (new user message)
+    if (this.interToolDataService) {
+      this.interToolDataService.cleanupSession(this.threadId);
+      console.log(
+        `[ChatService] Cleaned up previous execution contexts for session: ${this.threadId}`
+      );
+    }
+
+    // Start new tool execution chain
+    let executionId = '';
+    if (this.assistantActionService && this.interToolDataService) {
+      executionId = this.assistantActionService.startToolExecution(this.threadId);
+      console.log(`[ChatService] Started new tool execution: ${executionId}`);
+    }
+
     this.addActiveRequest(requestId);
     const userMessage: UserMessage = {
       id: this.generateMessageId(),
       role: 'user',
       content: content.trim(),
+      // Store execution context in user message for reference
+      ...(executionId && { executionId }),
     };
 
     // Get all contexts from the assistant context store (static + dynamic)
@@ -194,6 +229,15 @@ export class ChatService {
   }
 
   public newThread(): void {
+    // Clean up execution contexts for the current session
+    if (this.interToolDataService) {
+      this.interToolDataService.cleanupSession(this.threadId);
+      console.log(
+        `[ChatService] Cleaned up execution contexts for session: ${this.threadId} (new thread)`
+      );
+    }
+
     this.threadId = this.generateThreadId();
+    console.log(`[ChatService] Started new thread: ${this.threadId}`);
   }
 }

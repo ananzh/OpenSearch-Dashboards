@@ -38,7 +38,7 @@ export function useExecuteAndVisualizeAction(
   useAssistantAction<ExecuteAndVisualizeArgs>({
     name: 'execute_and_visualize',
     description:
-      'Execute a PPL query and prepare data for visualization. After calling this tool successfully, you should immediately call create_chat_visualization to display the results in chat. This is step 1 of 2 for query execution with visualization.',
+      'Execute a PPL query and prepare data for visualization. After calling this tool successfully, you should call create_chat_visualization to display the results in chat.',
     parameters: {
       type: 'object',
       properties: {
@@ -76,82 +76,48 @@ export function useExecuteAndVisualizeAction(
         console.log('[execute_and_visualize] Dispatching query:', args.query);
         dispatch(loadQueryActionCreator(services, setEditorTextWithQuery, args.query));
 
-        // Step 2: Trigger Chat visualization action to render in Chat panel
-        if (assistantActionService) {
-          console.log(
-            '[execute_and_visualize] AssistantActionService available, waiting for results...'
-          );
+        // Wait for query results to be available in Redux store
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          try {
-            // Wait a moment for query results to be available in Redux store
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+        console.log('[execute_and_visualize] Checking results after wait, results:', results);
 
-            console.log('[execute_and_visualize] Checking results after wait, results:', results);
-
-            // Check if we have results to pass
-            if (!results || !results.hits?.hits) {
-              console.log('[execute_and_visualize] No results available yet');
-              return {
-                success: true,
-                query: args.query,
-                executed: true,
-                message:
-                  'Query executed successfully, but results are not yet available for visualization.',
-              };
-            }
-
-            console.log(
-              '[execute_and_visualize] Results available, hits count:',
-              results.hits.hits.length
-            );
-            console.log('[execute_and_visualize] Calling assistantActionService.executeAction...');
-
-            // Query executed successfully, instruct AI to call create_chat_visualization next
-            console.log(
-              '[execute_and_visualize] Query completed successfully. Results ready for visualization.'
-            );
-
-            return {
-              success: true,
-              query: args.query,
-              executed: true,
-              dataPoints: results.hits.hits.length,
-              message:
-                'Query executed successfully. Data is ready for visualization. Call create_chat_visualization to display the results.',
-              chartType: args.chartType || 'auto-detected',
-              nextAction: {
-                tool: 'create_chat_visualization',
-                reason: 'Query results are ready for visualization',
-                recommendedArgs: {
-                  chartType: args.chartType,
-                  title: args.title,
-                  description: args.description,
-                  autoDetect: args.autoDetect,
-                },
-              },
-            };
-          } catch (visualizationError) {
-            return {
-              success: true, // Query execution was successful
-              query: args.query,
-              executed: true,
-              message: 'Query executed successfully, but visualization could not be created.',
-              visualizationError:
-                visualizationError instanceof Error
-                  ? visualizationError.message
-                  : 'Unknown visualization error',
-            };
-          }
-        } else {
-          // AssistantActionService not available (contextProvider or chat plugin disabled)
+        // Check if we have results to pass
+        if (!results || !results.hits?.hits) {
+          console.log('[execute_and_visualize] No results available yet');
           return {
-            success: true,
+            success: false,
+            error: 'Query executed but results are not yet available for visualization.',
             query: args.query,
-            executed: true,
-            message:
-              'Query executed successfully. Context provider or chat plugin not available for visualization.',
           };
         }
+
+        console.log(
+          '[execute_and_visualize] Results available, hits count:',
+          results.hits.hits.length
+        );
+
+        // Step 2: Return success and instruct AI to call create_chat_visualization next
+        return {
+          success: true,
+          query: args.query,
+          executed: true,
+          dataPoints: results.hits.hits.length,
+          message:
+            'Query executed successfully. Data is ready for visualization. Call create_chat_visualization to display the results.',
+          chartType: args.chartType || 'auto-detect',
+          // Store query results for the next tool to access
+          queryResults: results,
+          nextAction: {
+            tool: 'create_chat_visualization',
+            reason: 'Query results are ready for visualization',
+            recommendedArgs: {
+              chartType: args.chartType,
+              title: args.title,
+              description: args.description,
+              autoDetect: args.autoDetect,
+            },
+          },
+        };
       } catch (error) {
         return {
           success: false,
@@ -235,12 +201,9 @@ export function useExecuteAndVisualizeAction(
             </>
           )}
 
-          {/* Note: Visualization renders in the Chat panel, not here */}
+          {/* Note: Visualization renders in the Chat panel via the helper function */}
         </EuiPanel>
       );
     },
   });
 }
-
-// Visualization rendering is handled by the Chat plugin itself
-// The visualization will appear in the Chat panel via the programmatically triggered action

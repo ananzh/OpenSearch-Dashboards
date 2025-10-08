@@ -5,6 +5,7 @@
 
 import { BehaviorSubject, Observable } from 'rxjs';
 import { AssistantAction, ToolStatus } from '../hooks/use_assistant_action';
+import { InterToolDataService } from './inter_tool_data_service';
 
 export interface ToolCallState {
   id: string;
@@ -42,6 +43,8 @@ export class AssistantActionService {
     toolCallStates: new Map(),
     toolDefinitions: [],
   });
+  private interToolDataService?: InterToolDataService;
+  private currentExecutionId: string | null = null;
 
   private constructor() {}
 
@@ -64,6 +67,52 @@ export class AssistantActionService {
    */
   getCurrentState(): AssistantActionState {
     return this.state$.getValue();
+  }
+
+  /**
+   * Set the InterToolDataService instance (called by ContextProvider plugin)
+   */
+  setInterToolDataService(service: InterToolDataService): void {
+    this.interToolDataService = service;
+    console.log('[AssistantActionService] InterToolDataService configured');
+  }
+
+  /**
+   * Start a new tool execution chain
+   */
+  startToolExecution(sessionId: string): string {
+    if (!this.interToolDataService) {
+      console.warn('[AssistantActionService] No InterToolDataService available');
+      return '';
+    }
+
+    this.currentExecutionId = this.interToolDataService.createExecutionContext(sessionId);
+    console.log(`[AssistantActionService] Started tool execution: ${this.currentExecutionId}`);
+    return this.currentExecutionId;
+  }
+
+  /**
+   * Get shared data from tool execution context
+   */
+  getSharedToolData<T = any>(executionId: string, toolName?: string): T | null {
+    if (!this.interToolDataService) {
+      return null;
+    }
+
+    if (toolName) {
+      return this.interToolDataService.getToolResult<T>(executionId, toolName);
+    }
+    return this.interToolDataService.getLastToolResult(executionId) as T;
+  }
+
+  /**
+   * Get all shared data from execution context
+   */
+  getAllSharedData(executionId: string): Record<string, any> {
+    if (!this.interToolDataService || !executionId) {
+      return {};
+    }
+    return this.interToolDataService.getAllResults(executionId);
   }
 
   registerAction = (action: AssistantAction) => {
@@ -116,22 +165,17 @@ export class AssistantActionService {
     }
   };
 
-  executeAction = async (name: string, args: any) => {
+  executeAction = async (name: string, args: any, executionId?: string) => {
     console.log(
-      '🔧 [AssistantActionService] PROGRAMMATIC executeAction called for:',
+      '🔧 [AssistantActionService] executeAction called for:',
       name,
       'with args:',
-      args
-    );
-    console.log(
-      '🔧 [AssistantActionService] This is a programmatic call - NO ToolMessage will be created in chat timeline'
-    );
-    const currentState = this.state$.getValue();
-    console.log(
-      '🔧 [AssistantActionService] Available actions:',
-      Array.from(currentState.actions.keys())
+      args,
+      'executionId:',
+      executionId
     );
 
+    const currentState = this.state$.getValue();
     const action = currentState.actions.get(name);
     if (!action) {
       console.log('🔧 [AssistantActionService] Action not found:', name);
@@ -142,18 +186,53 @@ export class AssistantActionService {
       throw new Error(`Action ${name} has no handler`);
     }
 
-    console.log(
-      '🔧 [AssistantActionService] Executing action handler for:',
-      name,
-      '(programmatically)'
-    );
-    const result = await action.handler(args);
-    console.log(
-      '🔧 [AssistantActionService] PROGRAMMATIC action result:',
-      result,
-      '- This result will NOT appear in chat timeline'
-    );
-    return result;
+    // Determine execution context
+    const activeExecutionId = executionId || this.currentExecutionId;
+
+    // Enhanced args with shared data and execution context
+    const enhancedArgs = {
+      ...args,
+    };
+
+    // Inject shared data if execution context exists
+    if (activeExecutionId && this.interToolDataService) {
+      enhancedArgs.__sharedData = this.getAllSharedData(activeExecutionId);
+      enhancedArgs.__executionId = activeExecutionId;
+      console.log(
+        `[AssistantActionService] Injected shared data for execution: ${activeExecutionId}`
+      );
+    }
+
+    try {
+      console.log('🔧 [AssistantActionService] Executing action handler for:', name);
+      const result = await action.handler(enhancedArgs);
+
+      // Store result for next tool in the chain
+      if (activeExecutionId && this.interToolDataService && result) {
+        this.interToolDataService.storeToolResult(activeExecutionId, name, result);
+        console.log(
+          `[AssistantActionService] Stored result for tool '${name}' in execution ${activeExecutionId}`
+        );
+
+        // Check if tool chain is complete
+        if (result.success && !result.nextAction) {
+          this.interToolDataService.completeExecution(activeExecutionId);
+          console.log(`[AssistantActionService] Marked execution ${activeExecutionId} as complete`);
+        }
+      }
+
+      console.log('🔧 [AssistantActionService] Action result:', result);
+      return result;
+    } catch (error) {
+      // Mark execution as failed
+      if (activeExecutionId && this.interToolDataService) {
+        this.interToolDataService.failExecution(activeExecutionId);
+        console.log(
+          `[AssistantActionService] Marked execution ${activeExecutionId} as failed due to error`
+        );
+      }
+      throw error;
+    }
   };
 
   updateToolCallState = (id: string, state: Partial<ToolCallState>) => {

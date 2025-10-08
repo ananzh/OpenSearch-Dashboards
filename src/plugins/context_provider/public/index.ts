@@ -29,6 +29,7 @@ export { TextSelectionMonitor } from './components/text_selection_monitor';
 
 // Services
 export { AssistantActionService } from './services/assistant_action_service';
+export { InterToolDataService } from './services/inter_tool_data_service';
 export {
   AssistantActionProvider,
   AssistantActionContext,
@@ -36,4 +37,5 @@ export {
 export { GlobalAssistantProvider } from './providers/global_assistant_provider';
 export type { AssistantAction, RenderProps, ToolStatus } from './hooks/use_assistant_action';
 export type { ToolCallState, ToolDefinition } from './services/assistant_action_service';
+export type { ToolResult, ToolExecutionContext } from './services/inter_tool_data_service';
 export type { URLState, UsePageContextOptions } from './hooks/use_page_context';

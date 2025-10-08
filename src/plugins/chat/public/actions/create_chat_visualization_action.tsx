@@ -232,7 +232,34 @@ export function useCreateChatVisualizationAction() {
       },
       handler: async (args: CreateChatVisualizationArgs) => {
         console.log('[useCreateChatVisualizationAction] Handler called with args:', args);
-        const result = await createChatVisualization(args);
+
+        // Check if we have shared data from execution context
+        const executionId = (args as any).__executionId;
+        const sharedData = (args as any).__sharedData;
+
+        console.log(
+          '[useCreateChatVisualizationAction] ExecutionId:',
+          executionId,
+          'SharedData keys:',
+          sharedData ? Object.keys(sharedData) : 'none'
+        );
+
+        // Enhanced args with shared data if available
+        const enhancedArgs = { ...args };
+
+        // If we have shared data from execute_and_visualize, use it
+        if (sharedData && sharedData.execute_and_visualize && !args.data) {
+          console.log(
+            '[useCreateChatVisualizationAction] Using shared data from execute_and_visualize'
+          );
+          enhancedArgs.dataSource = 'provided_data';
+          enhancedArgs.data = {
+            hits: sharedData.execute_and_visualize.queryResults?.hits?.hits || [],
+            fieldSchema: sharedData.execute_and_visualize.queryResults?.fieldSchema || [],
+          };
+        }
+
+        const result = await createChatVisualization(enhancedArgs);
         console.log('[useCreateChatVisualizationAction] Handler result:', result);
         return result;
       },

@@ -15,6 +15,7 @@ import { usePageContext } from './hooks/use_page_context';
 import { useDynamicContext } from './hooks/use_dynamic_context';
 import { useAssistantAction } from './hooks/use_assistant_action';
 import { AssistantActionService } from './services/assistant_action_service';
+import { InterToolDataService } from './services/inter_tool_data_service';
 
 /**
  * @experimental
@@ -29,6 +30,7 @@ export class ContextProviderPlugin
       ContextProviderStartDeps
     > {
   private contextCaptureService?: ContextCaptureService;
+  private interToolDataService = new InterToolDataService();
 
   constructor(private readonly initializerContext: PluginInitializerContext) {}
 
@@ -52,6 +54,7 @@ export class ContextProviderPlugin
       return {
         getAssistantContextStore: () => undefined as any,
         getAssistantActionService: () => undefined,
+        getInterToolDataService: () => undefined,
         hooks: {
           usePageContext: () => '',
           useDynamicContext: () => '',
@@ -62,9 +65,14 @@ export class ContextProviderPlugin
 
     this.contextCaptureService.start(core, plugins);
 
+    // Connect InterToolDataService to AssistantActionService
+    const assistantActionService = AssistantActionService.getInstance();
+    assistantActionService.setInterToolDataService(this.interToolDataService);
+
     return {
       getAssistantContextStore: () => this.contextCaptureService!.getAssistantContextStore(),
-      getAssistantActionService: () => AssistantActionService.getInstance(),
+      getAssistantActionService: () => assistantActionService,
+      getInterToolDataService: () => this.interToolDataService,
       hooks: {
         usePageContext,
         useDynamicContext,

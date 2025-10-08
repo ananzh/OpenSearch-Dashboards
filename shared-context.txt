@@ -1,0 +1,318 @@
+Inter-Tool Data Sharing Architecture Document
+
+  Current Situation
+
+  Architecture Overview
+
+  - Explore Plugin: Contains execute_and_visualize action that executes PPL queries
+  - Chat Plugin: Contains create_chat_visualization action that creates visualizations
+  - Goal: Execute query in Explore, then create visualization in Chat using the query results
+
+  Current Implementation Issues
+
+  Two-Step Approach Problem
+
+  User: "Show me a bar chart of log counts"
+      ↓
+  AI calls: execute_and_visualize (in Explore plugin)
+      ↓
+  Returns: "Query executed successfully. Call create_chat_visualization next."
+      ↓
+  AI calls: create_chat_visualization (in Chat plugin)
+      ↓
+  ❌ ERROR: "No query results available"
+
+  Root Cause: No data sharing mechanism between separate AI tool calls across plugins.
+
+  Single-Action Approach Problem
+
+  We tried making execute_and_visualize call the chat helper function directly:
+  // In execute_and_visualize handler
+  const vizResult = await services.chat.createVisualization({...});
+  // Returns visualization data but WHERE does it render?
+
+  Root Cause: Helper function returns data but doesn't create UI components. No mechanism to render visualization in Chat
+  panel.
+
+  Problem Analysis
+
+  Core Challenges
+
+  1. Cross-Plugin Data Sharing: Tools in different plugins can't share data between separate executions
+  2. UI Rendering Location: Visualizations should appear in Chat panel, not in Explore tool messages
+  3. General Solution Need: This should work for any multi-tool workflow, not just visualization
+
+  Why Existing Approaches Failed
+
+  Global Window Storage
+
+  (window as any).latestQueryResults = data;
+  - ✅ Works across plugins
+  - ❌ Global pollution
+  - ❌ No cleanup strategy
+  - ❌ Race conditions between multiple tool chains
+
+  AssistantActionService State
+
+  assistantActionService.updateToolCallState(toolId, { result: data });
+  - ✅ Centralized in existing service
+  - ❌ Designed for tool status, not data sharing
+  - ❌ No cross-tool access patterns
+
+  Solution Approaches Considered
+
+  Option 1: True Single Action
+
+  - Concept: Execute query AND render visualization in same tool
+  - Implementation: execute_and_visualize does everything, renders in its own ToolMessage
+  - Pros: No data sharing needed, simple flow
+  - Cons: Visualization appears in Explore tool message, not separately in Chat
+
+  Option 2: Direct Chat Integration
+
+  - Concept: Explore directly calls Chat service to add visualization to timeline
+  - Implementation: chatService.addVisualizationMessage(expression, title)
+  - Pros: Direct rendering in Chat
+  - Cons: Complex cross-plugin communication, tight coupling
+
+  Option 3: Context-Aware Single Action
+
+  - Concept: Single action in Chat plugin that calls Explore services
+  - Implementation: Chat action calls Explore query service, then renders locally
+  - Pros: All visualization logic in Chat
+  - Cons: Query logic moves away from Explore, breaks plugin boundaries
+
+  Option 4: Enhanced Two-Step with Data Sharing ⭐ SELECTED
+
+  - Concept: Implement proper inter-tool data sharing system
+  - Implementation: Centralized execution context service
+  - Pros: General solution, maintains plugin boundaries, clean separation
+  - Cons: More complex architecture
+
+  Selected Solution: Inter-Tool Data Sharing System
+
+  High-Level Architecture
+
+  User Question → Create Execution Context → Tool Chain → Cleanup on Next Question
+                          ↓
+                 ┌─────────────────────┐
+                 │  InterToolDataService │
+                 │  (in ContextProvider) │
+                 │                     │
+                 │ executionId_123:    │
+                 │ ├─ execute_and_visualize: queryResults │
+                 │ ├─ create_chat_visualization: vizConfig │
+                 │ └─ metadata: timestamp, status │
+                 └─────────────────────┘
+                          ↑
+                ┌─────────┴─────────┐
+           Tool 1 (Explore)    Tool 2 (Chat)
+           Stores Results      Reads Results
+
+  Implementation Details
+
+  1. Core Data Structures
+
+  interface ToolExecutionContext {
+    executionId: string;
+    sessionId: string;
+    results: Map<string, ToolResult>;
+    metadata: {
+      timestamp: number;
+      status: 'active' | 'completed' | 'failed';
+    };
+  }
+
+  interface ToolResult {
+    data: any;
+    timestamp: number;
+    toolName: string;
+  }
+
+  2. InterToolDataService (ContextProvider Plugin)
+
+  export class InterToolDataService {
+    private executionContexts = new Map<string, ToolExecutionContext>();
+    private sessionExecutions = new Map<string, Set<string>>();
+
+    // Create execution context for tool chain
+    createExecutionContext(sessionId: string, executionId?: string): string;
+
+    // Store tool result
+    storeToolResult(executionId: string, toolName: string, result: any): void;
+
+    // Retrieve tool result
+    getToolResult<T>(executionId: string, toolName: string): T | null;
+
+    // Get most recent result in chain
+    getLastToolResult(executionId: string): any;
+
+    // Session-based cleanup
+    cleanupSession(sessionId: string): void;
+
+    // Mark execution complete/failed
+    completeExecution(executionId: string): void;
+    failExecution(executionId: string): void;
+  }
+
+  3. AssistantActionService Integration
+
+  export class AssistantActionService {
+    private interToolDataService: InterToolDataService;
+    private currentExecutionId: string | null = null;
+
+    // Enhanced executeAction with data injection
+    executeAction = async (name: string, args: any, executionId?: string) => {
+      const activeExecutionId = executionId || this.currentExecutionId;
+
+      // Inject shared data and execution context
+      const enhancedArgs = {
+        ...args,
+        __sharedData: this.getAllSharedData(activeExecutionId),
+        __executionId: activeExecutionId,
+      };
+
+      // Execute tool
+      const result = await this.originalExecuteAction(name, enhancedArgs);
+
+      // Store result for next tool
+      if (activeExecutionId && result) {
+        this.interToolDataService.storeToolResult(activeExecutionId, name, result);
+      }
+
+      // Handle completion/failure
+      if (result.success && !result.nextAction) {
+        this.interToolDataService.completeExecution(activeExecutionId);
+      }
+
+      return result;
+    };
+  }
+
+  4. Chat Service Integration
+
+  export class ChatService {
+    async sendMessage(content: string, timeline: Message[]) {
+      // Clean up previous execution contexts
+      this.interToolDataService.cleanupSession(this.currentSessionId);
+
+      // Create new execution context
+      const executionId = this.interToolDataService.createExecutionContext(
+        this.currentSessionId
+      );
+
+      // Continue with message processing...
+    }
+
+    newThread() {
+      // Clean up on session reset
+      this.interToolDataService.cleanupSession(this.currentSessionId);
+      this.currentSessionId = `session_${Date.now()}`;
+    }
+  }
+
+  5. Tool Implementation Pattern
+
+  // execute_and_visualize (Explore Plugin)
+  handler: async (args) => {
+    const executionId = args.__executionId;
+
+    // Execute query
+    const results = await executeQuery(args.query);
+
+    // Store for next tool
+    if (executionId) {
+      assistantActionService.storeToolResult(executionId, 'execute_and_visualize', {
+        queryResults: results,
+        query: args.query,
+        chartType: args.chartType,
+        title: args.title,
+      });
+    }
+
+    return {
+      success: true,
+      message: "Query executed. Call create_chat_visualization to render.",
+      nextAction: {
+        tool: 'create_chat_visualization',
+        args: { executionId, chartType: args.chartType, title: args.title }
+      }
+    };
+  }
+
+  // create_chat_visualization (Chat Plugin)  
+  handler: async (args) => {
+    const executionId = args.__executionId || args.executionId;
+
+    // Get shared data from previous tool
+    const sharedData = assistantActionService.getSharedToolData(
+      executionId,
+      'execute_and_visualize'
+    );
+
+    if (!sharedData?.queryResults) {
+      return { success: false, error: "No query data available" };
+    }
+
+    // Create visualization using shared data
+    const visualization = await createVisualizationEmbeddable({
+      ...args,
+      data: sharedData.queryResults,
+    });
+
+    return { success: true, embeddableId: visualization.id };
+  }
+
+  Cleanup Strategy
+
+  Event-Driven Cleanup (No TTL)
+
+  User types new question
+      ↓
+  cleanupSession(currentSessionId) // Clean ALL previous contexts
+      ↓
+  createExecutionContext(newSessionId) // Start fresh
+      ↓
+  Tool execution chain...
+      ↓
+  completeExecution(executionId) // Mark complete, keep in memory
+      ↓
+  [Next user question] → cleanup cycle repeats
+
+  Cleanup Triggers
+
+  1. New User Message: Clean previous session contexts
+  2. Session Reset: Clean all contexts for session
+  3. Tool Failure: Immediate cleanup of failed execution
+  4. No TTL: Data persists until next user action (good for debugging)
+
+  Data Flow Example
+
+  1. User: "Show me a bar chart of error logs"
+  2. ChatService.sendMessage() → cleanupSession() → createExecutionContext()
+  3. AI calls execute_and_visualize(query="source=logs | where level=error | stats count()")
+  4. execute_and_visualize:
+     - Executes query → gets 150 results
+     - storeToolResult(execId, "execute_and_visualize", {queryResults, chartType: "bar"})
+     - Returns: {success: true, nextAction: "create_chat_visualization"}
+  5. AI calls create_chat_visualization(executionId=execId, chartType="bar")
+  6. create_chat_visualization:
+     - getSharedToolData(execId, "execute_and_visualize") → gets query results
+     - Creates Vega spec + embeddable
+     - Returns: {success: true, embeddableId: "viz_123"}
+  7. Chat renders embeddable in panel (not in ToolMessage)
+  8. completeExecution(execId) → chain complete, data kept until next question
+
+  Benefits
+
+  1. ✅ General Purpose: Works for any multi-tool workflow
+  2. ✅ Plugin Agnostic: Tools in any plugin can share data
+  3. ✅ Clean Architecture: Maintains plugin boundaries
+  4. ✅ Memory Efficient: Event-driven cleanup
+  5. ✅ Type Safe: Proper TypeScript interfaces
+  6. ✅ Debuggable: Clear lifecycle and data flow
+  7. ✅ Backward Compatible: Existing single tools still work
+  8. ✅ Scalable: Supports complex multi-tool chains
+
+  This solution provides a robust foundation for inter-tool data sharing while maintaining clean plugin architecture and
+  efficient resource management.

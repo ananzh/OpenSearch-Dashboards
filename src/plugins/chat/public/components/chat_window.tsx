@@ -89,6 +89,18 @@ function ChatWindowContent({
   // Context is now handled by RFC hooks - no need for context manager
   // The chat service will get context directly from assistantContextStore
 
+  // Configure data sharing services for ChatService
+  useEffect(() => {
+    if (chatService && services.contextProvider) {
+      const interToolDataService = services.contextProvider.getInterToolDataService?.();
+      const assistantActionService = services.contextProvider.getAssistantActionService?.();
+
+      if (interToolDataService && assistantActionService && chatService.setDataSharingServices) {
+        chatService.setDataSharingServices(interToolDataService, assistantActionService);
+      }
+    }
+  }, [chatService, services.contextProvider]);
+
   // Subscribe to tool updates from the service
   useEffect(() => {
     const subscription = service.getState$().subscribe((state) => {
