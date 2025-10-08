@@ -235,22 +235,36 @@ export function useCreateChatVisualizationAction() {
 
         // Check if we have shared data from execution context
         const executionId = (args as any).__executionId;
-        const sharedData = (args as any).__sharedData;
+        const sharedData = (args as any).__sharedData; // Lightweight data for AI context
+        const fullSharedData = (args as any).__fullSharedData; // Full data for tool access
 
         console.log(
           '[useCreateChatVisualizationAction] ExecutionId:',
           executionId,
           'SharedData keys:',
-          sharedData ? Object.keys(sharedData) : 'none'
+          sharedData ? Object.keys(sharedData) : 'none',
+          'FullSharedData keys:',
+          fullSharedData ? Object.keys(fullSharedData) : 'none'
         );
 
         // Enhanced args with shared data if available
         const enhancedArgs = { ...args };
 
-        // If we have shared data from execute_and_visualize, use it
-        if (sharedData && sharedData.execute_and_visualize && !args.data) {
+        // If we have shared data from execute_and_visualize, use the full data
+        if (fullSharedData && fullSharedData.execute_and_visualize && !args.data) {
           console.log(
-            '[useCreateChatVisualizationAction] Using shared data from execute_and_visualize'
+            '[useCreateChatVisualizationAction] Using full shared data from execute_and_visualize'
+          );
+          enhancedArgs.dataSource = 'provided_data';
+          enhancedArgs.data = {
+            hits: fullSharedData.execute_and_visualize.queryResults?.hits?.hits || [],
+            fieldSchema: fullSharedData.execute_and_visualize.queryResults?.fieldSchema || [],
+          };
+        }
+        // Fallback to lightweight data if full data not available (for backwards compatibility)
+        else if (sharedData && sharedData.execute_and_visualize && !args.data) {
+          console.log(
+            '[useCreateChatVisualizationAction] Using lightweight shared data from execute_and_visualize (fallback)'
           );
           enhancedArgs.dataSource = 'provided_data';
           enhancedArgs.data = {

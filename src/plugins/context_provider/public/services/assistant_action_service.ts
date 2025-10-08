@@ -106,13 +106,23 @@ export class AssistantActionService {
   }
 
   /**
-   * Get all shared data from execution context
+   * Get all shared data from execution context (full data for tools)
    */
   getAllSharedData(executionId: string): Record<string, any> {
     if (!this.interToolDataService || !executionId) {
       return {};
     }
     return this.interToolDataService.getAllResults(executionId);
+  }
+
+  /**
+   * Get lightweight shared data for AI context (summaries only)
+   */
+  getAllSharedLightweightData(executionId: string): Record<string, any> {
+    if (!this.interToolDataService || !executionId) {
+      return {};
+    }
+    return this.interToolDataService.getAllLightweightResults(executionId);
   }
 
   registerAction = (action: AssistantAction) => {
@@ -196,10 +206,15 @@ export class AssistantActionService {
 
     // Inject shared data if execution context exists
     if (activeExecutionId && this.interToolDataService) {
-      enhancedArgs.__sharedData = this.getAllSharedData(activeExecutionId);
+      // Lightweight data for AI context (summaries only)
+      enhancedArgs.__sharedData = this.getAllSharedLightweightData(activeExecutionId);
+
+      // Full data access for tools that need complete data
+      enhancedArgs.__fullSharedData = this.getAllSharedData(activeExecutionId);
+
       enhancedArgs.__executionId = activeExecutionId;
       console.log(
-        `[AssistantActionService] Injected shared data for execution: ${activeExecutionId}`
+        `[AssistantActionService] Injected lightweight and full shared data for execution: ${activeExecutionId}`
       );
     }
 
@@ -221,8 +236,13 @@ export class AssistantActionService {
         }
       }
 
-      console.log('🔧 [AssistantActionService] Action result:', result);
-      return result;
+      // Return lightweight result to AI context to prevent model input overflow
+      const lightweightResult = this.createLightweightResult(name, result);
+      console.log(
+        '🔧 [AssistantActionService] Returning lightweight result to AI:',
+        lightweightResult
+      );
+      return lightweightResult;
     } catch (error) {
       // Mark execution as failed
       if (activeExecutionId && this.interToolDataService) {
@@ -281,4 +301,73 @@ export class AssistantActionService {
   getRegisteredActions = () => {
     return Array.from(this.state$.getValue().actions.keys());
   };
+
+  /**
+   * Create a lightweight result for AI context to prevent model input overflow
+   * @param toolName - Name of the tool
+   * @param result - The full result data
+   * @returns Lightweight result without large data arrays
+   */
+  private createLightweightResult(toolName: string, result: any): any {
+    // Create lightweight summaries based on tool type and result structure
+    if (toolName === 'execute_and_visualize' && result.queryResults) {
+      const hits = result.queryResults.hits?.hits || [];
+      return {
+        success: result.success,
+        query: result.query,
+        executed: result.executed,
+        dataPoints: hits.length,
+        message: result.message,
+        chartType: result.chartType,
+        nextAction: result.nextAction,
+        // Include small sample of data structure for AI reference
+        sampleFields:
+          result.sampleFields || this.extractSampleFields(result.queryResults.fieldSchema),
+        sampleRow: result.sampleRow || (hits.length > 0 ? this.createSampleRow(hits[0]) : null),
+      };
+    } else {
+      // Default lightweight summary for other tools
+      const lightweightResult = { ...result };
+
+      // Remove large data arrays if present
+      if (lightweightResult.queryResults) {
+        lightweightResult.queryResults = '[REFERENCE_DATA_AVAILABLE]';
+      }
+      if (Array.isArray(lightweightResult.data) && lightweightResult.data.length > 10) {
+        lightweightResult.data = '[LARGE_ARRAY_DATA_AVAILABLE]';
+      }
+
+      return lightweightResult;
+    }
+  }
+
+  /**
+   * Extract sample field information for AI context
+   */
+  private extractSampleFields(fieldSchema: any[]): any {
+    if (!Array.isArray(fieldSchema) || fieldSchema.length === 0) return null;
+
+    // Return first few fields with their types
+    return fieldSchema.slice(0, 5).map((field) => ({
+      name: field.name,
+      type: field.type,
+    }));
+  }
+
+  /**
+   * Create a sample row for AI context (first few fields only)
+   */
+  private createSampleRow(hit: any): any {
+    if (!hit || !hit._source) return null;
+
+    const source = hit._source;
+    const sampleRow: any = {};
+    const keys = Object.keys(source).slice(0, 5); // First 5 fields only
+
+    for (const key of keys) {
+      sampleRow[key] = source[key];
+    }
+
+    return sampleRow;
+  }
 }

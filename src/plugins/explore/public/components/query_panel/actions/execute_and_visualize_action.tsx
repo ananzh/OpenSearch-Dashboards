@@ -22,6 +22,36 @@ interface ExecuteAndVisualizeArgs {
 
 const NOOP_ASSISTANT_ACTION_HOOK = (_action: any) => {};
 
+/**
+ * Extract sample field information for AI context
+ */
+function extractSampleFields(fieldSchema: any[]): any {
+  if (!Array.isArray(fieldSchema) || fieldSchema.length === 0) return null;
+
+  // Return first few fields with their types
+  return fieldSchema.slice(0, 5).map((field) => ({
+    name: field.name,
+    type: field.type,
+  }));
+}
+
+/**
+ * Create a sample row for AI context (first few fields only)
+ */
+function createSampleRow(hit: any): any {
+  if (!hit || !hit._source) return null;
+
+  const source = hit._source;
+  const sampleRow: any = {};
+  const keys = Object.keys(source).slice(0, 5); // First 5 fields only
+
+  for (const key of keys) {
+    sampleRow[key] = source[key];
+  }
+
+  return sampleRow;
+}
+
 export function useExecuteAndVisualizeAction(
   setEditorTextWithQuery: ReturnType<typeof useSetEditorTextWithQuery>
 ) {
@@ -96,8 +126,8 @@ export function useExecuteAndVisualizeAction(
           results.hits.hits.length
         );
 
-        // Step 2: Return success and instruct AI to call create_chat_visualization next
-        return {
+        // Create lightweight response for AI context
+        const lightweightResponse = {
           success: true,
           query: args.query,
           executed: true,
@@ -105,8 +135,9 @@ export function useExecuteAndVisualizeAction(
           message:
             'Query executed successfully. Data is ready for visualization. Call create_chat_visualization to display the results.',
           chartType: args.chartType || 'auto-detect',
-          // Store query results for the next tool to access
-          queryResults: results,
+          // Include sample data for AI understanding
+          sampleFields: extractSampleFields(results.fieldSchema),
+          sampleRow: results.hits.hits.length > 0 ? createSampleRow(results.hits.hits[0]) : null,
           nextAction: {
             tool: 'create_chat_visualization',
             reason: 'Query results are ready for visualization',
@@ -118,6 +149,17 @@ export function useExecuteAndVisualizeAction(
             },
           },
         };
+
+        // Store full query results for tool access via InterToolDataService
+        // This creates a full result that includes the complete queryResults
+        const fullResult = {
+          ...lightweightResponse,
+          queryResults: results, // Full data for next tool
+        };
+
+        // The InterToolDataService will store the fullResult and create lightweight summaries
+        // Return lightweight response to avoid AI context overflow
+        return fullResult;
       } catch (error) {
         return {
           success: false,

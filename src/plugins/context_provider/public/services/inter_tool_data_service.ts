@@ -9,10 +9,18 @@ export interface ToolResult {
   toolName: string;
 }
 
+export interface LightweightToolResult {
+  dataRef: string; // Reference ID for accessing full data
+  summary: any; // Lightweight summary for AI context
+  timestamp: number;
+  toolName: string;
+}
+
 export interface ToolExecutionContext {
   executionId: string;
   sessionId: string;
-  results: Map<string, ToolResult>;
+  results: Map<string, ToolResult>; // Full data storage
+  lightweightResults: Map<string, LightweightToolResult>; // For AI context
   metadata: {
     timestamp: number;
     status: 'active' | 'completed' | 'failed';
@@ -41,6 +49,7 @@ export class InterToolDataService {
       executionId: finalExecutionId,
       sessionId,
       results: new Map(),
+      lightweightResults: new Map(),
       metadata: {
         timestamp: Date.now(),
         status: 'active',
@@ -76,15 +85,97 @@ export class InterToolDataService {
         toolName,
       };
 
+      // Store full data for tool access
       context.results.set(toolName, toolResult);
+
+      // Create lightweight version for AI context
+      const lightweightResult = this.createLightweightResult(toolName, result);
+      context.lightweightResults.set(toolName, lightweightResult);
+
       console.log(
-        `[InterToolDataService] Stored result for tool '${toolName}' in execution ${executionId}`
+        `[InterToolDataService] Stored full and lightweight results for tool '${toolName}' in execution ${executionId}`
       );
     } else {
       console.warn(
         `[InterToolDataService] Cannot store result - invalid execution context: ${executionId}`
       );
     }
+  }
+
+  /**
+   * Create a lightweight summary of tool result for AI context
+   * @param toolName - Name of the tool
+   * @param result - The full result data
+   * @returns Lightweight result with reference and summary
+   */
+  private createLightweightResult(toolName: string, result: any): LightweightToolResult {
+    const dataRef = `${toolName}_${Date.now()}`;
+    let summary: any;
+
+    // Create lightweight summaries based on tool type and result structure
+    if (toolName === 'execute_and_visualize' && result.queryResults) {
+      const hits = result.queryResults.hits?.hits || [];
+      summary = {
+        success: result.success,
+        query: result.query,
+        executed: result.executed,
+        dataPoints: hits.length,
+        message: result.message,
+        chartType: result.chartType,
+        nextAction: result.nextAction,
+        // Include small sample of data structure for reference
+        sampleFields: this.extractSampleFields(result.queryResults.fieldSchema),
+        sampleRow: hits.length > 0 ? this.createSampleRow(hits[0]) : null,
+      };
+    } else {
+      // Default lightweight summary for other tools
+      summary = {
+        ...result,
+        // Remove large data arrays if present
+        queryResults: result.queryResults ? '[REFERENCE_DATA]' : undefined,
+        data:
+          Array.isArray(result.data) && result.data.length > 10
+            ? '[LARGE_ARRAY_DATA]'
+            : result.data,
+      };
+    }
+
+    return {
+      dataRef,
+      summary,
+      timestamp: Date.now(),
+      toolName,
+    };
+  }
+
+  /**
+   * Extract sample field information for AI context
+   */
+  private extractSampleFields(fieldSchema: any[]): any {
+    if (!Array.isArray(fieldSchema) || fieldSchema.length === 0) return null;
+
+    // Return first few fields with their types
+    return fieldSchema.slice(0, 5).map((field) => ({
+      name: field.name,
+      type: field.type,
+    }));
+  }
+
+  /**
+   * Create a sample row for AI context (first few fields only)
+   */
+  private createSampleRow(hit: any): any {
+    if (!hit || !hit._source) return null;
+
+    const source = hit._source;
+    const sampleRow: any = {};
+    const keys = Object.keys(source).slice(0, 5); // First 5 fields only
+
+    for (const key of keys) {
+      sampleRow[key] = source[key];
+    }
+
+    return sampleRow;
   }
 
   /**
@@ -112,7 +203,7 @@ export class InterToolDataService {
   }
 
   /**
-   * Get all results from the execution context
+   * Get all results from the execution context (full data)
    * @param executionId - The execution context ID
    * @returns Object with all tool results keyed by tool name
    */
@@ -126,6 +217,47 @@ export class InterToolDataService {
       return results;
     }
     return {};
+  }
+
+  /**
+   * Get lightweight results for AI context (summaries only)
+   * @param executionId - The execution context ID
+   * @returns Object with lightweight tool results keyed by tool name
+   */
+  getAllLightweightResults(executionId: string): Record<string, any> {
+    const context = this.executionContexts.get(executionId);
+    if (context && this.isContextValid(context)) {
+      const results: Record<string, any> = {};
+      for (const [toolName, lightweightResult] of context.lightweightResults) {
+        results[toolName] = lightweightResult.summary;
+      }
+      return results;
+    }
+    return {};
+  }
+
+  /**
+   * Get lightweight result for a specific tool (for AI context)
+   * @param executionId - The execution context ID
+   * @param toolName - Name of the tool whose lightweight result to retrieve
+   * @returns The lightweight tool result summary or null if not found
+   */
+  getLightweightToolResult<T = any>(executionId: string, toolName: string): T | null {
+    const context = this.executionContexts.get(executionId);
+    if (context && this.isContextValid(context)) {
+      const lightweightResult = context.lightweightResults.get(toolName);
+      if (lightweightResult) {
+        console.log(
+          `[InterToolDataService] Retrieved lightweight result for tool '${toolName}' from execution ${executionId}`
+        );
+        return lightweightResult.summary as T;
+      }
+    }
+
+    console.warn(
+      `[InterToolDataService] No lightweight result found for tool '${toolName}' in execution ${executionId}`
+    );
+    return null;
   }
 
   /**
