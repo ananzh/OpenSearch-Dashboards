@@ -1,0 +1,323 @@
+
+Unified Olly via Oasis
+Ribbon
+AuthService
+1/6
+Outline
+Unified Olly via OasisLink to heading
+IntroductionLink to heading
+Problem/Use CasesLink to heading
+TenetsLink to heading
+DesignLink to heading
+Proposed High Level ArchitectureLink to heading
+Security FlowLink to heading
+Dataplane FlowLink to heading
+Agent FrameworkLink to heading
+NetworkingLink to heading
+Oasis Cell RoutingLink to heading
+Oasis Regional EndpointLink to heading
+High Level Work ItemsLink to heading
+Open QuestionsLink to heading
+ReferencesLink to heading
+AppendixLink to heading
+Appendix A. Oasis as dedicated service for Idc application - DesignLink to heading
+FeedbackLink to heading
+Document
+Unified Olly via Oasis 
+Introduction
+OpenSearch Q for developers, implemented through project Olly, supports in-context generative AI capabilities within the OpenSearch ecosystem. This innovative feature set encompasses several key functionalities including natural language query processing, text-to-visualization conversion, discovery summarization, alert summary generation, and anomaly detection recommendation capabilities.
+
+However, it's important to note that Olly currently faces certain limitations in its implementation. The system is exclusively supported in AOS and lacks compatibility with AOSS and DQS data sources. Additionally, it requires OpenSearch version 2.17 or newer and domain needs to support FGAC. ML and skills features' tight coupling with AOS VFI release leads to slower rollouts and painful upgrade processes. To address these limitations, there is a recognized need to develop Olly as an application on top of trineo to enable functionality across all data sources and CloudWatch data lake.
+Problem/Use Cases
+Olly 1, 2 had many challenges with current implementation. To start with agents/models were tied to dataplane VFI and are configured via AOS Control Plane Synapse workflows. Updates to agents required version upgrade and management of these resources has lots of operational challenges & overhead. Additionally Olly on AOS works at a datasource level due to the visibility of Agent Framework. This prevents customers to analyze data across datasources. Many customer use cases require analyzing data across AOS clusters or AOSS collections, which is done by a human today. 
+
+With rise in LLM context window and Agentic capabilities we should be able to support these use cases. Initially we have 3 primary experiences:
+Notebook experience : Enables root cause analysis for a given problem. @Xuesong Luo’s team is helping build the support at data source level for re:Invent 2025.
+Chatbot experience : Enables analyzing and interacting with data across data sources. @Dan Widdis’s team is helping build this for re:Invent 2025. 
+Account level: An ability for customers to interact with all their Amazon Opensearch resources.
+Note: Product use-cases and experience is being flushed out for account level. @Hang (Arthur) Zuo
+Tenets
+Version Agnostic: Deliver ML/AI capabilities that work across all OpenSearch versions
+Opensource First: Open-source solutions to support the self-hosted OpenSearch community.
+Unified experience: Provide consistent ML/AI experience and API compatibility across all managed services (AOS, AOSS, DQS etc).
+Design
+Olly 1 & 2 primarily originates from Neo/Q extension which interacts with Agent hosted on ML Commons in AOS domains. The capabilities of the agent and ML features are limited to datasource version. Introduction of Oasis for AOSS, solves this problem of decoupling the core and ML applications. 
+
+Leveraging the architecture of Oasis built for AOSS collections, we will let Neo/Q extension invoke agent framework via a new Oasis regional endpoint which interacts with respective customer’s data source. 
+Skills on Agent Framework will be modified to read from a datasource. 
+
+Today Olly features are enabled/disabled at datasource level. This option should now be moved to be a Neo feature to enable/disable Olly per application/workspace.
+
+Proposed High Level Architecture
+The primary challenge for Olly 1, 2 on AOS domains is limitation of domain versions and dependency on FGAC. The new architecture de-couples the agent execution outside of cluster which enables us to provide Agentic(Olly) features across multiple datasources and versions.
+Design Inspector Viewer
+Security Flow
+Neo web application is onboarded to support various auth mechanisms. TriNeo user can use IAM or Idc based auth. Though IAM flow is straightforward, Idc flow involves steps for customer to configure and Neo Control Plane onboards web application as AWS Idc Application. Neo as a service is exposed to customer and onboarded AOS/AOSS to Idc during the project to enable querying these datasources.  
+
+When supporting Identity Center (IdC) users on OpenSearch, there's a need to properly map user identities to OpenSearch security roles. While IdC users have associated IAM roles, these roles don't preserve the original IdC user identity. This identity is crucial for OpenSearch to apply Fine Grained Access Control (AOS) and Data access policy based AuthZ at the user level rather than relying on broader IAM role permissions.
+
+That said, for Olly we should support TriNeo users via both IAM and Idc based Auth. Oasis (Agent Framework) requires communicating with AOS/AOSS datasources to read customer data stored in an index or applications like Alerting/Anomaly Detection etc. As briefed above, to read from datasources, the true identity of user is required to prevent escalation of privileges. 
+
+We will leverage FAS tokens (IAM) and for Idc we have 2 design options:
+
+Option 1 : Oasis as logical internal service in Neo for Olly use cases (Recommended)
+
+From a customer perspective, Oasis would be a internal micro-service where Neo will interact with Oasis via service credentials and can pass the users credentials (FAS/IAM session). Oasis will leverage existing PEZ(Trusted Identity Propagation) from Neo, decrypt passed credentials using service managed KMS key and finally interact with AOS/AOSS via Sigv4.  
+
+Neo / AOS /AOSS PEZ workflow 
+Refer to ﻿internal wiki﻿ for PEZ inbound flow.
+
+Option 2: Oasis as dedicated application service exposed to end customer for Olly use case
+
+Oasis as a service would be exposed to the customer, and requires customer to understand Oasis as a dedicated service, absorb the additional overhead of setting up Idc application. 
+Internally, the work involves onboarding Oasis to Idc.  This requires additional work for Oasis to understand Idc token, and perform PEZ workflow to interact with AOS/AOSS datasources. 
+Similar to Neo → AOS/AOSS PEZ flow, Neo will now call Oasis customer credentials via PEZ workflow. 
+
+For detailed design, see Appendix A. Oasis as dedicated service for Idc application - Design
+
+Summary: Given both options, we recommend using Oasis as logical component(Option 1). It brings in significant benefits for customer experience as it reduces the overhead of setting up Idc Application for Oasis and for internal engineering it unifies FAS/Idc flows on Oasis. Additionally we are not exposing the service & endpoint to our customers. I see this as not a one way door, down the line if we really require Oasis to be exposed as application service for non-Olly usecases we can definitely do so. 
+
+For the rest of the doc, we assume Option 1 as the solution for Olly. 
+Here is the security flow:
+Customer interacts with Neo application via IAM or Idc
+For Idc flow, after user is logged in with SSO they are redirected to Neo. Neo finishes the federation to fetch Idc token which contains sts:identity_context
+For Idc flow, Neo extracts the sts:identity_context claim from id_token, and calls STS AssumeRole API, provides sts:identity_context claim in id_token as context, to assume customer IAM role
+STS_PROVIDER_ARN="arn:aws:iam:aws::contextProvider/IdentityCenter"
+aws sts assume-role --role-arn $STS_ROLE_ARN \
+    --duration-seconds 7200 \
+    --role-session-name $STS_ROLE_SESSION_NAME \
+    --provided-contexts ProviderArn=${STS_PROVIDER_ARN},ContextAssertion=${STS_CONTEXT_CLAIM} \
+    --region eu-central-1 \
+    --endpoint-url $STS_ENDPOINT
+
+{
+  "AssumedRoleUser": {
+    "AssumedRoleId": "ARO123EXAMPLE123:session-name",
+    "Arn": "arn:aws:sts::123456789012:assumed-role/demo-role/session-name"
+  },
+  "Credentials": {
+    "AccessKeyId": "ASIAIOSFODNN7EXAMPLE",
+    "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    "SessionToken": "FQoGZXIvYXdzEDMaDddfSfSfsdfjsldkjflSDKFjLSfljSDJfljsdfljSDF",
+    "Expiration": "2024-01-30T22:32:00Z"
+  }
+}
+From this point the flow is unified for both FAS(IAM) and Idc(IAM session). Neo encrypts with service owned KMS key which is shared with Oasis and invokes Oasis regional endpoint with Neo service credentials
+AuthService performs AuthN and permits calls only from Neo Service Principal. 
+Oasis interceptor would decrypt the customer’s credentials passed along by Neo using shared KMS key. Agent Framework on Oasis would invoke Sagemaker model (hosted by Synapse) for inferencing via service sts credentials.
+Agent Framework on Oasis would orchestrate the calls to respective AOS/AOSS datasources via Sigv4 using customer’s credentials.
+Design Inspector Viewer
+Dataplane Flow
+Unified Olly has 3 use cases which requires the backend service to interact with various Amazon managed OpenSearch resources. While we are flushing out product experiences on Account level/Neo Workspace level resources for Olly, the backend for now will assume its always given a list datasources which have AI/ML options enabled. 
+
+Olly will leverage the new Oasis regional endpoint and we will introduce a new operation for Oasis  x-amzn-oasis-operation: Olly which will be used to distinguish the workload. 
+
+For Olly support on AOSS collections, we are setting up Global agent resources in Oasis. Unified Olly will continue to leverage this mechanism to set up global agents required for Olly 3. As of now we will setup Plan, execute, reflect (PER) for notebook, conversational agent for chatbot/account level features. Along with agents, respective Olly models will be onboarded as global models. 
+
+API
+
+Given the use case, here is the API we will expose for Olly:  oasis.<region>.opensearch-<stage>.amazonaws.com/_plugins/_ml/agents/<global_agent_id>/_execute . 
+Method : POST
+Request Format: 
+Required Headers:
+x-amzn-customer-account - Customer identity, used for Auth and Billing. 
+x-amzn-oasis-operation  - Set to Olly predict for Oasis to identify the operation and helps with allowlisting APIs.
+x-amzn-neo-token - Encrypted FAS/IAM session credentials
+Auth: Sigv4
+Body: json body accepted by ML Commons Agent Execution
+Here is an example request:
+curl --location \
+'https://oasis.us-east-1.opensearch.amazonaws.com/_plugins/_ml/agents/<global_agent_id>/_execute' 
+\--header 'x-amzn-auth-endpoint: oasis.us-east-1.opensearch.amazonaws.com' 
+\--header 'x-amzn-oasis-operation:Olly'
+\--header 'x-amzn-neo-token:exampleEncryptedToken'
+\--header 'x-amzn-customer-account: 1234567890' 
+\--header 'Content-Type: application/json' 
+\--header 'X-Amz-Date: 20250710T190611Z' 
+\--header 'Authorization: AWS4-HMAC-SHA256 Credential=ASIAZISPWU4XUVTAGCSR/20250701/us-west-2/es/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-security-token;x-amzn-aos-domain-name;x-amzn-service-account, Signature=db2c6bced585c2fb9ba784f8519b29f6bfff9b23ac4fd23ea037e081ab97caab' 
+\--header 'X-Amz-Security-Token: IQoJb3JpZ2luX2VjEOL//////////wEaCXVzLWVhc3QtMSJIMEYCIQDr+2a281gokexKx9gKo/JkFUfOZsfanflfzzOdY86bgAIhAPKyIMD+ppybn+Tr051XQtL0u6dlymnaovDw6nNyhZKhKoIECNr//////////wEQBBoMNjM2ODk2MDYxMjMxIgyuQTCJxMtjlHnFpnwq1gOUCtFaq9/jEBo1zXpyqrbEbYWdfQNJpkERT6IA6uni/umdmcIeReqSf5is2EpYlPV2wTY0T6cMJzuSKxXlwSv6o44KhGAZBX7y2NV8xKqT9HmOVFOLPGcQ6T9BCXSy82N+gkAg4tY46iGjiYEezt45fECldlfFtrlII6N6O8KN3ankqIkrJsNauHB2mxv+GAebSDF5eRt2UykSQxYxr+apJLzQ9Vg40q8vYeKLjYjrsTua2/R/xCLduHM4WeiDypaSn4PvCaxc0FDA0VcEMFYhYTuLdF7m5UYKjvv7IjXpDz87y1HB9Y2rxClPcYrGJgTlj2JdMYj8IbrRoV0IuZ2x1+5alVxNNJmEniwTVTi7Vbl2jqwtbZQRZ5SoV2rUbBfiEH+5Xob60AzNSY5+2W6KScpejfwjVrcN7ow6hgm0G71pdo2ZwI9ovzaGebGP3GMosoN/rQfKPzmlPR2UXcUmPmxB7MHm4X7T2E8fd2d7TePWhzxwSICC+BCPBFSZ11fa1r5KnTSk8SiXOxCFq1ANQYcLnZOPq4nHZjQn1Knh1w04bj7CV72GMlJFk2q5RMpczXXdolhY4nDwK9nFtGXdewoywvEwKBPACwyen/kYBB674CSqRDCGrZDDBjqgAYhcPMH9VbxcyKaPcu1zKUcqKvOqFXZaJz/wMM3Ey7oNSwpIapHqkX+cnYmulnHwCAGUvgG/VqKbcCo9O7HY/h9IDubSjwiVq28qv+2NrHg5EeFAW/ys8L1fqalEH479Vdoyok+fiXek1WU6DzZMaBik082otj8Nrn3fvvhutZODt2KdPn5bslg+yi/hH+ziegJ2MnXdWpyIiGc8sNe+qB8='
+Request Body:
+{
+  "parameters": {
+    "question": "what's the population increase of Seattle from 2021 to 2023"
+  }
+}
+
+Refer to Global resources support in Oasis for low level design. 
+Design Inspector Viewer
+Agent Framework
+The agent framework was introduced in ML Commons to execute opensearch specific operations. The solution is custom built and the capabilities(tools) are brought in via Skills repo. With the industry innovating in opensource, various popular agent frameworks have emerged. 
+
+For ML/AI experiences, ML Commons based agent framework feature support is quite limited and requires consistent investment to catch up. The question we should answer is, do we continue to invest in Agent Framework or switch to external agents ? 
+
+Here is a dedicated doc which covers this topic and proposes to switch to external agents longer term.  Agents for OpenSearch
+That said we have two options for Olly:
+
+Option 1: ML Commons Agent Framework
+Sheet2
+​
+​
+Option 2: External Agent
+
+Sheet3
+​
+​
+Given the timeline for re:Invent for Olly and the unknowns to support external agent,  the ﻿doc﻿ proposes to continue using existing agent framework(Option 1) and seamlessly transition to external agents overtime. Note that we will have 14 weeks of throwaway effort to support short term deliverables. 
+Networking
+The new architectural changes bring in networking challenges to interact with VPC Domains and Collections. As we are thinking Oasis would be an internal service, the challenge is to support Oasis to customer’s VPC calls. 
+
+Neo already solves this problem and we will piggyback on these existing solutions. 
+
+AOSS
+AOSS collections supports network access policies. This feature was extended to support SourceServices to let other AWS services to seamlessly access VPC collections. Neo piggybacked on this solution to expose it as a public service which customers could configure on their network access policy. Here is an example:
+
+[{
+    "Description" : "Test network policy statement",
+    "Rules": [{
+        "ResourceType" : "collection",
+        "Resource" : [
+            "collection/collection-a"
+        ]
+    }],
+    "SourceVPCEs" : [ "vpce-012345678901234" ], // cx VPC EP id
+    "SourceServices" : [ "﻿application.opensearchservice.amazonaws.com﻿", "bedrock.amazonaws.com" ], // list of SPs (Service Names)
+    "AllowFromPublic" : false
+}]
+To establish connectivity between Neo ↔ USGW, a new VPC endpoint is created in each region/cell. For VPC collections, USGW(AuthService) validates network access policy and has a mapping of Neo VPCEndpointID to SourceServices string. 
+
+Given we’d like Oasis to be an internal service and not exposed to end customers, we can extend this solution to setup a VPCEndpoint (PrivateLink) from Oasis ↔ USGW. AuthService would be modified to add Oasis VPCEndpoint along with Neo VPCEndpoint for validating source VPCEndpoint in all network policies which has application.opensearchservice.amazonaws.com defined by customer. Since its just an internal mapping in AuthService, this solution can be seamlessly extended for Olly without exposing Oasis to customers.
+
+Refer to AWS Services Private Access to AOSS for SourceServices feature introduction.
+
+AOS
+Neo currently allowlists its ﻿NAT Gateway IPs﻿ on AOS domains when a datasource is attached. Neo Control Plane kicks off this workflow in AOS Control Plane which allowlists Neo NAT gateway IPs on the dataplane security group. This establishes the connectivity between Neo and AOS Domains. Though Neo is reaching domains via public IP, since the request is already in AWS network, it uses AWS network backbone to communicate (even if its a cross-AZ call within the region) and there is no AppSec concern if reaching via internet. [@Sarat Vemulapalli Follow up on cross regions if it has to be supported in the future]. 
+
+To establish connectivity between Oasis and VPC AOS Domains, we can piggyback on Neo’s solution of allowlisting Oasis NAT Gateway IPs on domain security group. Note that this requires a one time backfill for all customers who have enabled AOS as datasources for Neo with Oasis NAT Gateway IPs.
+
+Refer to these docs for Neo connectivity with VPC domains: Neo VPC domain connection , ﻿Ne﻿﻿o to AOS Domain connectivity Design﻿ Neo to AOS VPC Domain connection final proposal
+Oasis Cell Routing
+Based on design Global Agents/Models on Oasis, olly doesn’t really care about specific cell for agent execution i.e we do not require cell stickiness for Oasis resources. 
+
+That said, we need an isolation mechanism for customer account into a specific cell adhering to tenets of cellular architecture.
+
+ We plan to re-use <account>.oasis.<airportcode>.stage.aoss.searchservices.aws.dev which resolves to a specific cell. The customer account ID is pulled from the request header x-amzn-customer-account from Neo request by USGW.
+
+As the Olly AI/ML options toggle is being moved to Neo application/workspace level, we will rely on Neo Control Plane to setup cell routing configuration(DNS) for Oasis. (Low level design to be flushed out).
+Oasis Regional Endpoint
+Refer to Oasis Regional Endpoint. Olly will use this new regional endpoint setup for Oasis and will be shared across multiple use-cases. 
+High Level Work Items
+Note: Work on Synapse and ML Commons Memory are not covered yet (Open Questions).
+Sheet4
+​
+​
+Open Questions
+Product:
+Would AI/ML options flag would be at Neo Application or Workspace?
+@Hang (Arthur) Zuo: It should be Application level because customers typically approve/reject Olly at Org level and typically set up application per environment. 
+Within each workspace, Olly should only chat with data sources enabled in the workspace. 
+Whats the migration plan for existing AI/ML options on AOS domains ? 
+What are typical use cases for Account and Neo application/workspace level 
+Synapse:
+What models do we want to support ? Is there additional work required ? 
+Security:
+Assuming Oasis is internal service, how is CloudTrail handled from customer perspective 
+Refer to Oasis handling on AOSS collection endpoint. 
+Should we leverage Agent Framework from ML Commons or use external agents like Bedrock ? 
+Who manages memory for Notebook/Chatbot experiences? (Neo/Backend) ? @Pavan Yekbote @Dhrubo Saha @Yaliang Wu
+Notebook data should be treated as customer data. How is this data handled? 
+Networking
+Should we have a common service which solves VPC connectivity for all OpenSearch internal services ? 
+DQS:
+What does it take to onboard DQS as datasource ?
+References
+Unified Olly 
+[In Draft] Olly Q powered by Oasis - Initial Proposal for Olly on Oasis
+Agents for OpenSearch
+Global resources support in Oasis 
+Oasis Regional Endpoint
+Idc Onboarding: ﻿https://w.amazon.com/bin/view/AWSIdentity/Onboarding/IdentityCenter/﻿
+
+Appendix
+Appendix A. Oasis as dedicated service for Idc application - Design
+Oasis as a service would be onboarded to Idc, and additional work will be done to handle Idc requests. Oasis service will be exposed to customers for configuring their Idc application and they can control Oasis access to these resources. 
+Design Inspector Viewer
+Feedback
+Wednesday, July 23 @Hailong Cui @Binlong Gao@Xuesong Luo@Zan Niu @Yulong Ruan @Zhou Su
+Notebook needs support for PER agent which is only available in OpenSearch 3.1 ML Commons. 
+Feedback from @Dhrubo Saha @Yaliang Wu PER agent has improved accuracy in 3.3 release.
+How are datasources chosen and passed to Oasis from Neo. For example how does it work for T2PPL which just requires 1 datasource and index. 
+Align on dependency on Oasis for Notebook experience for re:Invent. 
+
+Monday, July 21 @Arjun kumar Giri @Xin Liu @Dhrubo Saha @Sicheng Song @Dan Widdis @Yaliang Wu @Pavan Yekbote @Jiaping Zeng @Sean Zheng
+Aligned on overall approach. 
+Close down on Agent execution, understand the feasibility of external agent for OpenSearch.
+
+Monday, July 21 @Hang (Arthur) Zuo
+How does IAM cross region support impact Olly features, can Olly be supported cross regions ?
+Review with @Dylan Tong for Agent Framework and its long term vision. 
+Horizontal Rule
+This region is not screen reader accessible. To read comments within the document, turn on View-Only Mode.
+SV
+Sarat Vemulapalli, July 16, 2025 at 2:51 pm
+ made 3 edits·Jul 16
+
+To cover:
+
+Agent Framework
+Flush Auth via Oasis (Neo logical grouping)
+Include estimates for approaches
+Oasis cell routing
+Auth Strategy for
+Oasis to model invocation - do we use synapse ?
+Memory interaction.
+
+SV
+Sarat Vemulapalli, July 19, 2025 at 6:11 pm
+ made 15 edits·Jul 19
+
+Tenets
+Version Agnostic: Deliver ML/AI capabilities that work across all OpenSearch versions
+Opensource First: Open-source solutions to support the self-hosted OpenSearch community.
+Unified experience: Provide consistent ML/AI experience and API compatibility across all managed services (AOS, AOSS etc).
+Architecture
+Olly 1 & 2 primarily originates from Neo/Q extension which interacts with Agent hosted on ML Commons in AOS domains. The capabilities of the agent and ML features are limited to datasource version. Introduction of Oasis for AOSS, solves this problem of decoupling the core and ML applications.
+
+SV
+Sarat Vemulapalli, July 21, 2025 at 12:59 pm
+ made 14 edits·Jul 21
+A
+B
+C
+D
+ORR
+Neo ORR
+Should cover canaries, metrics and alarms
+2
+​
+Oasis ORR
+Should cover canaries, metrics and alarms
+2
+​
+USGW ORR
+Should cover canaries, metrics and alarms.
+
+Common between other Oasis regional endpoint features (ASE, GPU acceleration, AutoTune)
+2
+​
+Adoption Metrics - Neo and Oasis
+​
+1
+AppSec
+AppSec review and pentesting
+Partial engagement over 8 weeks (typical appsec timeline)
+2
+Total
+​
+​
+54 63
+SV
+Sarat Vemulapalli, July 21, 2025 at 10:57 pm
+ made 2 edits·Jul 21
+Given we’d like Oasis to be an internal service and not exposed to end customers, we can extend this solution to setup a VPCEndpoint… Oasis ↔ USGW. aosd application.opensearchservice.amazonaws.com defined by customer. Since its just an internal mapping in
+
+Inside live pasted content

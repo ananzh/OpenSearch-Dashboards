@@ -1,0 +1,382 @@
+OASIS design
+
+OpenSearch Application Service (OASis) will provide a managed SaaS offering for OpenSearch plugins. Goal of this document is to define OASis customer experience and defining OASis high level design. OASis will be a standalone multi-tenant plugin execution engine that provides support for OpenSearch plugin features AOSS customers with long term goal of extending feature support to AOS. Given the high demand for AOSS vector DB for Gen AI capabilities, building native machine learning features in AOSS will simplify developer effort to build machine learning application. Semantic and hybrid search support will be added to AOSS by enabling ml-commons plugin feature through OASis. Neural search plugin will be enabled in AOSS and will make use of Oasis to generate vector embedding. Generated embedding will be indexed to vector collections. 
+
+Auxiliary OpenSearch plugins such as ml-commons, flow-framework, alerting and anomoly detection can be made available to AOSS through OASis. Customers can perform various operations supported by OpenSearch  plugins such as running sagemaker inference using ml-common API’s and one click hybrid search setup using flow-framework. OASIS would support bespoke architecture to integrate with customer managed machine learning models as well as integrated with Synapse to simplify machine learning model management.
+
+Detailed requirements for OASis is covered in document: OpenSearch Application Service (OASis)
+
+Tenets
+
+* Avoid code fork - Existing plugins should be refactored to work across opensource and OASis.
+* Backward compatibility - Users should be able to seamlessly switch between opensource and OASis implementation.
+
+Glossary
+
+Synapse: OpenSearch Service managed ML infrastructure fleet.
+DQS: Direct query service - hosting solution for Nexus and Flint in serverless.
+
+Machine learning in Serverless
+
+The end goal of ML in Serverless is to enable all OpenSearch ML features in AOS serverless, and streamline the feature parity between open source and AOSS. For 2024, we’ll start with enabling two primary use cases:
+
+ 1. Semantic Search (and it’s variants like hybrid search or neural-sparse search)
+2. OLLY (Natural Language based OS assistant). 
+
+Detailed requirements and customer flow is covered in requirements document: https://quip-amazon.com/llw6ANly3oeJ
+
+To support ML search features, AOSS will add support for ingest and search pipeline along with neural search plugin as part of AOSS indexing/search workers. Neural search plugin will make use of ml-commons plugin hosted in OASIS microservice to generate text embedding. As an alternative to ingest pipeline, customers could make use of OSIS to run neural search ingest processors. 
+AOSS customers will create ingest pipeline with neural search text embedding processor. Text embedding processor will make use of model hosted in Oasis to generate text embedding. During an AOSS ingest operation, ingest pipeline will use text embedding processor and invoke ML model API supported through OASis. OASis will use connectors to execute remote model inference using SageMaker resource to generate text embedding. Generated embedding will be ingested to AOSS index. To support search operation, search pipelines will be used to convert search request to text embedding and neural search would be performed to retrieve relevant documents. 
+
+Following features needs to be built in AOSS to support neural search:
+
+* Ingestion pipeline
+* Search pipeline
+* Neural search plugin
+* Feature access control
+
+User experience
+
+Customers will be able to invoke Oasis plugin features through collection endpoint. Plugin features will be accessible using following URI <collection_id>.<region>.aoss.amazonaws.com/_plugins/<plugin_path> . For example, URI path to create ML model will have use following <collection_id>.<region>.aoss.amazonaws.com/_plugins/_ml/models/_register .  Depending on the plugin, users can use collection endpoint to create plugin resources. 
+
+Administrator experience: 
+Administrators experience will make use of AOSS console to setup OASis plugin resources. Creating a OASis resource will be similar to creating the resource in OpenSearch. For example, to enable neural search, administrator would create a vector collection and add required access policy. Administrator experience to enable neural search in AOSS:
+
+* Create a vector search collection.
+* Setup access policy to allow plugin feature access to IAM roles and users.
+* Optionally enable pre-trained model support. Once a pre-trained model is enabled, it will be available for all domains/collections in that account.
+
+
+Developer experience:
+Developers will make use of SDK to specify OASis resource that needs to be used. Depending upon use case, developers can chose to use different OASis resource. For neural search usecase, AOSS customer can setup an ingest pipeline and specify a OASis model to generate vector embedding. Similarly, Flint customers can trigger spark jobs by making use of OASis datasource. Developers will take following steps to enable neural search: 
+
+* Once the collection is provisioned, connect to collection using Neo dashboard.
+* Using AI flow template in Neo dashboard, setup neural/semantic search resources. As part of selecting AI flow template, following resources would be created:
+    * Setup connector to models hosted in SageMaker or Bedrock
+    * Create models and model group
+    * Setup search and indexing pipelines
+* Use OpenSearch SDK/API to index data into collection.
+
+
+Depending upon UX requirement, OASis resource could be shared across multiple AOSS collections which allows administrators to create resource once and share it across multiple clusters/collections. Shared Oasis resources will be accessible using regional Oasis endpoints. 
+
+OASis Architecture
+
+OASis supports RESTful OpenSearch plugin APIs through microservice architecture. Universal Service Gateway(USGW)  will be used as the entry point for OASis service and leverages unified auth service to authorize requests. USGW will route customer requests to OASis service which will be processed by an available OASis node. Each OASis node could be hosted using EC2 or through ECS tasks. Supported OASis plugins are installed in each OASis node and will handle customer request routed to these nodes. Plugins will make use of remote metadata store as the data layer for customer requests. Each Oasis plugin will be hosted in a different microservice installations and requests would be routed to these microservice through service gateway.
+
+Oasis node is a ‘single-node’ opensearch cluster with Oasis plugin installed. A Oasis microservice will make use ECS + fargate architecture. Oasis node will be modeled as ECS tasks and will make use of fargate to auto scale Oasis. Given that Oasis service does not locally maintain state, fargate can scale number of running task based on current system load.if yes, Average CPU utilization and memory pressure of Oasis nodes will be used by Fargate to increase or decrease number of tasks. An application load balancer will be used to distribute the traffic between each oasis task running the ECS cluster. 
+
+Dynamo DB or OpenSearch cluster with OR1 instance type will be used as metadata store. Type of metadata store will depend on plugin being supported by Oasis. Plugins with straightforward key/value look up use cases will make use of Dynamo DB as underlying store. In cases were plugin depend upon opensearch search functionality then OpenSearch serverless collection will be used to ensure high availability and low maintenance overhead. More details on metadata store design is covered in design document: Metadata store.
+
+Oasis microservice will follow cellular architecture to reduce blast radius and mitigate scaling concerns of opensearch and ECS. Each Oasis cell will consists of ECS container, load balancer and metadata store. Cells will be sharded based on customer account ID and service gateway will be used to route requests to appropriate cell. Load testing will be performed to identify scaling limits of each Oasis service and inputs from load testing would be used to determine max size of each cell. In addition, each region will have a minimum of two cells to reduce blast radius. 
+LightHouse CDK provides mechanism to provision resources and workflows required to secure AOSS infrastructure and customer data. Oasis will extend LightHouse CDK to provision application infrastructure such as load balancer, metadata store and route53. Each Oasis implementation will add plugin package to Oasis CDK dependency and can make use of CDK to provision Oasis microservice infrastructure.  
+
+Artifact: 
+
+Plugin changes to support OASIS
+
+OpenSearch plugins cannot be directly used in OASis service and following changes are required for plugins to work with Oasis. Low level design of plugin changes should ensure the plugin could work across both OpenSearch and Oasis to avoid code fork.  
+
+Remote metadata store
+Requirement for using remote metadata store and design choices are discussed previously in this document: Metadata store. Depending on design choice plugin code base should support both local data store as well as remote data store. Cluster settings will be used to determine if plugin should use either a local or remote data store during runtime.
+
+Tenant ID support
+OpenSearch plugins are single tenant service and each plugin is tied with the cluster in which it is installed. For OASis usecase, plugins should support multi tenancy and support requests from multiple application. To support OASis, each plugin will support the concept of tenant ID . Each application is synonymous to an OpenSearch cluster. To support multi application as part of same OASis service, each plugin API will support an additional tenant ID parameter as part of request header. Provided tenant ID will be used to apply plugin business logic to that specific application. Tenant ID will be optional in case of single tenant application.
+
+LLD design: LLD Document: Multi-Tenancy in ML-Commons for Serverless
+
+Cluster state
+Plugins depends on cluster state to fetch current cluster status such as index state or node configuration. Few plugins make use of cluster state to store custom plugin information. As Oasis service does not create a cluster between all Oasis nodes, a single cluster state will not be maintained. To store custom plugin state as part of cluster state, a dynamo DB table would be used to persist plugin state. Plugin code will be refactored to make use of DDB store instead of cluster state to store/retrieve custom state. A separate DDB table is preferred over reusing Juno metadata service to prevent polluting metadata service with data from different plugins. Independent DDB table also enables each plugins to build and manage its cluster state. ML-commons plugin will be the initial plugin that would be supported by Oasis and the plugin does not persist any custom data as part of cluster state. Hence custom state support will not be added as part of initial Oasis launch but if a new plugin depend on cluster state then DDB table would be created to support the use case.
+
+AOS/AOSS data store connectivity
+Plugins operate on customer data stored on cluster indices to perform application business logic. For example, ml-commons agent framework uses customer data for RAG operations, with Oasis ml-commons should be able to support RAG operation on data stored on remote clusters/collections.  To support remote AOS/AOSS data store, plugin logic that interacts with customer index needs to be refactored to make use of OpenSearch SDK to perform CRUD operation on the index. Remote customer data source connectivity details will be configured through datasource API and leverage OpenSearch datasources to read/write data to customer index.
+
+OASIS service
+
+Supporting a multi tenant plugin as a service requires two primary technical challenges that needs to be solved:
+
+* Plugin should be decoupled from OpenSearch service and should be able to operate as a standalone service.
+* Plugin metadata storage infrastructure should be decoupled from plugin service infrastructure. 
+
+OpenSearch plugins are loaded and executed within the context of OpenSearch service and relies on http server exposed by OpenSearch service to expose REST endpoints. Plugins cannot be operated independently without relying on OpenSearch server. OASis plugins needs to hosted and scaled independent of a OpenSearch cluster. Following options are considered for hosting OASis plugin:
+
+Option 1: Light weight OS service (Recommended)
+
+
+OpenSearch service internally supports multiple services such as SearchService, IndexService, SnapshotService, PluginService and many other services. For supporting OASis usecase, a lightweight version of OpenSearch service will be created which only supports a subset of services:
+
+* PluginService: Service responsible for loading plugins and its modules
+* Cluster service: Manages cluster state.
+
+OpenSearch server code will be refactored to a new package will only support services required for OASis. In addition to above service, few other services such as GatewayService and monitoring service will be retained by OASis service which would allow to reuse management features supported by OpenSearch. OASis OS service will be configured as single-node service and OASis plugins will be added to the service. OASis cluster will not maintain plugin metadata which allows OASis service to scale horizontally by adding additional OASIS single node service. 
+
+Advantages
+
+* Minimal code refactoring on existing plugin architecture
+* Horizontally scalable and is not tied to scaling limitations of OpenSearch cluster.
+* Low overhead for running OpenSearch service
+* Works seamlessly with existing OpenSearch customers
+
+Disadvantages
+
+* Cluster settings updates needs to executed across all nodes in the fleet.
+* Rebasing will be required if there is any changes to upstream plugin service. Changes to rest of opensearch core will not require refactoring.
+
+Option 2: Coral service
+Coral is a service framework provides building blocks to run RESTful services. Coral provides RESTful server components which allows to remove dependency on OpenSearch Service. OASis plugins will be refactored to make it compatible with Coral service framework architecture and could be hosted on EC2/Lambda/ECS similar to multiple other AWS services. However, to make OASis plugin compatible with Coral service will require multiple code refactoring and can result in code fork from opensource code base.
+Advantages
+
+* Does not take any dependency on OpenSearch service.
+* Out of box support for IAM auth support, throttling and metrics
+* Follows generic AWS service architecture.
+
+Disadvantages
+
+* Code refactoring required to make plugins compatible with Coral framework.
+* Coral protocol is different from OpenSearch protocol. Translation layer is required to convert coral request/response to OS protocol.
+
+Metadata store
+
+OpenSearch plugins makes use of OpenSearch system index to store plugin metadata. For example, ml-commons plugin makes use of index .plugins-ml-model   to store ml model related metadata. With OASis plugin metadata information across different OASis application will be persisted in a common data store. Following are the datastore considerations for OASis:
+
+Option 1: Dynamo DB + OpenSearch cluster (Recommended)
+
+A hybrid approach of making use of dynamo DB and OpenSearch will get advantages of features offered by both dynamo DB and OpenSearch. Dynamo DB zero ETL integration with AOS will be leveraged to keep dynamo DB and OpenSearch data in sync. Oasis plugins will write ingest data to dynamo DB which would be automatically synced with OpenSearch. Plugins will make use of dynamo DB for any GET operations and make use of OpenSearch for search operations. Dependency on dynamo DB improves fault tolerance through PITR.
+
+Advantages:
+
+* Improved resiliency, availability and fault tolerance support.
+* Provides flexibility for low latency and search operations.
+
+Disadvantages:
+
+* Maintenance overhead of managing both dynamo DB  and OS.
+* Additional engineering effort required to refactor plugins to work with DDB. Plugin code base needs to refactored to work with both OpenSearch and DDB based data stores.
+
+
+Option 2: Dynamo DB
+Dynamo DB tables will be used to store plugin metadata information with each plugin maintaining a DDB table corresponding to that plugin. These dynamo DB tables will be shared across all OASis application in a given region. OASis application ID will be used as primary key of DDB table and plugin metadata ID will be used as range key to fetch specific plugin metadata. For example, metadata store for ml-commons model data will use application ID as primary key and model ID as range key. 
+
+Advantages
+
+* Dynamo DB provides a scalable and flexible solution for metadata store.
+* Provides fault tolerance through PITR support.
+* Cost effective as pay per use billing is supported.
+
+Disadvantages
+
+* Additional engineering effort required to refactor plugins to work with DDB. Plugin code base needs to refactored to work with both OpenSearch and DDB based data stores.
+* Some plugin supports OpenSearch DSL based search API’s which will be harder to implement using DDB based data store.
+* DDB item size limitation of 400KB add a restriction on document size. This will restrict existing plugin operations on agent configuration, workflow templates and ml memory API.  
+* There could be some potential performance issues when searching dynamoDB tables, may not be able to build index for all queries. 
+
+
+Option 3: Remote OpenSearch cluster
+
+OASis will make use of a OpenSearch cluster as a remote data store. OpenSearch indices would be used to store plugin metadata. There are few design choices to consider on index design and connectivity to cluster while using a opensearch cluster:
+
+Index management
+
+Option 2a: Separate index per application: Each OASis application metadata will be managed through different OpenSearch indices thus providing index level isolation between applications. This approach also helps reduce plugin code refactoring required to interact with data store. 
+
+Option 2b: Single index per region: OASis will maintain metadata information of all applications on a single index. As part of the metadata document, application ID will be appended allowing plugin to specify application ID while querying metadata. 
+
+Remote cluster connectivity
+
+AOS carbon domain(with OR1 instance type) or AOSS collections will be used as metadata store for Oasis. In this approach OpenSearch cluster will be treated as a pure data store and Oasis will communicate with OpenSearch similar to any other client. To connect to the remote OpenSearch cluster, plugins will make use of  rest client using OpenSearch java clientto perform CRUD operations over rest layer. Existing plugins makes use of transport client to perform CRUD operations on local cluster. To support remote cluster, plugins must be refactored to use java client. Plugins should be refactored to support both transport and rest client such that depending on the plugin usage appropriate client be used. This would also ensure backward compatibility to existing plugin architecture. 
+
+Plugins heavily depend on transport client and adding rest client support for existing functionality is a large effort. In addition, any new feature addition to plugins will need to support both transport as well as rest based implementation which would increase development time of each feature. Testing and management of plugin features across these two flavors of implementation also becomes a challenge as the CI pipelines needs to be updated to run tests for both client independently. 
+
+Advantages
+
+* Cleaner separation between Oasis and opensearch cluster. Oasis will follow rest based communication similar to any opensearch client.
+* Plugins can rely on search feature and don’t have to re-implement business logic.
+* OpenSearch version upgrade within major version ensures backward compatibility. So Oasis and metadata cluster could be updated independently. 
+
+Disadvantages
+
+* AOS domains does not support auto scaling, missing PITR support and high cluster management overhead.
+* Additional overhead in managing two separate implementations.
+
+
+
+* 
+
+Service deployment model
+
+While building a hosted plugin service architecture, it is critical to determine if each plugin needs to be hosted as different microservices or all plugins needs to be hosted as part of single service(monolith). 
+
+(Recommended) Hybrid architecture: Design tradeoff between above two approaches primarily relies on following factors: flexibility and management overhead.  Performance characteristics and throughput requirement differs for each plugin API. Hosting each plugin API on different fleet will allow to tune plugin fleet based on throughput requirement. This increases management overhead as number of unique fleets to be managed increases with each plugin. To avoid managing multiple microservice, we can go with an hybrid approach of combining plugins with similar characteristics and requirements into same microservice. Each plugin onboarding to Oasis will be individually vetted to determine if it requires a separate microservice. Decision to host plugin on a separate microservice will be a two way door decision which could be supported through service gateway pointing to the right microservice endpoint.
+
+Monolith service architecture:  In this approach, all OASis plugins will be bundled and hosted as a single service. With a single service architecture, all plugins will be hosted on the same infrastructure and a shared pipeline will be used to deploy changes across all plugins. Given that each plugin performance and scaling requirements are different, single service architecture will lose out flexibility on tuning the service based on plugin requirements. Process isolation would be a challenge resulting in single plugin hogging resources which results in failure of other plugins. This approach also leads to complex deployment pipeline as changes from different plugins will compete to deploy resulting in dependency between plugins. 
+
+Micro-Service architecture: In this approach each plugin will be managed independently and not have dependency on other plugins. Each plugin will be hosted on different infrastructure stacks and deployments will be managed through separate pipelines. Assuming that there are 10 different plugins supported by OASis, this approach will result in 10 different microservices leading to operational overhead.
+
+
+
+
+
+Oasis Endpoint
+
+Service gateway will route request to Oasis microservices based on the URL path of the request, for example, request to collection to a plugin URI <collection_id>.<stage>-<region>.aoss.amazonaws.com/_plugins/_ml will route requests to ML microservice by service gateway. Similarly requests for URI _plugins/_flow_framework will again be routed to ML microservice. Service gateway will be identify cell corresponding to a requested account ID and route the request to the corresponding  Oasis cell endpoint. Each Oasis cell will provide a single route53 endpoint of the format cell-<cell-number>.<stage>-<region>.<oasis-type>.aoss.amazonaws.com where oasis-implementation will represent the plugin type such as ml, alerting or security analytics. These endpoints will not be publicly available and can only be reached through service gateway.  Route53 endpoint will be an alias to application load balancer endpoint corresponding to the cell.
+
+SaaS endpoint for ML resources will follow endpoint format applications_<UNIQUE-IDENTIFIER>.<stage>-<region>.opensearch.amazonaws.com . ML models created as part of  SaaS endpoint will be shared across all account resources such as collections, clusters, OSI pipelines and Neo. SaaS endpoint will resolve to service gateway which will route the request to corresponding cell endpoint. Full path of access ML API using SaaS application endpoint will follow the format applications_<UNIQUE-IDENTIFIER>.<stage>-<region>.opensearch.amazonaws.com/_plugins/ml
+
+
+
+Painless script support
+
+Executing customer provided code in a multi tenant environment is a security risk: https://www.aristotle.a2z.com/recommendations/177. Multiple plugins depend upon painless script for it core functionalities. Oasis being a multi tenant service, running painless as part of Oasis will be a security concern. Following options are considered to support painless script in Oasis:
+
+Option 1: Sandbox painless containers
+A single tenant painless script microservice will be used to execute painless script. Painless script execution environment will be sand-boxed to ensure that script does not have any permissions. A short lived execution environment such as Lambda will be used as runtime environment to execute painless script. ScriptService used as part of plugins will be updated to make use of painless microservice instead of executing the service in local environment. In future, search/indexing workers can use painless microservice providing a mechanism to support multi tenancy in search/indexing workers.
+
+Option 2: Painless API supported by collection endpoint
+Oasis will leverage painless script supported as part of single tenant AOSS collections. ScriptService used as part of plugins will invoke painless script APIs in AOSS collection. Given AOSS collection is single tenant and already supports painless script, it does not have security risk of executing painless script.
+
+Security
+
+Oasis will rely on Serverless auth service for authentication and authorization. Auth service integration with service gateway will be leveraged to apply security and network policies on Oasis requests. Oasis customers can define IAM identity policy to define resources that could be accessed by IAM users/roles. Customers will be able to define following security policies:
+
+* Allowlisted Oasis action. Supported actions:
+    * opensearch:ml-commons/create, get, put,delete
+    * opensearch:sql/create, get, put,delete
+    * opensearch:datasource/create, get, put,delete
+* VPCs that are allowed to access Oasis resource (IAM global condition keys)
+* Public network access to Oasis resource (IAM global condition keys)
+
+Sample Oasis IAM policy
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "opensearch:GetMLModel",
+            "Resource": "arn:aws:oasis:*:*:<resourceId>",
+        }
+    ]
+}
+
+
+Customers will make use of sigv4 protocol to authenticate requests to Oasis. Service gateway will pass sigv4 to Auth service to validate if caller has permission for the request. Auth service will return JWT token along with customer account ID which would be passed to Oasis. 
+
+
+
+Open questions
+
+* What is the data encryption requirement for plugin metadata? Does it need to be encrypted using the customer provided KMS key?
+* Scalability and availability concerns with AOS as remote metadata service.
+* What are the options to support painless in Oasis?
+    * Can Oasis make use of painless script API /_scripts/painless/_execute  exposed by collection endpoint to execute script instead of running script inside OASIS runtime?
+
+Task estimate
+
+Assumptions:
+
+* DQS service is built as part of project nexus and provides infrastructure required to host new plugins.
+* Machine learning and fractal frontend plugin support is added as part of Project Neo
+* Pre-trained model support
+* Efforts required for auto scaling & billing is not included
+
+Task	Description	Effort estimate (in weeks)	Comment
+Pre-req
+RFC & review	Create RFC for multi tenacy support and gather feedback from community 	2	
+Developer setup tools	Create tools to enable developers to setup local Oasis server and remote metadata store	1	
+			
+ML-commons
+Connectors/Models/Model group/Agent - Remote data store support	Data Store Interface	8	
+Fireflower integration for assume role support	Assume role support to fetch fireflower credentials to connect with remote models.	4	
+Connectors/Models/Model group/Agent - Multi tenancy	LLD Document: Multi-Tenancy in ML-Commons for Serverless	8	
+Cluster setting override support 	Customization support to enable customers to modify cluster settings.	4	
+			
+Flow framework
+Remote data store support		6	
+Remote customer collection integration - Setup search/ingest pipeline	Build feature support in flow framework to create search/indexing pipeline on customer collection.		
+Multi tenancy		4	
+			
+Skills repo
+Remote customer collection integration	Build feature support in skills repo to perform operations on remote customer collection.	3	
+			
+Console & Dashboard
+Enable/Disable NLQ	AOSS console changes to enable/disable NLQ	2	
+AOSS CP API changes to support NLQ	CP changes to enable/disable NLQ	4	
+Discover/Log explorer NLQ support in Neo	Neo dashboard to add support for observability plugin	2	
+			
+Oasis service
+Onboard ml-commons to DQS	Update DQS CDK to support ml-commons 	4	
+Onboard flow framework to DQS	Update DQS CDK to support flow framework 	4	
+			
+Security
+Auth service integration design	Auth service integration design to support authn and authz	2	
+Auth service/Service gateway changes	* Service gateway to route ml requests to Oasis * AuthN/AuthZ related changes required in service gateway	6	
+			
+Appsec		2	
+			
+ORR
+ORR review		2	
+Alarms & monitors		3	
+Gameday		1	
+Load test		2	
+Pipeline best practices		2	
+
+
+
+Appendix
+
+* OpenSearch Application Service (OASis)
+* OASis API
+* Machine Learning in Serverless
+* Oasis node: https://drive.corp.amazon.com/documents/arjung@/OASis%20demo.mp4
+* Oasis Neo integration: https://drive.corp.amazon.com/documents/arjung@/Neo%20Oasis%20integration%20demo.mp4 
+
+
+
+FAQ
+
+How does OASis access cluster metadata?
+Cluster state
+
+Can we use single tenancy plugin and use containers to achieve multi tenancy?
+This is one of the design options considered. With this approach individual containers will be spawned to handle requests from each customer. Containers will be terminated if there is no active request from customers after specific time period. This approach would help us achieve hardware level multi tenancy without achieving multi tenancy through plugin. But this approach could result in cold start and resource wastage resulting in higher cost for customers.
+
+How to categorize metadata and customer data?
+
+Categorization for data will vary based on plugin use case. Each plugin needs to evaluate if data being persisted is a metadata or customer data. If a data is classified as customer data then it needs to be encrypted at rest using customer specified KMS key.
+
+Will custom plugins be supported in Oasis?
+No. Custom plugins will not be supported in Oasis.
+
+Can we use transport port for remote metadata OpenSearch cluster?
+
+In this option, OASis will make use of remote cluster connection to connect with remote data store. Plugin  code base will be refactored to make use of remote opensearch client instead of using local transport client. Oasis would communicate using transport layer client to remote cluster. Given that existing plugins makes use of transport layer client, plugins need not build and maintain rest client based solution for Oasis.
+
+As transport API doesn’t guarantee backward compatibility between OpenSearch versions, this approach results in a tight coupling between Oasis plugin and remote cluster versions. Cross cluster search which performs search actions over transport API has a restriction that the source OpenSearch version should be same as higher than destination version. Following the same principle, Oasis plugin version should be same or higher than remote cluster to ensure that version upgrades does not cause failures. 
+
+To connect over transport API remote OpenSearch cluster needs to expose transport port to Oasis. Both AOS and AOSS does not expose transport API and all communications is exposed to happen over rest. For this approach, AOS needs to create network policy changes to allowlist Oasis to communicate over 9300 port with metadata cluster.
+
+Advantages
+
+* Low engineering effort required to connect with remote opensearch.
+* Follows existing plugin architecture.
+* Plugins can rely on search feature and don’t have to re-implement business logic.
+
+Disadvantages
+
+* AOS domains does not support auto scaling, missing PITR support and high cluster management overhead.
+* Oasis plugin version might be tightly coupled with remote cluster version. Coordination between Oasis and remote cluster would be required during version upgrades.
+* Exception will be required in AOS to expose transport port.
+
+Can cellular AOS be used to run Oasis?
+
+For hosting OASis service, OpenSearch will be reused as the underlying server. OpenSearch core APIs such as search and indexing API’s will not be exposed to the customer and will be hidden at gateway layer. Due to scaling constraints of OpenSearch service OASIS will not be horizontally scalable. To scale OASis service, mutliple OpenSearch clusters will be provisioned and a load balancer will be used to distribute load across the clusters.
+
+Advantages
+
+* No changes required in existing OpenSearch architecture
+* Works seamlessly with existing OpenSearch customers
+
+Disadvantages
+
+* OpenSearch process will run multiple other services which is not required in OASis context.
+

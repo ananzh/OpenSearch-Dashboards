@@ -1,0 +1,419 @@
+Neo High Level Design
+
+
+
+Overview
+
+Neo is an AWS managed OpenSearch Dashboards service, which provides customers a one stop data analytics and management experience for their data in AWS OpenSearch service, including AWS managed OpenSearch domains, and serverless collections.  Refer to AWS Announces Amazon Neo[1]  Neo PR/FAQ for detailed Neo product information.
+
+Currently AWS OpenSearch service provides OpenSearch Dashboards for each and every AWS managed OpenSearch domains and serverless collections. With Neo, we are aiming to address customer pains described at Issues and constraints with current architecture: OpenSearch Dashboards as Standalone Data Analytics Application
+
+This document talks about the high level design of Neo service.
+
+Requirements
+
+* Neo BRD doc 
+* Neo users can log into Neo using their own IdP with their own credentials
+* Neo users can access their AWS managed OpenSearch domains and serverless collections from Neo to do data visualization and manage customer OpenSearch domains and collections
+
+Design Tenets
+
+* Cost efficient
+    * Neo should be cost as less as possible, and easy to operate and maintain
+* Security
+    * Neo should be compliant with all AWS app security policies and follow best practice to provide top tier security experience for customers
+
+High Level Design
+
+Single tenant vs. Multi tenant
+
+Neo is a managed OpenSearch Dashboards service, which is essentially a web application. We have the option to run it as either single tenant or multi-tenant web service. First of all, let’s define the definition of single tenant and multi tenant
+
+Single-tenant
+
+* One Dashboards process only serves one single OpenSearch Dashboards endpoint and only serves customers within one AWS account, we call it single-tenant Dashboards. 
+
+Multi-tenant
+
+* In contrast, if one Dashboard process can process the requests from multiple AWS customers, we call it multi-tenant Dashboards.
+
+
+Some discussion and researches had been done around single vs multi tenant Dashboards when we were working on Juno Dashboards at Serverless Dashboards - single vs multi tenant
+
+Generally, a comparison of single vs multi tenant Dashboards service is shown below:
+
+	Single tenant	Multi tenant	
+Security	More security as customer data and processing are physically isolated	Need to implement logical isolation	
+Control Plane	Heavy control plane, need to provision computing and storage capacities for each customer application	Light-weight control plane	
+Cost	High	Low	
+Operation & Maintanence	High	Low	
+Blast Radius	Low	High	
+Per customer customization	flexible	not flexible	
+Scaling	per tenant scaling	fleet level scaling	
+			
+
+As is shown in above table, security is one of the biggest concern for a multi-tenant solution. We had a security consultation with AWS AppSec and confirmed that multi-tenant is a valid option for Neo with appropriate security implementation. AppSec consultation ticket:  https://tt.amazon.com/V830026333/ 
+
+Basically, the data such as index pattern, visualization and dashboards are classified as metadata, thus it is compliant with AWS policy to store the data in one database and encrypt using AMK (Amazon Managed Key), and with Crypto-offload technology, we can securely handle customer credentials as a multi-tenant service.
+
+We will discuss the solution to improve Neo availability and potential blast radius risks in later sections. Based on the benefits we can get from multi-tenant, we propose to implement Neo as multi-tenant service. 
+
+High Level Architecture
+
+Major component in Neo includes:
+
+* Control plane service, which
+    * manages customer Neo application level config, life cycle management and resources
+    * handles customer CRUDL requests of their Neo applications.
+    * provides AWS OpenSearch service discovery, and data source management for customer’s Neo application
+* A service gateway that handles
+    * Neo cell routing
+    * Host customer endpoint, TLS termination, request throttling, etc.
+* A auth service which handles:
+    * User login and authentication
+    * User session management
+* OpenSearch Dashboards cells, which
+    * runs OpenSearch Dashboards with it dedicate data store
+    * has AWS Neo specific functions and configurations
+        * IAM integrated authN with OpenSearch data sources. Neo will make calls to AWS Opensearch domain and serverless with user IAM/IdC credentials
+        * AWS OpenSearch endpoint discovery in within Neo application
+
+
+
+Neo Application Instance
+
+Neo is designed to be a multi-tenant OpenSearch Dashboards application. Thus each customer doesn’t have dedicated computing or database resources for them. All customers shares the OpenSearch Dashboards cells capacity.
+
+Neo Application instance is the logical AWS resource that Neo service manages for customers. When a customer wants to start using Neo, they make a Neo control plane call to create a Neo application instance. Neo CP will then create the configuration records in its data store and provision their application instance specific resources, such as DNS name, IdC application instance, etc. 
+
+
+Service Gateway and Auth Service
+
+Neo is onboarded to the unified OpenSearch service authentication and networking proposed in Unified Customer Experience for Opensearch Services for Authentication and Networking, and will onboard to the unified service gateway and auth service for Neo networking, user login and authentication. 
+
+Service Gateway is the entry point of Neo data plane, it hosts the Neo application endpoints and SSL certificates, and routes customer request to designated Neo data plane cells. In addition, to unify the networking across all OpenSearch offerings, Neo will connect to AOS domains and AOSS collections through SGW.
+While AuthService is integrated with ServiceGateway to handle user login, authentication, session management, and access policies.
+
+
+User Endpoints
+
+When customer create an Neo application, Neo will by default provide them an URL endpoint for them to access Neo application. The default URL endpoint will be https://dashboards-<app-name>-<application-id>.us-east-1.aosd.amazonaws.com . And customers can optionally define their custom URL, such as https://dashboards.fujitsu.com by delegating the domain name and providing their SSL certificate. 
+
+The Service Gateway will host the Neo app domain (*.<region>.aosd.amazonaws.com) and SSL certificate, as well as VPC-Endpoint when we want to support VPC access to Neo applications.
+
+Cell Routing
+
+Neo Dashboards adopts cell-based architecture for its horizontal scaling. In each region, Neo will provision a few cells for its OpenSearch Dashboards fleet, and partition customer Neo applications into one of the cells. Service Gateway is responsible for routing the customer requests to corresponding Dashboards cell.
+
+Neo App Assignment
+
+When a customer creates their Neo application, Neo control plane will assign this application into one of the cell based on certain criteria, such as load of each cell, and maybe customer provided estimated TPS etc. And Neo CP will update this cell assignment info into the cell routing table, and create an internal DNS CNAME record <app-id>.<stage>.<region>.neo.aws.dev that resolves to the designated cell endpoint. (Need to finalize to use Neo CP or CMS)
+
+Request Cell Routing
+
+When receives a user request, Service Gateway will resolve the customer application id from the request hostname, then construct and forward the request to the app internal DNS name <app-id>.<stage>.<region>.neo.aws.dev, which resolves to the Neo OSD cell endpoint. Thus the request can be routed to the designated Neo OSD cell for processing.
+
+Throttling
+
+Gateway as the entry point of Neo data plane, should protect Neo service from various attacks, such as DDoS. This requires SGW to have capability to throttle requests from malicious clients, such throttle by IP address, or certain customer id etc.
+
+Login and authN
+
+Neo targets enterprise customer use cases, who have their own IdP, and they want to bring their own user identity into AWS to manage their workforce access to OpenSearch. We propose to integrate with AWS IdC to support the single-sign-on experience, and open up the way to access other AWS services (like EMR) using user identity. Refer to [Deprecated][OutDated]Neo User Login and AuthN Options for more details about user login experience.
+
+Auth service can integrate with IdC as 1st party application, and support AWS IdC as a new type of auth provider. And issues JWT for the logged in user. Neo OSD can verify and trust the JWT, and pass the user identity JWT to OpenSearch data sources when calling AOS domains/AOSS collections.
+
+Session Management
+
+Neo is a web application, which requires a session management component to maintain browser sessions for users. The session info such as the user profile, will be retrieved from the session store for each request, and be passed to OpenSearch Dashboards process as injected HTTP headers so that Dashboards application can perform authorization, personalized rendering, and OpenSearch queries.
+
+When a user logs out from Neo application, the session needs to be revoked from the session store, and also revoke their session with AWS IdC, so that the user needs to re-login when they access Neo, instead re-use their IdC session.
+
+
+OpenSearch Dashboards Application
+
+OpenSearch-Dashboards is the software product Neo provides to customers. However, it was design and implemented as a single tenant data visualization application. OpenSearch Dashboards as Standalone Data Analytics Application talked about the major works to decouple OpenSearch Dashboards from OpenSearch, and generally divided the work into 4 work streams. This 4 work streams also applies to project Neo. Some initial work had been done on open source side, such as the multiple data source support. But it still requires a lot of work within OpenSearch Dashboards to fit it into Neo as an AWS service, to make those features work as an AWS service, such as integrating with AWS auth and providing AWS resource discovery.
+
+
+Security / Authorization
+
+As discussed above, Neo authentication is handled by service gateway and auth service. OpenSearch feature policy will be applied at ServiceGateway to allow or deny user access to Neo applications as described at Requirement - Coarse grained feature access control to App Endpoint: AOSS HLD for Neo Public Preview
+
+Neo still needs to provide authorization for OpenSearch Dashboards data and features, such as OSD save objects such as index patterns, visualizations. Data access policy can be a bit complex, as Dashboards saved objects has reference relationships. For example a visualization relies on an index pattern, and index pattern relies on a data source object to work. Proposed Saved Objects Sharing experience: OpenSearch Dashboards Saved Object Access Control [Deprecated] talked an option to define a workspace attribute in every saved objects, and implement saved objects isolation and access control at workspace level. We propose Neo to adopt this saved object access control mechanism. Project Trinity proposed curated “workspace” experience, along with the data access control design for workspaces and saved objects at OpenSearch Dashboards Access Control . Neo will adopt the workspace experience and leverage the Trinity access control for saved objects.
+
+
+Continuation of multi-datasource
+
+Open Source Features
+
+OpenSearch Dashboards multi-datasource feature has been released in open source OSD distributions (since v2.4 as an experimental feature). However, it doesn’t support full Dashboards features. We will need to continue work on enhance this feature, and also make necessary changes to fit this feature into Neo.
+
+The continuation of multi-datasource work includes:
+
+* Support all visualization types, including TSVB, Timeline, and Vega
+    * As of OpenSearch v2.6, non index pattern based visualizations do not support multi-datasource yet, we need work on support all 1st party visualizations
+* Support non index pattern based functions
+    * Non index pattern based features do not work with custom data source yet. For example users cannot send API calls to custom data source on DevTool console, and they cannot install sample data to custom data source either, we need implement data source support for these features to provide a complete multi-datasource experience.
+* Support opensearch 1st party plugins
+    * Similar to above mentioned features, we should provide data source integration in analytics and management features. Specifically, ISM, Alerting, AnomlyDetection, Security(management), SQL workbench
+
+Neo/AWS Specific Features
+
+Neo as an AWS service should integrate with AWS ecosystem, especially AWS OpenSearch service to provide seamless experiences
+
+* Authentication with AOS and AOSS
+    * Neo calls AWS OpenSearch and serverless on customer’s behalf, by using customer credentials. So Neo will need to pass valid user identity info to the data source for AOS/AOSS to do authentication and authorizations.
+    * This can be achieved by integration with Unified SGW and AuthService initiative. Once all OpenSearch offerings (Neo, AOS, AOSS) onboarded to the unified AuthService, the AuthService issued JWT can be validated and trusted by all offering. Then Neo can pass the JWT along to data sources to call backend on user’s behalf
+* Support AWS OpenSearch and serverless collection as data source, and support endpoint discovery based on domain/collection ARN
+    * Neo can help customer to do fast data source discover, by providing listing and search AWS OpenSearch domains and serverless collections. It should be able to resolve the domain/collection endpoint from the ARN, thus users do not need to specify the endpoint URL manually.
+* Disable default data source
+    * open source OSD uses OpenSearch index as its metadata store, this OpenSearch cluster is considered as the default data source to keep the experience backward compatibility. Neo will have its own metadata store which is not accessible to customers, we will need to remove the default data source concept in Neo
+* Integration with other AWS services
+    * Neo can potentially integrate with other AWS services by extending its data source framework, such as query and visualize SQL databases or Prometheus, or query data in DataLake by submitting jobs to EMR or Athena. This can be done by integrating with IdC PEZ , which helps the credential exchange that bridges the AWS service to service integration using customer workforce identities.
+
+
+
+Neo Data Storage
+
+OpenSearch Dashboards uses an OpenSearch index as its database, which introduced a lot of issues. It closely coupled OpenSearch Dashboards with an OpenSearch cluster, and introduces availability concerns to OpenSearch. Neo is designed to be an standalone and fully managed OpenSearch Dashboards application, it should have its own dedicate database for store customer visualization and management metadata.
+
+Meanwhile, due to lack of authorization within OpenSearch Dashboards application, OSD accesses the visualization metadata (.kibana index) using user credentials, so that it can delegate the access control to OSD data to OpenSearch’s security and data access control functions. As discussed in the security sections in this doc, Neo will have complete user authN and authZ functions, it can handle user access control in OpenSearch Dashboards application. Thus all Neo should do authorization when a user needs to use any visualizations, then all database access will be performed using Neo service principle instead of user principle.
+
+
+Database options
+
+By default OpenSearch Dashboards uses OpenSearch index as its database. However, it has been causing overhead to the team due to its complex index migration during software update. Meanwhile it also come with higher operation to maintain an OpenSearch cluster/domain to tune the setup based on the use case and traffic pattern and volume, comparing to using a completely managed database solution.
+
+The team did research on RDS postgresQL and DynamoDB, and propose to use DynamoDB as Neo’s primary database for its high availability and auto scaling capabilities.
+
+	AWS OpenSearch Domain	AWS DynamoDB	AWS Document DB	AWS RDS PostgreSQL
+Availability SLA	99.99% for multi-AZ	99.999% with GlobalTable	99.90%	99.95%
+Scaling	Manually adding node for horizontal scaling	auto and manual scaling options	Manual select primary instance	Manual scaling. auto scaling available for serverless options
+maintenance	Need regularly monitor and update cluster setup and sharding configurations	low maintenance	low maintenance	low maintenance
+backup and recovery	snapshots	point-in-time recovery	Automated & manual snapshots to S3	Continuous backups to S3, snapshots for point-in-time recovery
+search capabilities	Full text search with aggregation	Key value queries using secondary index	limited support in text search	SQL-like query support
+				
+
+AWS DynamoDB provide highest availability across all database options, and has the lowest operational overhead with easy scaling and backup/recovery support. Though it doesn’t support comprehensive search capabilities, it turned out DynamoDB’s global secondary index support is sufficient to support most OpenSearch Dashboards metadata operations. The team has conducted a PoC to verify the technical feasibility [Meta Storage] DynamoDB research & POC .
+
+
+Neo OpenSearch Dashboards Infra
+
+Based on prior research and experiences Container platform: Serverless Dashboards High Level Design , we propose to run Neo OSD on ECS + Fargate platform to simplify the deployment and minimize the operation load.
+
+Neo Dashboards can onboard to Juno LightHouse so that Neo Dashboards can be reached from unified SGW VPC via the LightHouse TransitGateway Transit Gateway - Transit Gateway PoC: Juno Security Registrar Implementation
+
+
+VPC domain/collection support
+
+AWS OpenSearch service support VPC domains which limits the ingress traffic can only coming from a VPC for a customer domain. AWS OpenSearch Serverless also support access only from customer VPC via its network policy. Since Neo Dashboards will run in its own AWS accounts and its own VPC, we will need to establish the cross VPC connectivity problem so that Neo can access customer VPC domain/collections. 
+
+With the Unified Customer Experience for Opensearch Services for Authentication and Networking proposal, Neo Dashboards can gain access to customer VPC domain and collections by onboarding to the unified SGW, and the networking can be secured by having network access policy mentioned at Appendix B: Common Identity Verification and Network Policy enforcement: Unified Customer Experience for Opensearch Services for Authentication and Networking
+
+
+
+Neo Control Plane
+
+The resource that Neo offers to customers is Neo applications. Customer manages Neo application instances through Neo Control Plane. Since Neo data plane is a multi-tenant service fleet that serves all customers in the region, the Neo control plane can be comparatively light weight, which manages the customer application instance configurations and provisions per customer resources.
+
+The Neo control plane architecture is shown below:
+
+
+Customer can have multiple Neo application instances in their AWS account. Neo Control Plane run a coral service which provides Neo app CRUDL operations to manage their Neo application and configurations. The configurations will be persisted into a config store, and then config service will trigger a workflow to provision AWS resources for the Neo application, and push OSD configs to data plane. 
+
+
+Neo will to leverage existing AOS and AOSS control plane components to avoid reinventing the wheel. Neo plans to use AOS ConfigService to proxy the request to Neo ConfigService, to take advantage of existing AOS ConfigService’s customer facing VIP and infrastructure, use Cell Mapping Service for Neo application cell assignment and routing; and onboard to Symphony as Neo CP workflow, and  orchestrating service, and reuse BeagleRock to monitor Neo data plane.
+
+Refer to OpenSearch Neo Dashboards Service Control Plane High Level Design for more info Neo CP design.
+
+
+
+Neo Beta Design
+
+Neo is planned to be released with private beta program to a selective group of customers by re:invent 2023. Given the limited time and resources in the org to achieve the ultimate unified networking and auth architecture described in Unified Customer Experience for Opensearch Services for Authentication and Networking
+
+Specifically, we won’t get benefit of having
+
+* IdC as auth provider for overall OpenSearch service offerings Requirement - Setup Identity Center for Authentication: AOSS HLD for Neo Public Preview
+* Feature access policy to control user access to Neo applications  Requirement - Coarse grained feature access control to App Endpoint: AOSS HLD for Neo Public Preview
+* Network policy to enforce network security for customer request to AOS domains via Neo application Requirement - Network access control of VPC Endpoint and Public traffic using Network Policy: AOSS HLD for Neo Public Preview
+* Access to AOS VPC domains through unified SGW Requirement - Accessing AOS Domains from App: AOSS HLD for Neo Public Preview
+
+
+We are proposing to release Neo MVP with the scope described in Neo MVP and Milestone for Neo Beta release. In Neo beta, Neo will have its own networking and authentication implementation, with the consideration to eventually migrate to the unified networking and auth before GA.
+
+Design
+
+Beta architecture:
+
+The high level beta architecture are very similar to the GA architecture. Neo will still have a Gateway, an AuthService, OSD fleet and Neo control plane. We keep the architecture the same as GA, so that we can easily migrate to the ultimate SGW and AuthService when they are ready. The major difference is on the networking and auth part, the Gateway and AuthService are Neo specific which are light weight and only support Neo use cases.
+
+
+Neo Control Plane
+
+Neo CP does the same thing as GA scope described in Neo Control Plane , and in addition, since we are not going to have the common security CP to handle the IdC integration, Neo CP will need to take care of the IdC application management for beta customers. The Neo application creation workflow will look like:
+
+diagram source
+
+In Neo beta, each Neo application will have a dedicate IdC application instance, and admin can manage the user access to their Neo application by updating the identity association with IdC application instance. 
+
+when admin requested to create a Neo application, Neo CP will 
+
+1. create Neo application configuration such as endpoint DNS name 
+    1. The Neo app id will follow App Endpoint name design considerations: AOSS HLD for Neo Public Preview so that Neo Gateway can extract customer account id and Neo app id from endpoint URL
+2. create an IdC application with Neo IdC application template, get application ARN and client id etc
+3. push the app to IdC application mapping to auth service
+4. assign the app to a Neo Dashboards cell, and create cell routing record in DNS
+
+Neo Beta will provide the APIs listed in OpenSearch Dashboards Application Config Service Public API (Private Beta). In addition to the standard Neo app CRUDL APIs, Neo ConfigService will provide following APIs for beta
+
+* BatchUpdateAccessorsForWebApp
+* ListAccessorsForWebApp
+
+These APIs helps Neo admins to manage the IdC identities permission on Neo apps, which will be removed and migrated to the feature access policy when we move to unified auth.
+
+
+Neo Gateway and AuthService
+
+Neo Gateway run an envoyproxy fleet as ECS tasks behind a NLB. We will create the DNS record *.<region>.aosd.amazonaws.com  which resolves to the Neo gateway NLB, and bind the SSL certificate to the NLB domain. So that customer request to any Neo app will land to the Neo Gateway NLB.
+
+The envoyproxy uses Neo auth service as the ext_authz component, each customer request will go through Neo auth service to get authenticated and subsequently routed to a Neo Dashboards cell.
+
+The Neo auth service is a coral service that handles Neo user login and authentication by integrating with IdC. For simplicity of deployment, we can deploy Neo AuthService as a sidecar container of the gateway envoyproxy. 
+
+The user login follows the flow described at https://w.amazon.com/bin/view/Switchboard/ApplicationAccess/Programs/AppAccess/DeveloperGuide/Integration/AuthPlatform/#H3.4.1.3IntegratewithISACAPI27s28Flows29 Specifically with Neo use case the flow is shown below:
+diagram source
+
+Once a user is logged in and authenticated, the IdC session token will be saved in browser cookie, and all subsequent user request will be sent to Neo with the IdC session token in cookie. So Neo auth service authenticate the user requests by validating the session token with IdC.
+
+
+Neo Computing Engine
+
+Neo Computing Engine runs OpenSearch Dashboards as ECS tasks will include multiple-datasource feature, and uses DynamoDB as its metadata store. We may not have all plugins to onboard to support multiple-datasource for Neo beta, only plugins in OpenSearch Dashboards repo will be supported.
+
+When the user request includes sending a query to AOS domain, such as executing a query, Neo will need to send the user identity so that the request can be authenticated and authorized as the original user.  Based on the discussion in Neo beta AOS IAM auth support , we plan to follow the IdC AWS auth call flow described at https://w.amazon.com/bin/view/Switchboard/ApplicationAccess/Programs/AppAccess/Cookbook/MakingAWSAuth to accommodate the IAM access policy evaluation on AOS domain side. Neo user will need to create IAM roles which allows OpenSearch Neo to assume with IdC session context, and configure their OpenSearch domain access policy to allow the IAM roles to access the domain, they can also map the IAM role as backend role to FGAC security roles to take advantage of OpenSearch fine-grained access control.
+
+The call flow is shown below
+
+diagram source
+
+In this case, customer specifies which IAM role to use in the data source object when accessing a specific AOS domain, and Neo can assume the customer IAM role on the user’s behalf, then call AOS with customer IAM credential signed request. So AOS domain receives a sigv4 sign request and can do authN and authZ based on the IAM role, and existing AOS IAM auth logic can be reused without changes for Neo beta use case.
+
+Note (not in Neo beta scope) : If we want to support user attribute based fine-grained access control, we will need to onboard AOS domains to IdC as a separate IdC application and perform the token introspect to get the user id_token, then AOS can extract the IdC user attributes from the id_token claims, then subsequently use the attributes as the backend role for OpenSearch security to perform fine-grained access control permission evaluation.
+
+Neo DP Scaling and Monitoring
+
+For beta, we will not build sophisticated fleet management workflows in Neo CP, instead, we will leverage existing ECS scaling and monitoring capabilities to monitor the CPU and memory utilization for Neo data plane and take advantage of ECS autoscaling to scale in and out Neo Dashboards fleets. Regarding Dashboard metadata storage, we will use DynamoDB autoscaling to manage the read & write capacities for the Dashboards metadata table.
+
+Networking
+
+In Neo beta, Neo Gateway (with Neo auth service) will run in a VPC with a public NLB endpoint for customer to access Neo apps, we will NOT support VPC endpoint for Neo apps in beta, and will rely on unified SGW to provide VPC endpoint support for Neo in GA.
+
+Each Neo Dashboards cell will have their own VPC, and each cell load balancer is private and not accessible from public network. There are different approaches for Neo gateway to access Neo Dashboards cell LBs, such as using private link, or VPC peering. However, this work will be thrown away when Neo goes GA with the unified SGW. In order to minimize the wasted effort, we propose to allowlist the Neo gateway NAT IPs in Neo Dashboards ALB security group.
+
+On the other hand, in order to allow Neo have access to customer AOS domains, we will need to add Neo Computing Engine NAT IPs to the VPC domain security group. For Neo beta, we will not apply this change to all AOS domains to avoid blast radius, this allowlisting can be done as part of the Neo beta participant customer onboarding process, when customer provides their domains to be used for Neo beta, Neo team can enable the allowlisting using an ops script. (need to create a specific VFI) (Or using privatelink GW, need PoC to understand implications)
+
+
+Required changes on AOS side
+
+Given Neo Dashboards is multi-tenant, allowing Neo Dashboards NAT IP in VPC domain security group opens the network form ANY Neo app to reach the VPC domain. So we will need a network policy alternative to ensure one customer cannot access another customer’s AOS domain via Neo. As discussed in If we don’t enforce that in SGW, other option is to enforce this policy in AOS side (Jetty, Netty). The…: Neo Security Scope , we propose to add a new authZ logic on AOS domain side to only allow the request from the same AWS account if the request is from Neo. 
+
+This can be achieved as part of the IAM auth logic in AOS Jetty/Netty layer, where AOS domain can get the Neo service principal and customer id from the IAM session context after IAM authN. Then Jetty/Netty can do the account match check if the session context indicate the request is coming via Neo service.
+
+
+Path to GA
+
+Feature delta	Beta	GA	Path to GA
+Control user access to Neo apps	via Neo direct IdC integration	Supported by common access policy	Migrate to unified AuthService
+Passing user identity from Neo to AOS	Neo implements IdC credential exchange flow	Use unified AuthService issued JWT	Migrate to unified AuthService
+Connect to AOS VPC domains	AOS domain allows Neo NAT GW IPs	Neo access AOS domain via unified SGW	Migrate to unified SGW
+Network policy	workaround to do authZ in AOS domain (cannot support cross account access)	manage network policy in unified Auth, evalute network policy in unified SGW	Migrate to unified SGW, and AuthService
+			
+VPC endpoint for Neo App	Not supported in beta	Supported by unified SGW	Migrate to unified SGW
+Custom Neo App DNS name	Not supported in beta	Supported by unified SGW	Migrate to unified SGW
+
+As discussed above, the Neo beta architecture is the same as GA architecture, with simplified implementation of Gateway and AuthService, and corresponding workaround to deliver Neo MVP for private beta customers. 
+
+When the unified OpenSearch SGW and AuthService is ready, Neo will need to make following updates to evolve to GA implementation:
+
+1. deprecate Neo auth service and direct IdC integration, use unified AuthService issued JWT as user credentials and pass it to data sources instead of using IdC creds
+2. migrate to use unified SGW to access AOS domain instead of direct access AOS domain, so that Neo can leverage network policy to have better network security controlmee
+3. move Neo customer endpoint to unified SGW and onboard to LightHouse, deprecate Neo gateway
+
+An rough estimation on the throw away works for Neo beta can be found below:
+
+Work item	Dev weeks		
+Neo GW infra pipeline setup (with monitoring metrics, etc.)	4 ~ 5		
+Neo GW AuthService with PEZ integration implementation	3 ~ 4		
+Neo CP API for User <-> Neo app access control	2		
+allow Neo to access AOS domain directly (using private link or allowlist Neo NAT)	2 ~ 3		
+AOS change to do authz for Neo (Network policy alternative)	1 ~ 2		
+IdC credential exchange in Neo Dashboards	1 ~ 2		
+
+
+Note:
+Given 1) the IdC integration needs to be migrated to unified AuthService, and policy based access control are breaking changes of customer experience, and 2) Network policy  evaluation is essential for Neo access to VPC domains in a multi-tenant architecture. We propose Neo not to go public without migrating to unified SGW and AuthService.
+
+
+NOTE:
+
+* customer access audit logging for Neo app, check with IdC if they keep failed login event.
+* Or using privatelink for VPC domain instead of allowlist Neo NAT IP on AOS side
+* add estimation on throw away works
+* the beta cx will be different from GA, customer will assign users to Neo apps using Neo APIs, while, after GA, they will use common security policies, need to check with product if this cx difference between Beta and GA is ok
+
+
+
+Appendix
+
+Migrating from AWS Managed OpenSearch/Serverless dashboards to Neo
+
+For managed service customers, there are 2 parts they need to migrate
+
+1. visualization metadata
+    1. Neo visualization metadata are based on data sources, which doesn’t exist in existing OpenSearch Dashboards. We can provide a script for customer to create data source for their managed domains in Neo to smoothen the data migration process
+        1. managed domain FGAC support security tenant concept, which is a logical isolation for OSD saved objects, Neo doesn’t have the tenant concept, we need to figure out a way to migrate saved objects from multiple FGAC tenants
+2. security configurations if they uses FGAC
+    1. Neo has its own authN and authZ that customer needs to setup for their Neo application. 
+    2. regarding Neo user access to backend OpenSearch domains, customers can keep their FGAC roles and permission settings, however they will need to update the roles mapping to map their IdC/IAM identities to their FGAC roles in their FGAC config.
+        1. If managed service domains can also onboard with IdC PEZ, in this case, both Neo and AWS OpenSearch domains can use the IdC identities, thus customer don’t need to change their FGAC rolemapping
+
+OpenSearch Version Compatibility
+
+Neo is supposed to work with multiple OpenSearch version and distributions. Our open source OpenSearch Dashboards team has it on the roadmap. 
+
+TODO: add version compatibility support doc link here
+
+Open Source Plan
+
+Neo is essentially a cloud offering of OpenSearch Dashboards, the plan is to run open-source OpenSearch Dashboards, with some AWS specific customizations, in the format of private OSD plugins to support all Neo use cases. 
+
+In order to achieve this, the OpenSearch Dashboards features should be developed in the open-source OpenSearch Dashboards project, these features should have enough level of abstraction, and provide a default implementation for OSD open-source release. And meanwhile Neo can provide its own implementation to run within AWS ecosystem. e.g. We already have a data source auth type abstraction with supports basicauth and noauth type of connections, Neo will provide another IAM session based auth type to support connections to managed OS domains and serverless collections. Other OSD features like OSD data storage implementation and data access authorization can also be open-sourced.
+
+However, there are some features that we cannot open source, such as the integration with AWS platform and AWS services. Neo’s login and authentication will be implemented to work with AWS IdC as a AWS 1st party application, thus this implementation cannot open sourced, correspondingly, IAM session credential handling and AWS OpenSearch resource discovery cannot be open sourced. Meanwhile, the multi-tenant saved object access is specific to AWS use case, which cannot be open sourced either.
+
+
+Custom Plugin Support
+
+As a multi-tenant service, supporting customer plugin ( which means executing customer code) within the same service process is a big security risk. The current plan do not support Neo to support customer uploaded plugin artifact, if there are plugins that has a big demand from customers, we can build it into Neo instead of using the artifact from customer.
+
+A possible option is to run those plugin logic as a separate process, such as (single tenant) plugin service. We can do more research when we have more concrete requirements.
+
+Support customer on-prem endpoints
+
+Some initial researches have been done for introducing OSD data source feature into AWS OpenSearch. Introduce Multi DataSource into Amazon OpenSearch Service talks about a design to leverage AWS secret manager to securely store customer credentials and use it to establish data source credentials with basic auth enabled endpoint. That design can be reused in Neo to support customer self-managed cluster.
+
+Question to Product team: do we plan to support on-prem customer endpoints? especially if we do not want to charge customer for Neo.
+
+Open Questions
+
+1. Billing not needed?
+2. Do we need to provide VPC endpoint type of access for Neo? e.g. customer can only connect to their Neo endpoint from their VPC
+    1. Yes, and we will have it by onboarding to unified SGW in GA
+3. What service code we want to use? aosd?
+
+
+
+
+
+

@@ -1,0 +1,220 @@
+Neo / AOS /AOSS PEZ workflow
+
+
+Neo is onboarded to AWS Idc makes identity-aware request to AOS domains and AOSS collections, user IdC identity is sent in the request IAM session context. This allows AOS and AOSS to authenticate the user and perform authorization against user IdC identity in addition to IAM role. 
+
+This document discusses the works for AOS and AOSS to onboard and integrate to IdC PEZ to accept the identity-aware request.
+
+
+Term
+
+IdC (AWS IAM Identity Center) is the AWS service for managing human user access to AWS resources.
+PEZ ( Trusted identity propagation) is a IdC feature that allows IdC enabled AWS service to pass human user identity in request to access downstream AWS services.
+
+
+IdC Integration
+
+The general IdC onboarding and integration process is shown in IdC document at https://w.amazon.com/bin/view/Switchboard/ApplicationAccess/Programs/AppAccess/Onboarding/. To summarize, service team to complete following steps to onboard to IdC and leverage its trust identity propagation (PEZ) feature.
+
+* Onboard service application template to IdC (one time effort for a service to onboard)
+    * the IdC application template specifies the service principals, OAuth scopes etc. that will be used by the service
+    * e.g. Neo’s service template onboarding ticket https://t.corp.amazon.com/V1101014046/overview
+* Implement logic to manage IdC applications, and manage the mapping between IdC application and service resource. This is usually implemented in service control plane.
+    * e.g. Neo CP code to create IdC app https://tiny.amazon.com/j0t9p6xd
+* On service data plane, there are a few cases needs to integrate with IdC:
+    * User Login (Neo):  In the case of a web application (e.g. Neo) receives the user request, it needs to follow the IdC OAuth login flow to handle user login and authentication. Once a user is authenticated, IdC will issue OAuth tokens to the service
+    * Making outbound identity-aware service calls (Neo): When the data plane service (Neo) needs to call another AWS service (e.g. AOS) with trust identity propagation(PEZ), it needs to follow PEZ outbound call flow to get user IAM credentials and pass end user identity in the IAM session context
+    * Accepting inbound identity-aware service calls (AOS & AOSS): Upon a service (e.g. AOS domain) receives a sigv4 signed request, it will call ARPS to authenticate the request, and get authentication result along with FAS credentials. Then it needs follow PEZ inbound request handling flow to call IdC with FAS credentials to retrieve the user id_token, and subsequently fetch user profile, such as user id and group membership, from IdC based on id_token. Then it can do authorization (in our case FGAC authz for AOS, or data access policy evaluation) against IdC user profile
+
+
+
+Neo IdC integration
+
+For Neo use case, Neo CP creates IdC application at Neo application creation time, and pushes the Neo app’s IdC configuration (IdC instance ARN, and IdC application ARN) to S3 for Neo Dataplane to use:
+
+diagram source
+
+When a user accesses Neo application, Neo DP will fetch the corresponding Neo app IdC config from S3 and then call IdC to get the login URL for the Neo application, then send user browser for login:
+
+diagram source
+Note: browser access Neo app through USGW
+
+After user logging in, Neo gets the user OAuth tokens from IdC, then it follows the PEZ outbound request follow to make identity-aware request to AOS/AOSS, upon receiving the request from Neo, AOS/and AOSS will need to follow the PEZ inbound request flow to authenticate the request
+
+Below is the expected data plane request flow diagram for Neo user to login and subsequently make API call to an AOS/AOSS data source:
+diagram source
+
+With this AOS/AOSS PEZ integration, customers can use user IdC principals for authorization. 
+
+For example, for AOS domains with SAML enabled, customers can specify an attribute (e.g. department) in SAML assert as user backend role value, which will be mapped to a list of roles with certain permissions in AOS FGAC. When start using Neo, customer can federate the same SAML IdP with AWS IdC, and specify the same attribute to be used as backend role. So when Neo makes request to AOS domain on behalf of the user, AOS domain get the IdC user profile from IdC, and inject the same attribute value as backend role. Thus customers can seamlessly migrate from a SAML enabled domain to Neo without modifying their FGAC settings.
+
+Similarly, AOSS customer can use IdC principles in data access policy like
+
+aws/idc/<idc-instance-id>/group/<group-id>
+aws/idc/<idc-instance-id>/user/<user-id>
+
+AOS/AOSS onboarding
+
+Neo has implemented necessary logic in its CP and DP to handle user login and making identity-aware calls. Similarly, AOS and AOSS will need to onboard to IdC as separate service provider to accept the identity-aware request from Neo. 
+
+AOSS
+
+* Onboard to IdC with its own application template and OAuth scope
+* Update control plane logic, with corresponding console UI, to allow customers to enable PEZ for customer collections, create IdC application in customer account, and push the IdC application config AOSS auth service
+* Add PEZ authentication logic in AOSS auth service to accept identity-aware request from Neo, and propagate the user identity to designated micro service for data access policy evaluation
+
+AOS
+
+* Onboard to IdC with its own application template and OAuth scope
+* Update control plane logic, with corresponding console UI, to allow customers to enable PEZ for customer domains, create IdC application in customer account, and distribute the IdC application config to PEZ enabled domain
+* Add PEZ authentication logic in AOS domain (jetty) to accept identity-aware request from Neo
+    * with the custom plugin project, if AOS domain leverages unified auth service for domain request authentication, then PEZ request authentication needs to be handled in auth service?
+
+
+
+Appendix
+
+Proposed AOS Domain IdC Integration Configuration
+
+Below is a mock up of the AOS domain configuration on AWS console. On the domain creation and update page, we can provide a small section to allow admin to configure IAM identity center integration
+A more complete mock up can be found at https://www.figma.com/file/hwjcmlgOma5jVeqxrOeYnG/Neo-UX?type=whiteboard&node-id=0%3A1&t=s6PQMGlH7K1DwqFh-1
+
+* Admin can choose whether to enable IAM Identity Center integration. If not, the domain can still authorize the request based on the IAM role
+* If IdC integration is enabled, they can choose to allow specific users and groups to access this domain, or allow any IdC user to access the domain
+    * if admin choose to only allow specific users and groups to access the domain, they need to select the users and groups. AOS CP will need to create an IdC application for the domain, and assign corresponding IdC users and groups to that IdC app
+    * If admin choose to allow all IdC users, then the domain can share the same IdC application which is open to all IdC users
+* Admin can optionally specify an attribute to be used as the user’s backend role in this domain. Jetty can use the configuration to inject the value of this specified attribute as backend role once the user is authenticated and their attribute are fetched from IdC.
+
+
+AOS control plane IdC integration flow will look like:
+diagram source
+
+
+Neo to AOS/AOSS request flow sample
+
+1. User access to Neo application dashboards-myapp-<obfuscated-id>.us-east-1.aosd.amazonaws.com 
+2. Neo fetches IdC instance ARN and IdC application ARN of requested Neo application
+3. Neo starts the OIDC authorization code flow. Neo calls IdC StartFederation API, IdC returns login URL, Neo sends 302 redirect browser to login page
+    1. aws sso-isac start-federation --client-id ${APPLICATION_ARN} \
+            --endpoint-url ${ISAC_ENDPOINT} \
+            --redirect-url ${CALLBACK_URL} \
+            --region $REGION
+        {
+            "Method": "GET",
+            "Location": "https://oidc.eu-central-1.amazonaws.com/authorize",
+            "Parameters": {
+                "client_id": "arn:aws:sso::026171709769:application/ssoins-69875892cbd63034/apl-0df2c83990038a89",
+                "redirect_uri": "http://localhost",
+                "response_type": "code",
+                "state": "QUFBQURtdGxlUzB4TlRZNE9UVTFOall3eVZ2Q25iVEZ4UmhDSk9vVEZrS19QZjNDTTUzdk8xZmhBbTBIZUFqTGRzbmlDc2FHQ0ROSkFybjhWekR4U2lINWYxMGJaQ2ZFWHI3WmtmU1AwZldrdUhJaXg4YUNya3NUVlVDSTZaZ3JaSHZMMG
+            }
+        }
+4. User login, and redirected back to Neo with IdC issued authorization code, browser hits dashboards-myapp-<obfuscated-id>.us-east-1.aosd.amazonaws.com?code=<authorization_code>&state=<state>
+5. Neo calls IdC FinishFederation API, and get OAuth tokens from IdC
+    1. aws sso-isac finish-federation \
+            --parameters ${PARAMS} \
+            --method "GET" \
+            --endpoint-url ${ISAC_ENDPOINT} \
+            --region $REGION
+        {
+            "SessionToken": "AAAADmtleS0xNTY4OTU1NjYw6-cJOKC_L3QYG_w3OyIlePtGS-jJ7PkdlsOj9miX3UtCvYLJC84R0gmXMn5XZaoEtR18C57BdheNQr88nRG0ShYNBhgIvo_C3n2iSKrnX3xL-odifQRni1UtMUAdBA_m65lCxw1IlWVjsdXnMsZeX-dZ3mIFqaaE4uDlDKcMLExEOE2siggziW3IMR0zw7SNn0kFmaXJ95Y_uYhJ8fQyLlE0903V4PQWkG0JOtmwbzdCmvd-85EJNh0heKvpj0qlTHqUHVpMso_JcP1pFYz9jPgv_Ip2vsd4urkpR8elEjZMlFxGB20uT2Q3higUrGN-rXFjL4ePGUckm12eahBCd9RTk3jnKsoO8zKLO_o_2cXsBkrqdN4QpKaYz_6A4v4mbHIrsW9Q7QPEqI4LkfuOW7YhvgL3u11pKB_QOx15zzDIKO6ZYFRT2zEsau-LaR2W1QG0RPwg14MrKMZDKiH-9VcklQVvyQFR93XhiLliusLMwY7u25LkIf9_VrqsDyussfuFK-R6UaK3WCMCayTe6h_jTfZwG0V-QbJlS7ui1et5BTiIR79dJ4Q6qkj1F9IdspBqCUhHIT8dtWvaDhVTbK5wZ_uO5zoiIcl1gF1dt0vf30hdHQgmuWY2m-AssOT2jTYuO8LsZ9cbSIKMhcAZIsjNCntaQy5CkthSjmM0ZjbzeFiUYEJDOZtYOt4x679gd9Lv-y0yL93MxahUELAaZyuJj9vSb8200uFVKsMgFvz_7zPCmegv60LaMmStJLmHb0zaL1hfC7QyL2hMMPMlNMO1aU97_YKvPU-GDupOstlS285xQYpChph0hxtGUPeXsx7Do6uAN6x2u5Y1Fhp4y-mPTlKj9tWF_Xt3uKdOFymYW4qJerpmH6_MnvTeUsxj4l7Xe5SPn5aFoIWpRZdHFYmHSGM53IRmVeNJFy0sP6Ra15Hg37mzZGIg5P6S3rfCjbaE2fhDgJth4W-pSq2bP8uy_kvSxISSX4sPrbdtYlehGoEwEtD__awQcWpifV26G8RkPVNTas2BkeBqPYbVmspL7LsnQjER8XOWf2S4KY6HjOSjaUKj9zPcH_FIwwYWMIZMwy9594CX8_FKvjhnARVMPZgv8FwOGV_L_reNz0crJsGH_xm_alRtbW8jMrl8pDPRxpIi20-YgoBeH3h6aHEDNVrPMz1S83wiAXPgujc4kA3psdjvA9d7BF4eQZQQjsYw9qw3yDrMu88fFg8B6t4OUJAfF-2uhpMccexpF_XHn7nHIVr1qufBSnE281-1WLffMZcJdIV7UqY5ZD2UiS_uTP5Q2vdrBIXmYPcq6q9NOoGscQqI2df3",
+            "IdentityToken": "eyJhbGciOiJFUzM4NCJ9.eyJhd3M6aWRlbnRpdHlfc3RvcmVfaWQiOiJkLTk5NjcwZjEwMzMiLCJzdHM6aWRlbnRpdHlfY29udGV4dCI6IkFRb0piM0pwWjJsdVgyVmpFSTdcL1wvXC9cL1wvXC9cL1wvXC9cL3dFYURHVjFMV05sYm5SeVlXd3RNU0pITUVVQ0lEOTI0Q1JUemZNWCtZVkxlam85R1dMbmc1R3BBMGN1R3pwUzUzVWUwYXFUQWlFQTl2dU50aWFuSHROcXFPcEFGYzZjclBXM2lIRjZSRXlEdVdWSlhkTDRiTndxNWdJSVZ4QUNHZ3d6TXpZeU56STRPVEkxTmpVaURBWDRVdXA2bFQ1XC9ZQXZrTmlyREFvdjA1WFY5SDBPQzRnUnhDUlJTeWpFUHk0S3BOVmRFY3U4S1VcL1Q5SG9FUkJHNlJ0dlUxaEdlMHR4RTJUNUt0RWZEYTNzS0lsRWs1a04zelJqNEJDMW85WEJtUGIzQllUQmdvUVE3bFhQRTFKemVrN0loejBuZDlYbGZUaUlJY0xzTFV1SkFxZVo5ZUM3b2R0TWpNWDdBVzRLcGpcL2tva2pOZ3FPVHRaMGxrcThtQjNPMWNlQm1OMTVPVFI3N3luT3VFazEyR3NLRkM0S3JwaHdLVWFXMjZhVkVqTVhSWHRJZVVoNDMzbTVEYWp5OThxcjI2NSt4RFNrTDJLOVwvTXI3engrRHpQSFFQSERZbXJaamJnblg4VmF1QWlkUWNrdmRDTE1QV25PTVBBTENTV0gxNWRYSGZYbTdFVHRabnRyZ056Nys2NHBaUHQ2a1VCekYrbGhzdktxbHZYeVhnS0xnMlZMakZpbGw4MXYxRTBiSmVwWEgrRmtGZU5DSHdIMldIc1NaSkdOaXdEcDNDdlJ5V3NIQ1ViQVR2SVpFS2c4T3l3OXppUXFIZWdpYThIaE1JQ3NwcWNHIiwic3ViIjoiNzM5NGI4YTItMTA4MS03MGU0LWVlNWEtNjhjMjJlMGVlZTkxIiwiYXdzOmluc3RhbmNlX2FjY291bnQiOiIwMjYxNzE3MDk3NjkiLCJzdHM6d29ya2Fyb3VuZF9jb250ZXh0IjoiYWVpMDN0WUxZLTBIUFpFeF85R3RIMTdja2V5MXh4MjFHaUVwWUtYNndfTUVXU0ZsbFVUUGUwSUdjUFQ3dkxYOHFfVG0iLCJpc3MiOiJodHRwczpcL1wvb2lkYy5ldS1jZW50cmFsLTEuYW1hem9uYXdzLmNvbSIsImF3czppZGVudGl0eV9zdG9yZV9hcm4iOiJhcm46YXdzOmlkZW50aXR5c3RvcmU6OjAyNjE3MTcwOTc2OTppZGVudGl0eXN0b3JlXC9kLTk5NjcwZjEwMzMiLCJhdWQiOiJhcm46YXdzOnNzbzo6MDI2MTcxNzA5NzY5OmFwcGxpY2F0aW9uXC9zc29pbnMtNjk4NzU4OTJjYmQ2MzAzNFwvYXBsLTBkZjJjODM5OTAwMzhhODkiLCJhd3M6aW5zdGFuY2VfYXJuIjoiYXJuOmF3czpzc286OjppbnN0YW5jZVwvc3NvaW5zLTY5ODc1ODkyY2JkNjMwMzQiLCJhd3M6Y3JlZGVudGlhbF9pZCI6IjN0WUxZLTBIUFpFeF85R3RIMTdja2V5MXh4MjFHaUVwWUtYNndfTUVXU0ZsbFVUUGUwSUdjUFQ3dkxYOHFfVG0iLCJhdXRoX3RpbWUiOiIyMDIzLTA4LTI1VDIyOjI4OjQ3WiIsImV4cCI6MTY5MzAzMTMyMywiaWF0IjoxNjkzMDI5ODg4fQ.yKFqg1eBFu4TlrzzCcyx2y0gtR_KniP5UGSfSk-mMnRPtKQGd1otnoWd-moLGxTDM4yOvlqpXRPJIzcTjBW9e737l75v14ugyPX88xibxwtBFJpdz2PLCj5QLgnv20vs",
+            "ClientId": "arn:aws:sso::026171709769:application/ssoins-69875892cbd63034/apl-0df2c83990038a89",
+            "Ttl": "2023-09-02T06:04:48.559815Z"
+        }
+    2. Id_token payload includes sts:identity_context claim:
+    3. {
+          "aws:identity_store_id": "d-99670f1033",
+          "sts:identity_context": "AQoJb3JpZ2luX2VjEI7//////////wEaDGV1LWNlbnRyYWwtMSJHMEUCID924CRTzfMX+YVLejo9GWLng5GpA0cuGzpS53Ue0aqTAiEA9vuNtianHtNqqOpAFc6crPW3iHF6REyDuWVJXdL4bNwq5gIIVxACGgwzMzYyNzI4OTI1NjUiDAX4Uup6lT5/YAvkNirDAov05XV9H0OC4gRxCRRSyjEPy4KpNVdEcu8KU/T9HoERBG6RtvU1hGe0txE2T5KtEfDa3sKIlEk5kN3zRj4BC1o9XBmPb3BYTBgoQQ7lXPE1Jzek7Ihz0nd9XlfTiIIcLsLUuJAqeZ9eC7odtMjMX7AW4Kpj/kokjNgqOTtZ0lkq8mB3O1ceBmN15OTR77ynOuEk12GsKFC4KrphwKUaW26aVEjMXRXtIeUh433m5Dajy98qr265+xDSkL2K9/Mr7zx+DzPHQPHDYmrZjbgnX8VauAidQckvdCLMPWnOMPALCSWH15dXHfXm7ETtZntrgNz7+64pZPt6kUBzF+lhsvKqlvXyXgKLg2VLjFill81v1E0bJepXH+FkFeNCHwH2WHsSZJGNiwDp3CvRyWsHCUbATvIZEKg8Oyw9ziQqHegia8HhMICspqcG",
+          "sub": "7394b8a2-1081-70e4-ee5a-68c22e0eee91",
+          "aws:instance_account": "026171709769",
+          "sts:workaround_context": "aei03tYLY-0HPZEx_9GtH17ckey1xx21GiEpYKX6w_MEWSFllUTPe0IGcPT7vLX8q_Tm",
+          "iss": "https://oidc.eu-central-1.amazonaws.com",
+          "aws:identity_store_arn": "arn:aws:identitystore::026171709769:identitystore/d-99670f1033",
+          "aud": "arn:aws:sso::026171709769:application/ssoins-69875892cbd63034/apl-0df2c83990038a89",
+          "aws:instance_arn": "arn:aws:sso:::instance/ssoins-69875892cbd63034",
+          "aws:credential_id": "3tYLY-0HPZEx_9GtH17ckey1xx21GiEpYKX6w_MEWSFllUTPe0IGcPT7vLX8q_Tm",
+          "auth_time": "2023-08-25T22:28:47Z",
+          "exp": 1693031323,
+          "iat": 1693029888
+        }
+6. Neo encrypts and saves session token into browser cookie
+7. When Neo needs to query AOS domain, e.g. rendering a visualization, browser sends a query with the session token in the cookie
+8. Neo server calls IdC GetSession API, IdC returns OAuth tokens
+    1. aws sso-isac get-session --client-id ${APPLICATION_ARN} \
+        --session-token ${ISAC_SESSION_TOKEN} \
+        --endpoint-url ${ISAC_ENDPOINT} \
+        --region $REGION
+        
+        {
+            "AccessToken": "aoavTpXLFXxqGY0_zLXjIFubNfyzzwOn57_XGxmoBo4G3-spWmSMejKZn9om-8IOZSDIjzh7nijsSI56sRzARuq1wAei0:MGUCMCaGJiDe9A0B3HDGBNy6sn0M+nZZcJoHS5qoXVxFpm5vEJFppyckb8nmvgwOAqMMtAIxAMCUnes7/vBx5ybcvmP6xjwaFv/su7esPjE4ERzWZPUJQKVvzDJKyMmTJtzqTveeOQ"
+            "SessionToken": "AAAADmtleS0xNTY4OTU1NjYw6-cJOKC_L3QYG_w3OyIlePtGS-jJ7PkdlsOj9miX3UtCvYLJC84R0gmXMn5XZaoEtR18C57BdheNQr88nRG0ShYNBhgIvo_C3n2iSKrnX3xL-odifQRni1UtMUAdBA_m65lCxw1IlWVjsdXnMsZeX-dZ3mIFqaaE4uDlDKcMLExEOE2siggziW3IMR0zw7SNn0kFmaXJ95Y_uYhJ8fQyLlE0903V4PQWkG0JOtmwbzdCmvd-85EJNh0heKvpj0qlTHqUHVpMso_JcP1pFYz9jPgv_Ip2vsd4urkpR8elEjZMlFxGB20uT2Q3higUrGN-rXFjL4ePGUckm12eahBCd9RTk3jnKsoO8zKLO_o_2cXsBkrqdN4QpKaYz_6A4v4mbHIrsW9Q7QPEqI4LkfuOW7YhvgL3u11pKB_QOx15zzDIKO6ZYFRT2zEsau-LaR2W1QG0RPwg14MrKMZDKiH-9VcklQVvyQFR93XhiLliusLMwY7u25LkIf9_VrqsDyussfuFK-R6UaK3WCMCayTe6h_jTfZwG0V-QbJlS7ui1et5BTiIR79dJ4Q6qkj1F9IdspBqCUhHIT8dtWvaDhVTbK5wZ_uO5zoiIcl1gF1dt0vf30hdHQgmuWY2m-AssOT2jTYuO8LsZ9cbSIKMhcAZIsjNCntaQy5CkthSjmM0ZjbzeFiUYEJDOZtYOt4x679gd9Lv-y0yL93MxahUELAaZyuJj9vSb8200uFVKsMgFvz_7zPCmegv60LaMmStJLmHb0zaL1hfC7QyL2hMMPMlNMO1aU97_YKvPU-GDupOstlS285xQYpChph0hxtGUPeXsx7Do6uAN6x2u5Y1Fhp4y-mPTlKj9tWF_Xt3uKdOFymYW4qJerpmH6_MnvTeUsxj4l7Xe5SPn5aFoIWpRZdHFYmHSGM53IRmVeNJFy0sP6Ra15Hg37mzZGIg5P6S3rfCjbaE2fhDgJth4W-pSq2bP8uy_kvSxISSX4sPrbdtYlehGoEwEtD__awQcWpifV26G8RkPVNTas2BkeBqPYbVmspL7LsnQjER8XOWf2S4KY6HjOSjaUKj9zPcH_FIwwYWMIZMwy9594CX8_FKvjhnARVMPZgv8FwOGV_L_reNz0crJsGH_xm_alRtbW8jMrl8pDPRxpIi20-YgoBeH3h6aHEDNVrPMz1S83wiAXPgujc4kA3psdjvA9d7BF4eQZQQjsYw9qw3yDrMu88fFg8B6t4OUJAfF-2uhpMccexpF_XHn7nHIVr1qufBSnE281-1WLffMZcJdIV7UqY5ZD2UiS_uTP5Q2vdrBIXmYPcq6q9NOoGscQqI2df3",
+            "IdentityToken": "eyJhbGciOiJFUzM4NCJ9.eyJhd3M6aWRlbnRpdHlfc3RvcmVfaWQiOiJkLTk5NjcwZjEwMzMiLCJzdHM6aWRlbnRpdHlfY29udGV4dCI6IkFRb0piM0pwWjJsdVgyVmpFSTdcL1wvXC9cL1wvXC9cL1wvXC9cL3dFYURHVjFMV05sYm5SeVlXd3RNU0pITUVVQ0lEOTI0Q1JUemZNWCtZVkxlam85R1dMbmc1R3BBMGN1R3pwUzUzVWUwYXFUQWlFQTl2dU50aWFuSHROcXFPcEFGYzZjclBXM2lIRjZSRXlEdVdWSlhkTDRiTndxNWdJSVZ4QUNHZ3d6TXpZeU56STRPVEkxTmpVaURBWDRVdXA2bFQ1XC9ZQXZrTmlyREFvdjA1WFY5SDBPQzRnUnhDUlJTeWpFUHk0S3BOVmRFY3U4S1VcL1Q5SG9FUkJHNlJ0dlUxaEdlMHR4RTJUNUt0RWZEYTNzS0lsRWs1a04zelJqNEJDMW85WEJtUGIzQllUQmdvUVE3bFhQRTFKemVrN0loejBuZDlYbGZUaUlJY0xzTFV1SkFxZVo5ZUM3b2R0TWpNWDdBVzRLcGpcL2tva2pOZ3FPVHRaMGxrcThtQjNPMWNlQm1OMTVPVFI3N3luT3VFazEyR3NLRkM0S3JwaHdLVWFXMjZhVkVqTVhSWHRJZVVoNDMzbTVEYWp5OThxcjI2NSt4RFNrTDJLOVwvTXI3engrRHpQSFFQSERZbXJaamJnblg4VmF1QWlkUWNrdmRDTE1QV25PTVBBTENTV0gxNWRYSGZYbTdFVHRabnRyZ056Nys2NHBaUHQ2a1VCekYrbGhzdktxbHZYeVhnS0xnMlZMakZpbGw4MXYxRTBiSmVwWEgrRmtGZU5DSHdIMldIc1NaSkdOaXdEcDNDdlJ5V3NIQ1ViQVR2SVpFS2c4T3l3OXppUXFIZWdpYThIaE1JQ3NwcWNHIiwic3ViIjoiNzM5NGI4YTItMTA4MS03MGU0LWVlNWEtNjhjMjJlMGVlZTkxIiwiYXdzOmluc3RhbmNlX2FjY291bnQiOiIwMjYxNzE3MDk3NjkiLCJzdHM6d29ya2Fyb3VuZF9jb250ZXh0IjoiYWVpMDN0WUxZLTBIUFpFeF85R3RIMTdja2V5MXh4MjFHaUVwWUtYNndfTUVXU0ZsbFVUUGUwSUdjUFQ3dkxYOHFfVG0iLCJpc3MiOiJodHRwczpcL1wvb2lkYy5ldS1jZW50cmFsLTEuYW1hem9uYXdzLmNvbSIsImF3czppZGVudGl0eV9zdG9yZV9hcm4iOiJhcm46YXdzOmlkZW50aXR5c3RvcmU6OjAyNjE3MTcwOTc2OTppZGVudGl0eXN0b3JlXC9kLTk5NjcwZjEwMzMiLCJhdWQiOiJhcm46YXdzOnNzbzo6MDI2MTcxNzA5NzY5OmFwcGxpY2F0aW9uXC9zc29pbnMtNjk4NzU4OTJjYmQ2MzAzNFwvYXBsLTBkZjJjODM5OTAwMzhhODkiLCJhd3M6aW5zdGFuY2VfYXJuIjoiYXJuOmF3czpzc286OjppbnN0YW5jZVwvc3NvaW5zLTY5ODc1ODkyY2JkNjMwMzQiLCJhd3M6Y3JlZGVudGlhbF9pZCI6IjN0WUxZLTBIUFpFeF85R3RIMTdja2V5MXh4MjFHaUVwWUtYNndfTUVXU0ZsbFVUUGUwSUdjUFQ3dkxYOHFfVG0iLCJhdXRoX3RpbWUiOiIyMDIzLTA4LTI1VDIyOjI4OjQ3WiIsImV4cCI6MTY5MzAzMTMyMywiaWF0IjoxNjkzMDI5ODg4fQ.yKFqg1eBFu4TlrzzCcyx2y0gtR_KniP5UGSfSk-mMnRPtKQGd1otnoWd-moLGxTDM4yOvlqpXRPJIzcTjBW9e737l75v14ugyPX88xibxwtBFJpdz2PLCj5QLgnv20vs",
+            "ClientId": "arn:aws:sso::026171709769:application/ssoins-69875892cbd63034/apl-0df2c83990038a89",
+            "Ttl": "2023-09-02T06:04:48.559815Z"
+        }
+9. Neo extract the sts:identity_context claim from id_token, and calls STS AssumeRole API, provides sts:identity_context claim in id_token as context, to assume customer IAM role
+    1. STS_PROVIDER_ARN="arn:aws:iam:aws::contextProvider/IdentityCenter"
+        aws sts assume-role --role-arn $STS_ROLE_ARN \
+            --duration-seconds 7200 \
+            --role-session-name $STS_ROLE_SESSION_NAME \
+            --provided-contexts ProviderArn=${STS_PROVIDER_ARN},ContextAssertion=${STS_CONTEXT_CLAIM} \
+            --region eu-central-1 \
+            --endpoint-url $STS_ENDPOINT
+        
+        {
+          "AssumedRoleUser": {
+            "AssumedRoleId": "ARO123EXAMPLE123:session-name",
+            "Arn": "arn:aws:sts::123456789012:assumed-role/demo-role/session-name"
+          },
+          "Credentials": {
+            "AccessKeyId": "ASIAIOSFODNN7EXAMPLE",
+            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "SessionToken": "FQoGZXIvYXdzEDMaDddfSfSfsdfjsldkjflSDKFjLSfljSDJfljsdfljSDF",
+            "Expiration": "2024-01-30T22:32:00Z"
+          }
+        }
+10. Neo will use customer IAM session credentials to sign the request and call AOS/AOSS API to execute the query
+11. When received the request, AOS jetty will call ARPS to authenticate the request and issues FAS token
+    1. Note that AOS will need to update FAS policy to include "sso-oauth:AuthenticateIAMSession" permission
+12. AOS will need to use the FAS credentials to generate a presigned subject token, then call IdC CreateTokenWithIAM API to get user OAuth tokens
+    1. // preSigner in AWSSSOOIDCPreSignerUtil package
+        String subjectToken = preSigner.generateSignedSubjectToken(
+            fasCreds.getAWSAccessKeyId(),
+            fasCreds.getAWSSecretKey(),
+            fasCreds.getSessionToken());
+        CreateTokenWithIAMRequest req = new CreateTokenWithIAMRequest();
+        req.setGrantType("urn:ietf:params:oauth:grant-type:token-exchange");
+        req.setSubjectToken(subjectToken);
+        req.setSubjectTokenType("https://identity.amazonaws.com/schemas/oauth2/token-type/aws_iam");
+        req.setRequestedTokenType(/* YOUR REQUESTED TOKEN TYPE */);
+        req.setClientId(/* YOUR CLIENT ID STRING */);
+        
+        oidcClient.createTokenWithIAM(req);
+        
+        // IdC oidc service returns OAuth tokens
+        {
+            "accessToken": "aoavTpXLFXxqGY0_zLXjIFubNfyzzwOn57_XGxmoBo4G3-spWmSMejKZn9om-8IOZSDIjzh7nijsSI56sRzARuq1wAei0:MGUCMCaGJiDe9A0B3HDGBNy6sn0M+nZZcJoHS5qoXVxFpm5vEJFppyckb8nmvgwOAqMMtAIxAMCUnes7/vBx5ybcvmP6xjwaFv/su7esPjE4ERzWZPUJQKVvzDJKyMmTJtzqTveeOQ",
+            "tokenType": "Bearer",
+            "expiresIn": 3600,
+            "refreshToken": "aorN8BPsR_wQ4Ue9zS_SfYnz1IAVHQqlkpFZHXssWNJ0MhjZEnAPrvvlVMECw-WA2tnBwFFwWrha-MVDnjiCxSifwAei0:MGYCMQDSiMLp0fZ51pkIjkg0nD4SuOFOVbZoUdjslz3yM7ep4MSGGNW1gcMNO4NF/hokNKkCMQCVBrNe9uaxDWJRv9zf/sC6FaDeZoCKvXmlaOUGgXDUKhgHsP2N8CFq1pA6/R8Jii4",
+            "idToken": "eyJhbGciOiJFUzM4NCJ9.eyJhd3M6aWRlbnRpdHlfc3RvcmVfaWQiOiJkLTk5NjcwZjEwMzMiLCJzdHM6aWRlbnRpdHlfY29udGV4dCI6IkFRb0piM0pwWjJsdVgyVmpFQzRhREdWMUxXTmxiblJ5WVd3dE1TSkhNRVVDSURFcERpTkxmU0FPWmhxbEcxWEUrcGJBaHVzeVRESDIxN1RNaXR6bHNpZTJBaUVBdElzTkpxUkdmV0VmdEZQV3hqbk9lWjZKTWk3ODA2bm41aDNCQXdmcjZQd3E5Z0lJNVwvXC9cL1wvXC9cL1wvXC9cL1wvXC9BUkFDR2d3ek16WXlOekk0T1RJMU5qVWlETWJrNWlpVWM4UEhLVEhlVUNyS0F1d2VsZktFa3hQMlNQY0Y4NUhOQWZyM1YwSk1FTUJDXC9RQlF2Z1lRWjB6VXgxNDFuYWMwYXZqK3E4TE5aSDhcL3hvWER0ZWlsRlZNZWtFcFg3ckRFY1wvcDd6OU94WEdyMVVrTG1Hb1N5WE9PNlZKbTlpVERXcHN6RlwvOGVrbitWem9zRWU5dWI4d2ZWa2EwZE9rWFpYUGJcL1U2OU1YdG5oUUtUTDh1dElLNFwvcmpDVXNSK1lIZjFSYnBxQXdLa3ZyUE5lZkx1Q2sraTNPazA3QXNGUHUwbFJlTjI2R3lWMXg0VXp4RVRZemF5NUgwT1JUWFE5QlAwbUhSQStKalh4OGdOMDIwNHFYMWtWZUJVNytjblRQTXQwRk9zVGFiQnVSN3lNZ3BQQ3lZVEZZVmowN1hVZ0JNQ1BTSHVvcTlINUhVWTc1YnRpU28wTXBKTHdsV3RodTV1MGxQY2MyaURJSDhhXC9vZmE4alloTXp6bnRhbTVVRlArOFNZT3NnYWFtZ0RFOVFaaEVqenpzT0Z0WTMxN3FWa3JKTEs4SzJGSkdwZjhKXC9xOTBKRVR0cWRma3g0NERDYnFSWktsREQ0cHBHbkJnPT0iLCJzdWIiOiI3Mzk0YjhhMi0xMDgxLTcwZTQtZWU1YS02OGMyMmUwZWVlOTEiLCJhd3M6aW5zdGFuY2VfYWNjb3VudCI6IjAyNjE3MTcwOTc2OSIsInN0czp3b3JrYXJvdW5kX2NvbnRleHQiOiJhZWkwalVNRklDQkx4NTRRbXNBT3dpUEhocko3U1QzbExPTEMtbW1WUXZpNzIzTE1oVXV5MFM0UzduMC0zZzdCMWpqTCIsImlzcyI6Imh0dHBzOlwvXC9vaWRjLmV1LWNlbnRyYWwtMS5hbWF6b25hd3MuY29tIiwiYXdzOmlkZW50aXR5X3N0b3JlX2FybiI6ImFybjphd3M6aWRlbnRpdHlzdG9yZTo6MDI2MTcxNzA5NzY5OmlkZW50aXR5c3RvcmVcL2QtOTk2NzBmMTAzMyIsImF1ZCI6ImFybjphd3M6c3NvOjowMjYxNzE3MDk3Njk6YXBwbGljYXRpb25cL3Nzb2lucy02OTg3NTg5MmNiZDYzMDM0XC9hcGwtMGRmMmM4Mzk5MDAzOGE4OSIsImF3czppbnN0YW5jZV9hcm4iOiJhcm46YXdzOnNzbzo6Omluc3RhbmNlXC9zc29pbnMtNjk4NzU4OTJjYmQ2MzAzNCIsImF3czpjcmVkZW50aWFsX2lkIjoialVNRklDQkx4NTRRbXNBT3dpUEhocko3U1QzbExPTEMtbW1WUXZpNzIzTE1oVXV5MFM0UzduMC0zZzdCMWpqTCIsImF1dGhfdGltZSI6IjIwMjMtMDgtMjJUMDU6NDg6MTBaIiwiZXhwIjoxNjkyNjg4Nzc2LCJpYXQiOjE2OTI2ODUxNzZ9.ROgErFnAPkrrwlyjCMLkDoOuhYpq8ji_SBDqEyehswEx252yXrDrlFbLf17eVzRyqTXvfzZIYBSqXSX7dxyIJww1MQym6pCKMhZspE3dtXqx2KERtezgvoBMa8K3C9X6",
+            "issuedTokenType": "urn:ietf:params:oauth:token-type:refresh_token",
+            "aws_sso_app_session_id": "9e93e953-d651-427f-948f-18c71e3d3d42"
+        }
+13. AOS domain jetty can call IdC identity store service to fetch user profile based on identity_store_id and sub  claim in id_token. e.g. calling DescribeUser API. then inject user id and specified attribute as backend role so that OpenSearch security plugin can do authZ based on FGAC role permissions.
+
+
+
+
+AOS concerns/work
+
+1. CreateTokenWithIAM permissions on dataplane - this doesn’t look to be something that can be scoped down
+2. With full PEZ
+    1. DP
+        1. Onboarding SP
+        2. PEZ handling code
+    2. CP
+        1. Onboard IdC application using FAS/SLR
+        2. Console and API - filtering
+

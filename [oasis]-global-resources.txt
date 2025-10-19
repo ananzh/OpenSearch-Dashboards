@@ -1,0 +1,242 @@
+Global resources support in Oasis
+
+Background
+
+The high level guideline is that we should avoid patching open source code in Oasis as we don’t want overhead maintenance effort between open source and Oasis.
+
+Olly II features are already released in AOS and root agents are mandatory to be setup to ensure the feature works correctly, in AOS the setup is done by CP team via invoking flow-framework APIs for each domain. But as the Oasis project going to release, we need to figure out an approach to support Olly II in AOSS, the blocker is the root agent setup in Oasis. The current decision is we’re not going to use help of Synapse team, so the target is to setup the global agents by our own, a global agent means the agent can be retrieved and executed by any valid tenant. From the current Oasis architecture design we know that each cell has a independent DDB, and a global agent will be at cell level, which means each cell will have a certain amount of agents that is visible for any tenant. Root agents examples can be found in this doc: https://quip-amazon.com/GA5vADttKutF.
+
+With the global agent setup, there’s only several items(root agents) in DDB in each cell, and all tenants can access to these root agents to use Olly II features on AOSS.
+
+As the solution not only working for global agents but also working for other resources like global connectors, models, model groups, etc, so this solution was named to support global resources. But we’ll still using global agent as example in below paragraphs to make sure reader can understand this design easily.
+
+Current Situation
+
+Frontend leverages the config get API to fetch global agents and executes agents via agent id, during the execution, ml-commons code retrieves the agent by agent id, check the permission and then execute.  In Oasis, we need to make sure the root agents can be retrieved by any tenant and can be executed by any tenant. The Olly II root agents doesn’t need memory support so this isn’t a concern, but we need to validate the tenantId during global agents execution as we don’t want a malicious user/non valid tenant can execute them, for example, if a malicious user knows gets an global agent id and then invokes the execute agent API with a random string as tenantId, we should block this request as this tenant is not a valid one.
+
+High level proposal
+
+Global resources reading(use)
+
+1. We need to support global resource feature in ml-commons which means we should support global connectors, global models and global agents. We also need to make them hidden to ensure they won’t be searched by APIs. Within the agent execution code, if we found the agent is a global one, we should execute the agent instead of blocking them with permission errors.
+2. We need a specific id to indicate the agent is a global one, e.g. _global is one option we can use in Oasis. To make the changes in open source more reasonable, we should support users to customize their own specific id in ml-commons.
+
+Global agents writing(setup)
+
+Option1(prefer)
+
+The pipeline: https://pipelines.amazon.com/pipelines/AWSSearchServicesOasisServiceCDK deploys Oasis to different regions and cells, we can leverage this pipeline to setup global agents.
+
+pros
+
+1. We’re leveraging existing pipeline to achieve our goal which has less effort, the code resides in CDK package which looks natural.
+2. This is one time effort, there isn’t any overhead during Oasis runtime.
+
+cons
+
+1. If we consider future flexibility like updating the global agents, then we need a redeploy of Oasis service.
+
+Option2
+
+We can implement a checking mechanism in OasisService code which checks if the global agents are written to DDB or not, and if not it tries to write them to DDB upon OasisService instance spins up. 
+
+pros
+
+1. This is an option if the first option isn’t working due to permission issue or other concerns.
+
+cons
+
+1. We need to hard coded the connector, model and agent request bodies in OasisService which doesn’t seem clean as they belong to ml-commons.
+2. During the instance starts up, there is risk that we can’t find a good timing that all classes ready and connection to DDB is ready so that we can operate on DDB, if there isn’t such timing then this option might not work.
+3. Every time an instance spins up, this checking runs which can cause a little bit latency of spin up instance.
+
+Option3
+
+We can leverage the interceptor mechanism in OasisService code, whenever a user request receives by OasisService, it first tries to check DDB to see if global agents are created or not, if not it tries to create global agents, once the creation succeed, a flag will be stored in the instance memory and following requests will check the flag instead of querying DDB to improve performance.
+
+pros
+
+1. This is an option is above options are not applicable.
+
+cons
+
+1. This couples administration work with user request, which is not a clean approach, if the read/write DDB work has issue, then this will have big impact on user’s normal request.
+2. We need to hard coded the connector, model and agent request bodies in OasisService which doesn’t seem clean as they belong to ml-commons.
+3. This is per request level, and increases a tiny bit checking time though it’s ignorable.
+
+Low level design
+
+Write path
+
+Workflow
+
+In the https://pipelines.amazon.com/pipelines/AWSSearchServicesOasisServiceCDK we add the logic to insert global resources to DDB.  The high level workflow look like below:
+
+1. The CDK create necessary resources like write DDB role
+2. After DDB tables are created, the CloudFormation triggers the lambda to perform the data writing to DDB.
+3. After the global data(resource) are written to DDB, CloudFormation continue to perform other operations.
+4. The Lambda function can send logs to CloudWatch for debug purposes, but it’s optional.
+
+
+
+
+Global resources
+
+1. Master key in table(index): .plugins-ml-config.
+2. Model group in table(index): .plugins-ml-model-group.
+3. LLM model in table(index):  .plugins-ml-model.
+4. Agent in table(index): .plugins-ml-agent.
+5. Model level rate limit in table(index): .plugins-ml-controller if necessary. (Account level rate limit already implemented in Oasis, need more investigation and effort)
+
+Initial creation example
+
+Take root agent as an example, the steps to create a root agent are:
+
+1. Check if the root agents are created or not, if yes skip below steps.
+2. Create LLM model in DDB, the model should be a hidden model, the model id will be generated automatically then used for next step.
+3. Create the root agents in DDB, the LLM model id is the result of step #2.
+
+Update example
+
+There won’t be version involved to track the different global resources, for failure case the CDK will automatically roll back to previous status, but the DDB data is not in this case as the table is continue to work when CDK runs(update code), rolling back the DDB data will cause serious data loss, so we need to consider the roll back of DDB data.
+
+CDK can pass parameters in the runtime, so during runtime we can pass global resources in CDK and pass them to lambda to determine if it’s a global resource update or not, if yes this will be used to update the global resources. A parameter can be passed to determine if needs rollback global resources, in the lambda we can read this parameter and read data from DDB for rollback.
+
+Take updating root agents as an example, the steps to update the root agents are: 
+
+1. Create new LLM model in DDB.
+2. Query all the root agents in DDB.
+3. Send update request to DDB to update the llm field.
+
+Reference
+
+AWS CDK CustomResource: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.custom_resources-readme.html
+Update CustomResource: https://docs.amazonaws.cn/en_us/AWSCloudFormation/latest/UserGuide/crpg-ref-requesttypes-update.html#crpg-ref-requesttypes-update-request
+DynamoDB v2 APIs: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html
+DynamoDB v3 APIs: https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/javascript_dynamodb_code_examples.html
+
+Read path
+
+Implement all the details in opensearch-remote-metadata-sdk repo, the ml-commons repo needs minor change to add new configurations. 
+
+Implementation details
+
+1. We should support customer to specify in cluster configuration a global tenant id to indicate a global resource identifier , this can be configured in ml-commons, the default value is _global_tenant_id . This value is for internal use and not allowed to pass it in the customer actual requests.
+2. Only the DDB client operations need to be modified to support global tenant id. The local cluster client doesn’t need these changes.
+3. Secure the global resources: for any operation in DDB client, we check if the tenantId in request equals to the global tenant id , rejecting the request if so. This is a protection for open source case, for oasis users are not aware of the tenant id so it’s fine. For open source if a user knows a multi-tenancy ml-commons service’s global tenant id configuration then the user can manually change his/her tenant id to the global tenant id value to trick the service to return the global resource metadata, or create resources with global tenant id to mess up the service.
+
+Fallback or caching
+
+There’re two different approach to read the global resources: 
+
+1. Always query with actual user tenant id and if resource not found, fallback to query with _global_tenant_id.
+2. Caching global resources and first check if the request is asking for global resource and query with _global_tenant_id directly.
+
+Fallback
+
+pros
+
+The implementation is simple, just checking the exception and retry with _global_tenant_id when it’s resource not found exception.
+
+cons
+
+The performance is not optimal, there’re mainly two cases that we see downgraded performance:
+
+1. Querying un-existing resources case: in this case, it also needs two DDB queries to complete the resource get operation since the user queries an un-existing resource. 
+2. Intensive usage of Olly2 feature case: in this case, all the request carries user own tenant id, and it needs two DDB queries to complete this resource get operation.
+
+Caching
+
+caching all global resource ids in node memory, when user fetching resources, first check if the resource is global resource, if yes use _global_tenant_id to fetch the resource, otherwise use actual user tenant id to fetch the resource.
+
+pros
+
+The performance is optimal, there’s only one DDB query for each request.
+
+cons
+
+The implementation is a little bit complex than fallback.
+
+Caching global resources implementation details
+
+There are three different clients should implement this mechanism:
+
+1. DynamoDBClient
+2. RemoteClusterClient
+3. LocalClusterClient
+
+There are two different cases should be handled in caching:
+
+1. Existing resources get updated.
+2. New global resources are being added.
+
+During the OS cluster nodes starting up, all the global resources will be fetched automatically and cached in cluster nodes memory, upon response(either success or failure), a scheduled task should be started to refresh the global resources cache with fixed interval, the task is to scan all the tables and fetch all global resources to cache. This approach can handle both cases above with a little bit latency, the interval should be a cluster setting configuration and customers can specify their own value.
+
+When cache is not empty, read from cache first, if found return directly from cache. When cache is empty, read with actual tenant id from data store first, if not found, fallback to read with global tenant id from data store.
+
+option2
+
+When an instance spins up, during the class initialization, query all table names in the DDB automatically, then query the global resources based on global tenant identifier and cache them into memory. If error occurs and it’s a retryable error we retry the query until the results correctly returned or max retry exhausted, if the final result is failure we throw exception to identify that there’s a fatal error and stop the instance startup.
+
+pros
+
+1. This lazy approach doesn’t add extra latency of starting instances.
+
+cons
+
+1. This is coupled with customer request which is more error prone.
+2. This can increase the API latency for the user who triggered this.
+3. The data incomplete issue can’t be discovered during service startup which means user can see broken features.
+
+E2E from Neo to Oasis
+
+Update on Wednesday, July 2: The regional endpoint will be decoupled with global resources.
+The high level workflow for different cases are illustrated as below:
+
+1. If a Neo request leverages collection endpoint which can found in case1 and case2, the default endpoint NEO uses currently, an example is: https://jnrx366hdijl61qalod.us-west-2.aoss.amazonaws.com. At the gateway the collection name header will be injected to the request, which will be used as tenant_id in Oasis.
+2. The planned new endpoint(case3): regional endpoint will not able to pass the required headers, how to solve this is not finalized yet, more details can be found here: https://quip-amazon.com/4ZIvAId6uqo2. This is basically to support cross datasource QA.
+3. Neo will have its own routing logic to choose different endpoint based on different requests.
+4. Neo will figure out a way to pass datasource in the request, so that if the request is working at datasource level, it can fetch required information from the corresponding datasource.
+
+
+AOS
+
+AOS and AOSS both will be considered as datasource, and datasource will be passed in the request header from Neo. But the data fetch from AOS hasn't been implemented in Oasis yet, we need to figure out the approach this part, especially the authN/authZ when retrieving data from AOS.
+
+Security
+
+Gateway authenticates a request based on the service principle, so all requests come to Oasis can be regarded as valid requests. Currently there are only Neo and Q two use cases that can access to Oasis agent execution.
+
+Question
+
+1. For cross datasource QA feature, ml-commons doesn’t support this feature yet, is that true in the first release there’ll be only one datasource passed in the request to execute agent?
+2. For Olly II root agents, it’s natural that we can support cross datasource QA, but for customer created agents do we need to support this feature? If yes then it seems not natural as these agents are created at collection level.
+
+
+
+Breakdown
+
+Phases
+
+phase	ETA	link	comments
+CDK POC & local Test	Friday, July 4	https://code.amazon.com/packages/AWSSearchServicesOasisServiceCDK/trees/mainline	There are quite a few permission issues needs to be addressed to ensure the local test can work.
+CDK Code complete	Friday, July 11		
+CDK local test	Wednesday, July 16		
+CDK beta test	Wednesday, July 23		
+Oasis global resource read in metadata-sdk code complete	Friday, July 4	https://github.com/opensearch-project/opensearch-remote-metadata-sdk	
+Oasis global resource read test in local	Friday, July 18		
+Oasis global resource read test in beat	Friday, July 25		
+potential work to support regional API in NEO	TBD	https://quip-amazon.com/4ZIvAId6uqo2	If can't decouple this feature with new regional API in NEO, there could be  potential work to support that
+
+WorkStreams
+
+WorkStream	Owner	Status	Comment
+CDK	Zhichao Geng	Not Started	
+Oasis global cache	Zan Niu	Not Started	
+NEO regional API design	Sarat Vemulapalli	In progress	
+			
+			
+
+Future work
+
+In future Oasis release we will support plan-execute agent which requires memory support, from high level the memory storage doesn’t have conflict with current design, we can leave this part in a different design.
