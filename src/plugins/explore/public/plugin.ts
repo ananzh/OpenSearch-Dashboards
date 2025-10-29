@@ -71,6 +71,11 @@ import { ABORT_DATA_QUERY_TRIGGER } from '../../ui_actions/public';
 import { abortAllActiveQueries } from './application/utils/state_management/actions/query_actions';
 import { setServices } from './services/services';
 
+// Log Actions
+import { logActionRegistry } from './services/log_action_registry';
+import { createAskAiAction } from './actions/ask_ai_action';
+
+
 export class ExplorePlugin
   implements
     Plugin<
@@ -486,6 +491,27 @@ export class ExplorePlugin
     };
 
     this.initializeServices();
+
+    // Register Log Actions
+    // Register Ask AI action if chat service is available
+    console.log('🔧 [ExplorePlugin] Checking chat plugin availability:', {
+      hasChatPlugin: !!plugins.chat,
+      hasChatService: !!plugins.chat?.chatService,
+      hasContextProvider: !!plugins.contextProvider,
+      chatPluginType: typeof plugins.chat,
+      chatServiceType: typeof plugins.chat?.chatService,
+      chatPlugin: plugins.chat,
+      chatService: plugins.chat?.chatService
+    });
+
+    if (plugins.chat?.chatService) {
+      console.log('✅ [ExplorePlugin] Registering Ask AI action...');
+      const askAiAction = createAskAiAction(plugins.chat.chatService);
+      logActionRegistry.registerAction(askAiAction);
+      console.log('✅ [ExplorePlugin] Ask AI action registered successfully');
+    } else {
+      console.log('❌ [ExplorePlugin] Chat service not available - Ask AI action not registered');
+    }
 
     const savedExploreLoader = createSavedExploreLoader({
       savedObjectsClient: core.savedObjects.client,

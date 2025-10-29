@@ -7,11 +7,17 @@ import { Observable } from 'rxjs';
 import { AgUiAgent } from './ag_ui_agent';
 import { RunAgentInput, Message, UserMessage, ToolMessage } from '../../common/types';
 import type { ToolDefinition } from '../../../context_provider/public';
+import { ChatLayoutMode } from '../components/chat_header_button';
 
 export interface ChatState {
   messages: Message[];
   isStreaming: boolean;
   currentStreamingMessage?: string;
+}
+
+export interface ChatWindowState {
+  isWindowOpen: boolean;
+  windowMode: ChatLayoutMode;
 }
 
 export class ChatService {
@@ -21,6 +27,13 @@ export class ChatService {
   public events$: any;
   private activeRequests: Set<string> = new Set();
   private requestCounter: number = 0;
+
+  // Window state management
+  private _isWindowOpen: boolean = false;
+  private _windowMode: ChatLayoutMode = ChatLayoutMode.SIDECAR;
+  private windowStateCallbacks: Set<(isOpen: boolean) => void> = new Set();
+  private windowOpenCallbacks: Set<() => void> = new Set();
+  private windowCloseCallbacks: Set<() => void> = new Set();
 
   constructor(serverUrl?: string) {
     this.agent = new AgUiAgent(serverUrl);
@@ -58,6 +71,89 @@ export class ChatService {
     console.log(
       `📊 [ChatService] Active requests: ${this.activeRequests.size} (removed: ${requestId})`
     );
+  }
+
+  // Window state management public API
+  public isWindowOpen(): boolean {
+    return this._isWindowOpen;
+  }
+
+  public getWindowMode(): ChatLayoutMode {
+    return this._windowMode;
+  }
+
+  public getWindowState(): ChatWindowState {
+    return {
+      isWindowOpen: this._isWindowOpen,
+      windowMode: this._windowMode,
+    };
+  }
+
+  public setWindowState(isOpen: boolean, mode?: ChatLayoutMode): void {
+    const wasOpen = this._isWindowOpen;
+    this._isWindowOpen = isOpen;
+
+    if (mode !== undefined) {
+      this._windowMode = mode;
+    }
+
+    // Notify listeners if state changed
+    if (wasOpen !== isOpen) {
+      this.windowStateCallbacks.forEach((callback) => callback(isOpen));
+    }
+  }
+
+  public onWindowStateChange(callback: (isOpen: boolean) => void): () => void {
+    this.windowStateCallbacks.add(callback);
+    // Return unsubscribe function
+    return () => this.windowStateCallbacks.delete(callback);
+  }
+
+  public onWindowOpenRequest(callback: () => void): () => void {
+    this.windowOpenCallbacks.add(callback);
+    // Return unsubscribe function
+    return () => this.windowOpenCallbacks.delete(callback);
+  }
+
+  public onWindowCloseRequest(callback: () => void): () => void {
+    this.windowCloseCallbacks.add(callback);
+    // Return unsubscribe function
+    return () => this.windowCloseCallbacks.delete(callback);
+  }
+
+
+  public async openWindow(): Promise<void> {
+    if (!this._isWindowOpen) {
+      // Trigger callbacks to request window opening
+      this.windowOpenCallbacks.forEach((callback) => callback());
+    }
+  }
+
+  public async closeWindow(): Promise<void> {
+    if (this._isWindowOpen) {
+      // Trigger callbacks to request window closing
+      this.windowCloseCallbacks.forEach((callback) => callback());
+    }
+  }
+
+  public async sendMessageWithWindow(
+    content: string,
+    messages: Message[],
+    options?: { clearConversation?: boolean }
+  ): Promise<{
+    observable: any;
+    userMessage: UserMessage;
+  }> {
+    // Ensure window is open
+    await this.openWindow();
+
+    // Clear conversation if requested (create new thread)
+    if (options?.clearConversation) {
+      this.newThread();
+    }
+
+    // Send message
+    return this.sendMessage(content, messages);
   }
 
   public async sendMessage(

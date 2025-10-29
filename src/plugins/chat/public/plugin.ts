@@ -31,17 +31,33 @@ export class ChatPlugin implements Plugin<ChatPluginSetup, ChatPluginStart> {
     // Get configuration
     const config = this.initializerContext.config.get<{ enabled: boolean; agUiUrl?: string }>();
 
+    console.log('🚀 [ChatPlugin] Starting with config:', {
+      enabled: config.enabled,
+      agUiUrl: config.agUiUrl,
+      configEnabled: !!config.enabled,
+      configAgUiUrl: !!config.agUiUrl,
+      fullConfig: config
+    });
+
     // Check if chat plugin is enabled and has required agUiUrl
     if (!config.enabled || !config.agUiUrl) {
+      console.log('❌ [ChatPlugin] Config check failed:', {
+        enabledCheck: !config.enabled,
+        agUiUrlCheck: !config.agUiUrl,
+        returning: 'chatService: undefined'
+      });
       return {
         chatService: undefined,
       };
     }
 
+    console.log('✅ [ChatPlugin] Config validation passed, creating ChatService...');
+
     const chatHeaderButtonRef = React.createRef<ChatHeaderButtonInstance>();
 
     // Initialize chat service with configured AG-UI URL
     this.chatService = new ChatService(config.agUiUrl);
+    console.log('✅ [ChatPlugin] ChatService created:', this.chatService);
 
     // Store reference to chat service for use in subscription
     const chatService = this.chatService;
@@ -54,7 +70,7 @@ export class ChatPlugin implements Plugin<ChatPluginSetup, ChatPluginStart> {
         let unmountComponent: (() => void) | null = null;
 
         const updateVisibility = (currentAppId: string | undefined) => {
-          const shouldShow = currentAppId && currentAppId.startsWith('explore');
+          const shouldShow = !!(currentAppId && currentAppId.startsWith('explore'));
 
           if (shouldShow && !isVisible) {
             // Mount the component
@@ -113,6 +129,11 @@ export class ChatPlugin implements Plugin<ChatPluginSetup, ChatPluginStart> {
       action: async ({ content }: { content: string }) => {
         await chatHeaderButtonRef.current?.startNewConversation({ content });
       },
+    });
+
+    console.log('🎯 [ChatPlugin] Returning ChatPluginStart with chatService:', {
+      chatService: this.chatService,
+      hasChatService: !!this.chatService
     });
 
     return {

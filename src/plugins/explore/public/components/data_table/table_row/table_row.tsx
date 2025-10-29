@@ -82,6 +82,7 @@ export const TableRowUI = ({
     <>
       <TableRowContent
         row={row}
+        index={index}
         columns={columns}
         dataset={dataset}
         onFilter={onFilter}
