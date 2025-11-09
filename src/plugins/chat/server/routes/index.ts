@@ -12,6 +12,8 @@ import {
   Capabilities,
 } from '../../../../core/server';
 import { forwardToMLCommonsAgent } from './ml_routes/ml_commons_agent';
+import { forwardToOasisMLAgent } from './ml_routes/oasis_ml_commons_agent';
+import { OasisServiceSetup } from '../../../../../plugins/NeoDashboardsPlugin/server/oasis/service';
 
 export function defineRoutes(
   router: IRouter,
@@ -20,7 +22,8 @@ export function defineRoutes(
   getCapabilitiesResolver?: () =>
     | ((request: OpenSearchDashboardsRequest) => Promise<Capabilities>)
     | undefined,
-  mlCommonsAgentId?: string
+  mlCommonsAgentId?: string,
+  oasisService?: OasisServiceSetup
 ) {
   // Proxy route for AG-UI requests
   router.post(
@@ -46,15 +49,29 @@ export function defineRoutes(
           const capabilities = await capabilitiesResolver(request);
 
           if (capabilities?.investigation?.agenticFeaturesEnabled === true) {
-            logger.debug('Routing to ML Commons agent proxy');
-            return await forwardToMLCommonsAgent(
-              context,
-              request,
-              response,
-              logger,
-              mlCommonsAgentId
-            );
+            logger.info('✅ Routing to ML Commons agent proxy');
+
+            // Check OASIS availability
+            if (oasisService?.getOasisConfig().enabled) {
+              logger.info('✅ Using OASIS for ML Commons agent');
+              return await forwardToOasisMLAgent(
+                context,
+                request,
+                response,
+                logger,
+                oasisService,
+                mlCommonsAgentId,
+                (request.query as any)?.dataSourceId
+              );
+            } else {
+              // OASIS disabled, fall back to AG-UI
+              logger.info('⚠️ OASIS disabled, falling back to AG-UI');
+            }
+          } else {
+            logger.info('❌ agenticFeaturesEnabled is false/undefined, falling back to AG-UI');
           }
+        } else {
+          logger.info('❌ No capabilities resolver found, falling back to AG-UI');
         }
 
         // Fallback to external AG-UI

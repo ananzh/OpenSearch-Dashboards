@@ -12,11 +12,13 @@ import {
   Plugin,
   Logger,
   OpenSearchDashboardsRequest,
+  Capabilities,
 } from '../../../core/server';
 
 import { ChatPluginSetup, ChatPluginStart } from './types';
 import { defineRoutes } from './routes';
 import { ChatConfigType } from './config';
+import { OasisService } from '../../../../plugins/NeoDashboardsPlugin/server/oasis/service';
 
 /**
  * @experimental
@@ -38,12 +40,16 @@ export class ChatPlugin implements Plugin<ChatPluginSetup, ChatPluginStart> {
     const router = core.http.createRouter();
     const getCapabilitiesResolver = () => this.capabilitiesResolver;
 
+    // Use configuration from opensearch_dashboards.yml
+    const oasisService = new OasisService(this.logger.get('oasis'), config.oasis);
+
     defineRoutes(
       router,
       this.logger,
       config.agUiUrl,
       getCapabilitiesResolver,
-      config.mlCommonsAgentId
+      config.mlCommonsAgentId,
+      oasisService.setup() // Pass directly created OASIS service
     );
 
     return {};
