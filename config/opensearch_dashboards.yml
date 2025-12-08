@@ -420,3 +420,15 @@
 # @experimental Set the value to true to enable context provider
 # contextProvider:
 #   enabled: true
+
+workspace.enabled: true 
+opensearch.ignoreVersionMismatch: true 
+data_source.enabled: true 
+data.savedQueriesNewUI.enabled: true
+chat:
+ enabled: true
+ agUiUrl: "http://localhost:3000"
+ 
+# @experimental Set the value to true to enable context provider
+contextProvider:
+ enabled: true
